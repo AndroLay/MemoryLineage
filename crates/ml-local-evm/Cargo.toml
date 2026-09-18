@@ -1,0 +1,16 @@
+[package]
+name = "ml-local-evm"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Rust/revm execution lane for the MemoryLineage Solidity trust anchor"
+
+[dependencies]
+alloy = { version = "=2.4.2", default-features = false, features = ["sol-types"] }
+hex = "=0.4.3"
+k256 = "=0.13.4"
+ml-core = { path = "../ml-core" }
+ml-spec-types = { path = "../ml-spec-types" }
+revm = { version = "=43.0.2", default-features = false, features = ["std", "secp256k1"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.20"

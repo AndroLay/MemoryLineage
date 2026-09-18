@@ -1,0 +1,6 @@
+{
+  "config_nonce": 1,
+  "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+  "old_authorizer_rejected": "INVALID_AUTHORIZATION",
+  "new_authorizer_accepted": true
+}

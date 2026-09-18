@@ -1,0 +1,16 @@
+{
+  "fixtureId": "silent-rollback-v1",
+  "synthetic": true,
+  "description": "Three private SQLite snapshots used to demonstrate a stale restore.",
+  "snapshots": [
+    { "sequence": 17, "file": "snapshot-17.db", "visibleLabel": "Language preference recorded" },
+    { "sequence": 18, "file": "snapshot-18.db", "visibleLabel": "Evidence-backed claim policy recorded" },
+    { "sequence": 19, "file": "snapshot-19.db", "visibleLabel": "Raw-memory privacy boundary recorded" }
+  ],
+  "attack": {
+    "name": "silent-rollback",
+    "restoredSequence": 17,
+    "attemptedSequence": 20,
+    "expectedContractReason": "BAD_PREVIOUS_STATE"
+  }
+}

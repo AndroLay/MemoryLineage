@@ -1,0 +1,28 @@
+{
+  "evidenceType": "second_rpc_reread_workspace_owned_public_sepolia_deployment",
+  "chainId": "11155111",
+  "rpcUrl": "https://rpc.sepolia.ethpandaops.io",
+  "registryAddress": "0x36fE9FA585565615Adcfe8680a126F770931E160",
+  "blockNumber": 11661815,
+  "deployedCodeKeccak256": "0xad290f74a9143b0e74a602f78cc192d6c4eeec49dec3f03feb7bbdae3ac8097f",
+  "statuses": {
+    "deployment": 1,
+    "registration": 1,
+    "validCommit": 1,
+    "expectedRejectedCommit": 0
+  },
+  "head": {
+    "transitionId": "0x900e8a72ff78e0661102a05e7eb2a7ac5143bbbb385842c2e39fd5c931ad42dc",
+    "stateRoot": "0x8485f63fe68b17121f08c56a88803307d889988854095d18ba49a58c3166cb95",
+    "sequence": 1
+  },
+  "checks": {
+    "codeHashMatches": true,
+    "deploymentMined": true,
+    "registrationMined": true,
+    "validCommitMined": true,
+    "expectedRejectedCommitMined": true,
+    "headMatches": true
+  },
+  "verdict": "PASS"
+}

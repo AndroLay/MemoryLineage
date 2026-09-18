@@ -1,0 +1,26 @@
+{
+  "evidenceType": "workspace_owned_public_sepolia_deployment",
+  "chainId": "11155111",
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "secondRpcUrlConfigured": false,
+  "registryAddress": "0x36fE9FA585565615Adcfe8680a126F770931E160",
+  "deployerAddress": "0x40ecDb20341FF22EDa88ED1F2f9212982756d193",
+  "deploymentTxHash": "0xf1d2a2625a648d71d2a82401b1b512d4717b28ca363826198c78b2278c4a410c",
+  "registerTxHash": "0x3c9ceaed0031102b499eba51ac70701565b18e18495a4af4f69f6890580f3a36",
+  "commitTxHash": "0x16ac926fa87372e11f68cb6cb4bac1c999b182d41b106b15dacb814bef07f0b7",
+  "expectedRejectedTxHash": "0x6f77b1c9076a8ae463563e6f1bc743bfa7a9544d3a286807ef2a4cb14d33b006",
+  "expectedRejectedReceiptStatus": 0,
+  "expectedRejectedReason": "transaction execution reverted",
+  "bytecodeKeccak256": "0x4631444f33499b1f73d3fa26d4f956dba1125d9c6b5c047216a0d4b276cfe077",
+  "deployedCodeKeccak256": "0xad290f74a9143b0e74a602f78cc192d6c4eeec49dec3f03feb7bbdae3ac8097f",
+  "spaceId": "0x910968e7e2ae2899858c72b71683d55d3b1b11a69aae9f38448ee4cbb896580c",
+  "transitionId": "0x900e8a72ff78e0661102a05e7eb2a7ac5143bbbb385842c2e39fd5c931ad42dc",
+  "expectedNextStateRoot": "0x8485f63fe68b17121f08c56a88803307d889988854095d18ba49a58c3166cb95",
+  "onchainHead": {
+    "transitionId": "0x900e8a72ff78e0661102a05e7eb2a7ac5143bbbb385842c2e39fd5c931ad42dc",
+    "stateRoot": "0x8485f63fe68b17121f08c56a88803307d889988854095d18ba49a58c3166cb95",
+    "sequence": 1
+  },
+  "rawPayloadStored": false,
+  "note": "Run evm/reread_sepolia.mjs through a second RPC before treating this as the live gate."
+}

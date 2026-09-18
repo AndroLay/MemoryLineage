@@ -1,0 +1,9 @@
+[application]
+name = "memorylineage-inspector"
+default_platform = "web"
+asset_dir = "assets"
+
+[web.app]
+title = "MemoryLineage Inspector"
+
+[web.resource.dev]

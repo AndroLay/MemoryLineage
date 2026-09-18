@@ -1,0 +1,16 @@
+[package]
+name = "ml-cli"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "MemoryLineage developer and evidence CLI"
+
+[dependencies]
+ml-conformance = { path = "../ml-conformance" }
+ml-evidence = { path = "../ml-evidence" }
+ml-ethereum = { path = "../ml-ethereum" }
+ml-local-evm = { path = "../ml-local-evm" }
+ml-memory-store = { path = "../ml-memory-store" }
+ml-verifier-independent = { path = "../ml-verifier-independent" }
+serde_json = "1.0.151"
+tokio = { version = "=1.53.1", features = ["rt-multi-thread"] }

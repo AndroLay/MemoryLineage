@@ -1,0 +1,15 @@
+{
+  "source": "ERC-8350 test-vectors/v1.json",
+  "initial_controller": "0x2222222222222222222222222222222222222222",
+  "space_salt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "profile_id": "0x2f53a8c7cdfafe7559a285db700638113866e8605b81c9454f0936d67ddbd759",
+  "delta_commitment": "0x2cf1dc108cc32cfe1617db756a7c793f383b67165ea1bb542f456dc6100f967d",
+  "provenance_commitment": "0x4791ee5d37e8fc775d00f82c3d451e6d313aa5fe16dd94de5efdbbb39dc0f05c",
+  "locator_commitment": "0xc5ff571b8429eecd969f718fc45e45017c0d3a217dff401ad1cc752686bac812",
+  "expected_space_id": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+  "expected_experience_delta_typehash": "0x4f020f86bc06d852f1fde17853b4d92a70214eeab8e09718028124af097d070d",
+  "expected_memory_state_typehash": "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb",
+  "expected_memory_space_typehash": "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531",
+  "expected_transition_id": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+  "expected_next_state_root": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+}

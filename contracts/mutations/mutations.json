@@ -1,0 +1,26 @@
+{
+  "evidenceType": "named_mutation_manifest",
+  "cases": [
+    "sequence_gap",
+    "sequence_zero",
+    "rollback_predecessor",
+    "wrong_predecessor_random",
+    "zero_delta_commitment",
+    "zero_profile_id",
+    "unknown_space_a",
+    "unknown_space_b",
+    "wrong_eoa_signer",
+    "missing_signature",
+    "truncated_signature",
+    "signature_byte_tamper",
+    "signature_invalid_v",
+    "wrong_chain_domain",
+    "wrong_contract_domain",
+    "deltaCommitment_signature_binding",
+    "provenanceCommitment_signature_binding",
+    "locatorCommitment_signature_binding",
+    "duplicate_replay",
+    "branch_setup",
+    "parallel_history"
+  ]
+}

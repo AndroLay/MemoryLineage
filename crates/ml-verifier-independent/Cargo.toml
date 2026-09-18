@@ -1,0 +1,14 @@
+[package]
+name = "ml-verifier-independent"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Independent Rust replay verifier for MemoryLineage evidence"
+
+[dependencies]
+hex = "0.4.3"
+ml-spec-types = { path = "../ml-spec-types" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tiny-keccak = { version = "2.0.2", features = ["keccak"] }

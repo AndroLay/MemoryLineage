@@ -1,0 +1,30 @@
+{
+  "name": "memorylineage-auditor",
+  "type": "module",
+  "workspaces": [
+    "apps/inspector"
+  ],
+  "scripts": {
+    "dev": "npm --workspace apps/inspector run dev",
+    "build:inspector": "npm --workspace apps/inspector run build",
+    "test:inspector": "npm --workspace apps/inspector run typecheck",
+    "fixtures:silent-rollback": "python3 fixtures/silent-rollback/create_fixture.py",
+    "test:evm": "node --test evm/test/memory_lineage_registry.test.mjs",
+    "test:python:core": "python3 -m unittest discover -s verifier/python -p 'test_*.py'",
+    "test:research": "python3 -m unittest discover -s research/spikes -p 'test_*.py'",
+    "test:python": "npm run test:python:core && npm run test:research",
+    "test": "npm run test:evm && npm run test:python",
+    "check:boundaries": "bash scripts/check-architecture-boundaries.sh",
+    "check:package": "bash scripts/check-public-package.sh",
+    "check:release": "bash scripts/check-public-package.sh --release",
+    "verify": "bash scripts/verify-local.sh"
+  },
+  "dependencies": {
+    "@ethereumjs/common": "10.1.3",
+    "@ethereumjs/tx": "10.1.3",
+    "@ethereumjs/util": "10.1.3",
+    "@ethereumjs/vm": "10.1.3",
+    "ethers": "6.17.0",
+    "solc": "0.8.36"
+  }
+}

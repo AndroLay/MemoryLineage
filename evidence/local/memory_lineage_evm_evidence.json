@@ -1,0 +1,551 @@
+{
+  "evidenceType": "public_commitment_replay_bundle",
+  "chainId": "31337",
+  "registryAddress": "0xae519fc2ba8e6ffe6473195c092bf1bae986ff90",
+  "registryBytecodeKeccak256": "0x4631444f33499b1f73d3fa26d4f956dba1125d9c6b5c047216a0d4b276cfe077",
+  "conformance": {
+    "source": "ERC-8350 test-vectors/v1.json",
+    "inputs": {
+      "initialController": "0x2222222222222222222222222222222222222222",
+      "spaceSalt": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "expected": {
+      "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+      "experienceDeltaTypehash": "0x4f020f86bc06d852f1fde17853b4d92a70214eeab8e09718028124af097d070d",
+      "memoryStateTypehash": "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb",
+      "memorySpaceTypehash": "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531",
+      "transitionId": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+      "nextStateRoot": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+    },
+    "independentlyComputed": {
+      "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+      "transitionId": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+      "nextStateRoot": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+    },
+    "contract": {
+      "typehashes": {
+        "EXPERIENCE_DELTA_TYPEHASH": "0x4f020f86bc06d852f1fde17853b4d92a70214eeab8e09718028124af097d070d",
+        "MEMORY_STATE_TYPEHASH": "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb",
+        "MEMORY_SPACE_TYPEHASH": "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531"
+      },
+      "transitionId": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+      "nextStateRoot": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+    },
+    "allMatch": true,
+    "fullTransition": {
+      "spaceId": "0xef5037465ae0323637cb58434eb554ae4a1fe1131bcc10888900f2d4cbe349d8",
+      "sequence": 1,
+      "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "deltaCommitment": "0x2cf1dc108cc32cfe1617db756a7c793f383b67165ea1bb542f456dc6100f967d",
+      "provenanceCommitment": "0x4791ee5d37e8fc775d00f82c3d451e6d313aa5fe16dd94de5efdbbb39dc0f05c",
+      "profileId": "0x2f53a8c7cdfafe7559a285db700638113866e8605b81c9454f0936d67ddbd759",
+      "locatorCommitment": "0xc5ff571b8429eecd969f718fc45e45017c0d3a217dff401ad1cc752686bac812",
+      "transitionId": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+      "nextStateRoot": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+    }
+  },
+  "validHistory": [
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 1,
+      "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+      "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+      "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+      "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+      "transitionId": "0xf18d83945658d657fa86b608448112965a79d0108d6cc74984535ff96c6c648a",
+      "nextStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154"
+    },
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 2,
+      "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+      "deltaCommitment": "0x70c41c4f9ee58c1e213fccc61789c279c679d81d605375135f32acbaac4f5b96",
+      "provenanceCommitment": "0x3758d967e79a343ba3d82bf70d3a4ec3e57bf57f0d785152a52459e8ab9ac921",
+      "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+      "locatorCommitment": "0x9a24ce2d5be69dfa1e7ae068aecbb2f41977c990e1bc428aacd645e36b089291",
+      "transitionId": "0x4bdac69d770f7673153d5374806d62d5a50154531dc54acb1b50b7861cff0c56",
+      "nextStateRoot": "0xfe712b7c69938391a471b4bce141dec598f55454e4ee18e7f9b5ba8caa4f8a44"
+    },
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 3,
+      "prevStateRoot": "0xfe712b7c69938391a471b4bce141dec598f55454e4ee18e7f9b5ba8caa4f8a44",
+      "deltaCommitment": "0x1b35440a97fe4643e7d45a9741cf59fa67986265ecd72b404bc2f01a74aec39c",
+      "provenanceCommitment": "0xe47bd1f7582225e22dae60f9d8c6b4f72bae3773057489981d508a665f5f81ef",
+      "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+      "locatorCommitment": "0x20d278f526ece6d7e242aff129e8d39d3ccc9cec2f91fc96fa0c1a1dcfc1c74d",
+      "transitionId": "0x1da1a7218f12dfa220e17867258ee667c7ee9a8932dac4bc9242860b3fd67532",
+      "nextStateRoot": "0xfc5be43ff0bce178d5232434f34593f99657cfd188619ead434e9959aad24e1f"
+    },
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 4,
+      "prevStateRoot": "0xfc5be43ff0bce178d5232434f34593f99657cfd188619ead434e9959aad24e1f",
+      "deltaCommitment": "0xff08754553035b9a1b295f4ba65884ff1aab1a8b8dc64cc190deac966e4adde1",
+      "provenanceCommitment": "0xe9f52d346baa1fe1d52f5755dd78c0b5dc98a16ef724368fbae936e3b6e830cd",
+      "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+      "locatorCommitment": "0x93907829ebbf9cca3a260785e0ae50ce7a9257cfa754b3b924b5c5af62d191c3",
+      "transitionId": "0xb0c88f5a68d45d4b80102b9a8f10b7f0b5cef20acfbe37dcf909f3bb6f3d8ccb",
+      "nextStateRoot": "0x40f89279e6b4dc074fd5163c76e03d6d1116365d8ffbf36307ae160bd65d7163"
+    }
+  ],
+  "authorityHistory": [
+    {
+      "controller": "0x5CbDd86a2FA8Dc4bDdd8a8f69dBa48572EeC07FB",
+      "authorizer": "0x5CbDd86a2FA8Dc4bDdd8a8f69dBa48572EeC07FB",
+      "configNonce": 0,
+      "label": "initial authority"
+    },
+    {
+      "controller": "0x1563915e194D8CfBA1943570603F7606A3115508",
+      "authorizer": "0x1563915e194D8CfBA1943570603F7606A3115508",
+      "configNonce": 1,
+      "label": "rotated authority"
+    }
+  ],
+  "mutationMatrix": [
+    {
+      "name": "sequence_gap",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_SEQUENCE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 3,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0xe25bedf9660f053e1b84873313b148fea1b92abd610390630b3adf584fd002bd",
+        "nextStateRoot": "0xfd0c76e4670fb1fe015bd02f1176a0a86a8443624774b3c2d431f5ab15c30db5"
+      }
+    },
+    {
+      "name": "sequence_zero",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_SEQUENCE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 0,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0xa0ac815624dc83ad1fac07777028a77a3d1703c324146b5553d08afa6b22f93c",
+        "nextStateRoot": "0x9958eb4bdc0d5a6b62f4d3c17060d4f4584c23c4a2d73941e944333823e3466e"
+      }
+    },
+    {
+      "name": "rollback_predecessor",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_PREVIOUS_STATE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0x301944f0ed703095afe3d7ca9d2d860eb65cb6ad7e1dbb02fc6f53a7230b232a",
+        "nextStateRoot": "0x48f631b4aee8d2ec75d122f74653be8aa78507f12b08fa40ca214670ea5ee07a"
+      }
+    },
+    {
+      "name": "wrong_predecessor_random",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_PREVIOUS_STATE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x1212121212121212121212121212121212121212121212121212121212121212",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0x0418fcae5eed8035dcfd6a72b7a8135695445de36e46571bd55972b9652f19d2",
+        "nextStateRoot": "0x87199f3b141edaf1ad7d7d8afcf5435074c386f54bf2f0dea7a2b01cce031243"
+      }
+    },
+    {
+      "name": "zero_delta_commitment",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "ZERO_DELTA_COMMITMENT",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0x2ca590496976465a473551dc0e1ceeccfda1817f095cd933661d7116f2a43929",
+        "nextStateRoot": "0x2f67a17cf088228c6ca5ca8a06a6222ddbd42bdf0ef9d6a839070dd2837f1f9f"
+      }
+    },
+    {
+      "name": "zero_profile_id",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "ZERO_PROFILE_ID",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xdf6de04fe6793ac31ccc855f368c8be3aba83350a3635b43748f5629ea9ebefb",
+        "nextStateRoot": "0xf26c448970cb19737334e234490a533f08ddafc794a516a14361120c307f6f1d"
+      }
+    },
+    {
+      "name": "unknown_space_a",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "UNKNOWN_SPACE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0xe2dd9426a52feef4307a7151551e253ce95547d9b7539370dbd0754c3ad544c3",
+        "sequence": 1,
+        "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0x67aea4bba2909cefc15645e3aea9c4bb649f9cee57d0743fddb617c5c5ee521e",
+        "nextStateRoot": "0x0270ca16337e2046b433505650852885e7f9c89d29272f4f1cad55c16b9b704f"
+      }
+    },
+    {
+      "name": "unknown_space_b",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "UNKNOWN_SPACE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0xda6d79423703cde7a7be0a9079034e7dbd4da9a0b568aa19f38bc99980b47ebe",
+        "sequence": 1,
+        "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0xacc97900f5ee5e41fa9bf9032a761509c92e0d95fc702ffe0dc59cecc66e0f87",
+        "nextStateRoot": "0x0e3d09a13d85e4def171d3d5110410389f222fcf08977122afca27e32e5dbb8d"
+      }
+    },
+    {
+      "name": "wrong_eoa_signer",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "missing_signature",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "truncated_signature",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "signature_byte_tamper",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "signature_invalid_v",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "wrong_chain_domain",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "wrong_contract_domain",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0xff3eafdc2910d1a1113ed29509db42b4bd809954fca7a820b7dceb8fde2455cd",
+        "nextStateRoot": "0x32d94f594668f5093084bfdc4d9baa4dbf4c6584ed893f7c8516a8aecd3ab93e"
+      }
+    },
+    {
+      "name": "deltaCommitment_signature_binding",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x8d36edef7a9b483ac3de9ac77044a2ede87e24df7a2f23e315c7c71da7c25936",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0x03bd3a81895b6c8124b02677bd3797fd39ee2fb569891c5c7e3d2a5e8dd94973",
+        "nextStateRoot": "0x949049749a48520b53a9c6cc58ef9837522f857dd38a3e09a95756244dc97d7b"
+      }
+    },
+    {
+      "name": "provenanceCommitment_signature_binding",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x7aec17ca64dfcb2635a511fd851fc0b4e72c4da8a35a9b5b57e9f44bc85c214d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0x0ef97e35f69ef2f65271a736f9e6021e7c27d124b6913d57e971fa6c3d26b1e3",
+        "nextStateRoot": "0x6ff374167768fc707244cfdddb4463fb5b834ed7c6b6b5d9edb20e2225e12cd9"
+      }
+    },
+    {
+      "name": "locatorCommitment_signature_binding",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "INVALID_AUTHORIZATION",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x177192158e62f1d2adcafbe90af1b9500fae6981ddc199d5b3920472be1a6716",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x25ef229a2d36c75e3fd814a34df13145a754bad923cba4a22b799f6d6b6082ba",
+        "transitionId": "0xd6ae9f8145c2fac5537a1e586638a72adf1e73ad29684339e35b4ea652cbc89f",
+        "nextStateRoot": "0x162798fa0613698cb2d93b313b6dfc52baad94d403cb11f9db7ed09020df3979"
+      }
+    },
+    {
+      "name": "duplicate_replay",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_SEQUENCE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 1,
+        "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "deltaCommitment": "0x84461672714b3aabdc992a8d52502ea368210ec4ba487d1c6d710eeab4cca829",
+        "provenanceCommitment": "0x2b870e8113ad26ee1c1e6edaf2a433a51ebfe9ade8a78f43d244d8aaa217ae6e",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x4b746d772c0c3683b71de4f53c967cbc89d884e194d81b2a2d8c0ecac2579243",
+        "transitionId": "0xf18d83945658d657fa86b608448112965a79d0108d6cc74984535ff96c6c648a",
+        "nextStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154"
+      }
+    },
+    {
+      "name": "branch_setup",
+      "expected": "PASS",
+      "observed": {
+        "status": "PASS",
+        "reason": null,
+        "gasUsed": "125349",
+        "receiptStatus": 1
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x5d6af0b3a8ae23ccde45dd973c98ce14e925946cdcc038e6c6266a2abc37f51a",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0x85b6285f138d5110c6b7d53a507b815556f6a458467008403fac072dc02171fc",
+        "nextStateRoot": "0xb510ec02db1a67474a93759841707ea7158514b5554ddbbf35c2d3071611b407"
+      }
+    },
+    {
+      "name": "parallel_history",
+      "expected": "REJECT",
+      "observed": {
+        "status": "REJECT",
+        "reason": "BAD_SEQUENCE",
+        "gasUsed": null,
+        "receiptStatus": 0
+      },
+      "transition": {
+        "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+        "sequence": 2,
+        "prevStateRoot": "0x696dfcc7064d64491afda2f927950d209d45251d98abf196555c59a5d631f154",
+        "deltaCommitment": "0x9df48b54db2d4426ce253ec9a8c077272e931af2ac9fabb5d53946684124e58b",
+        "provenanceCommitment": "0x6ef9912c19f56f51c4815a45734715b87b67153f1eaff57f376e915f46b82c9d",
+        "profileId": "0x45d4b22f9d4811ac680a8edeee2b98acc6b726e8da1d366daa58068bc0fdee0f",
+        "locatorCommitment": "0x65ac1eb822d98a64692cf6fb678d3a1010ec86b08fc79970a2d80320adcddfa6",
+        "transitionId": "0x0307dc4caecb8980671e19a5889f2ce0b31ead15e79f41799d521973123795d6",
+        "nextStateRoot": "0x2999b79192e0275321bd746965cb95b6fa8253f02258f20bd0d03f7b72802f5c"
+      }
+    }
+  ],
+  "rawPayloadStored": false
+}

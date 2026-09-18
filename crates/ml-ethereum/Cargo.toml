@@ -1,0 +1,23 @@
+[package]
+name = "ml-ethereum"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Read-only Alloy integration for the MemoryLineage Ethereum trust anchor"
+
+[dependencies]
+alloy = { version = "=2.4.2", default-features = false, features = ["sol-types"] }
+thiserror = "2.0.20"
+hex = "=0.4.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+alloy = { version = "=2.4.2", default-features = false, features = [
+    "contract",
+    "provider-http",
+    "providers",
+    "reqwest",
+    "reqwest-rustls-tls",
+    "rpc-types",
+    "serde",
+] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls"] }

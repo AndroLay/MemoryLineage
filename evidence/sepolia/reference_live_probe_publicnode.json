@@ -1,0 +1,13 @@
+{
+  "evidenceType": "external_reference_live_read_only",
+  "chainId": "11155111",
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "blockNumber": 11661417,
+  "referenceRegistry": "0xDdf21937ba80b5fF973610877A0955b320C91241",
+  "typehashes": {
+    "experienceDelta": "0x4f020f86bc06d852f1fde17853b4d92a70214eeab8e09718028124af097d070d",
+    "memoryState": "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb",
+    "memorySpace": "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531"
+  },
+  "note": "This is the upstream reference deployment; it is not workspace-owned deployment evidence."
+}

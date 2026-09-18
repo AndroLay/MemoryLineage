@@ -1,0 +1,1 @@
+{"compiler":"0.8.36+commit.8a079791.Emscripten.clang","contracts":{"MemoryLineageRegistry":"memory_lineage_registry_creation.hex","Mock1271Authorizer":"mock_1271_authorizer_creation.hex"},"source":"contracts/solidity","generatedBy":"scripts/export-solidity-artifacts.mjs"}

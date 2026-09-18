@@ -1,0 +1,9 @@
+[package]
+name = "ml-spec-types"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Passive MemoryLineage protocol and evidence structures."
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }

@@ -1,0 +1,32 @@
+# Dependencies and interpreter output
+node_modules/
+**/node_modules/
+**/.next/
+out/
+**/*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret
+
+# Generated compiler and verification output
+target/
+**/target/
+evm/artifacts/
+evidence/generated/
+*.log
+
+# Private owner-supplied design and research references
+/internal/
+
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/

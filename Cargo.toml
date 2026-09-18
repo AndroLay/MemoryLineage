@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/ml-spec-types",
+    "crates/ml-core",
+    "crates/ml-evidence",
+    "crates/ml-conformance",
+    "crates/ml-memory-store",
+    "crates/ml-ethereum",
+    "crates/ml-local-evm",
+    "crates/ml-cli",
+    "crates/ml-verifier-independent",
+    "apps/inspector",
+    "xtask",
+]

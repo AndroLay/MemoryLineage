@@ -1,0 +1,10 @@
+[package]
+name = "ml-memory-store"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Deterministic private SQLite memory snapshots for MemoryLineage"
+
+[dependencies]
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
+thiserror = "2.0.20"

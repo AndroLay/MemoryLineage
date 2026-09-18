@@ -1,0 +1,1 @@
+"""Throwaway ResolverCompat spike artifacts."""

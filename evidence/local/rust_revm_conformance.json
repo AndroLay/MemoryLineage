@@ -1,0 +1,12 @@
+{
+  "pinned_vector": "MATCH",
+  "published_evidence": "VERIFIED",
+  "rust_reference": "MATCH",
+  "independent_verifier": "MATCH",
+  "revm_silent_rollback": "REJECTED/BAD_PREVIOUS_STATE",
+  "revm_core_mutations": "20/20 REJECTED",
+  "revm_erc1271": "ACCEPTED_THEN_REJECTED/INVALID_AUTHORIZATION",
+  "revm_authority_rotation": "NONCE_1/OLD_REJECTED/NEW_ACCEPTED",
+  "transition_id": "0xdd00dd6eb3aec704b5455502647a0caacf23be6c724eda4a60d9645291e7f4e5",
+  "next_state_root": "0x9684a8d3571c5cd9c1e3abb1b0c0797b9fef6965e9002aeefba91e8cb1163754"
+}
