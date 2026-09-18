@@ -32,7 +32,7 @@ the history that was committed, not whether the underlying memory is true.
 | Browser | Rust/WASM Dioxus Inspector with Inspect, History, Tampering Lab, and Verify surfaces |
 | Trust anchor | Solidity registry on Ethereum Sepolia with EIP-712 and ERC-1271 authorization paths |
 | Private domain | SQLite snapshots, raw memory, documents, prompts, and locator contents remain off-chain |
-| Evidence | Four local committed transitions, a 20-case Rust/revm mutation lane, Sepolia deployment, and second-endpoint readback |
+| Evidence | Four local committed transitions, a 20-case Rust/revm mutation lane, Sepolia deployment/readback, and a read-only fixture-commitment rollback observation |
 | Independent path | Separate Rust verifier; historical Python and JavaScript lanes remain compatibility oracles |
 | Repository license | MIT; see the single root [LICENSE](LICENSE) file |
 
@@ -56,6 +56,12 @@ stack:
   [`0x36fE9FA585565615Adcfe8680a126F770931E160`](https://sepolia.etherscan.io/address/0x36fE9FA585565615Adcfe8680a126F770931E160),
   with a recorded readback observation.
 
+The current read-only Sepolia rollback observation is published at
+[`evidence/sepolia/silent_rollback_fixture_eth_call.json`](evidence/sepolia/silent_rollback_fixture_eth_call.json).
+It uses the commitment derived from fixture snapshot 17, returns
+`BAD_PREVIOUS_STATE`, broadcasts no transaction, and does not claim a new
+deployment or semantic memory verdict.
+
 The static Dioxus release artifact and browser interaction smoke path are
 verified. The pinned Dioxus development emitter still has a known WASM
 exceptions-proposal limitation, so `dx serve --web` is documented separately
@@ -67,6 +73,9 @@ The following remain open submission work and are not claimed as complete:
 - demo video and pitch-deck artifacts;
 - a final submission tag;
 - deployed hosting for the static website.
+
+This repository intentionally does not perform public deployment, staging, or
+video recording as part of its local release-preparation gate.
 
 ## Core experience
 
@@ -282,8 +291,10 @@ cargo run -q -p ml-cli -- conformance
 cargo run -q -p ml-cli -- verify evidence/local/memory_lineage_evm_evidence.json
 ~~~
 
-The Rust gate runs formatting, Clippy, workspace tests, conformance, the
-independent verifier path, and the Dioxus WASM compile.
+The Rust gate runs formatting, Clippy, workspace tests, deterministic fixture
+manifest regeneration, pinned conformance, independent replay, the Rust/revm
+Silent Rollback/mutation/ERC-1271/authority lanes, the Dioxus WASM compile, and
+the public package boundary check.
 
 ### Build the website
 
@@ -304,6 +315,17 @@ to `index.html` so the deep links remain available.
 The pinned Dioxus development emitter currently has a known WASM
 exceptions-proposal limitation. The static release build is the verified
 browser path for the current toolchain.
+
+For the complete local release-preparation gate, including the static build,
+Chromium route/interaction smoke, and tracked-file package boundary check:
+
+~~~bash
+cargo xtask release
+cargo xtask release-manifest /tmp/memorylineage-release-manifest.json
+~~~
+
+This prepares artifacts without deploying hosting, staging, or recording the
+demo video.
 
 ### CLI execution lanes
 
@@ -349,8 +371,9 @@ gates for a release candidate:
 
 | Evidence | Proves | Does not prove |
 | --- | --- | --- |
-| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, conformance, independent replay path, and Dioxus WASM compilation for the executed checks | Deployed hosting, human understanding, or semantic truth of private memory |
+| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, fixture manifest reproducibility, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
 | `cargo xtask build-web` | The pinned Dioxus application produces a static release artifact | A deployment platform serves every deep link correctly |
+| `cargo xtask smoke-web` | Chromium checks the static SPA fallback, 11 routes, Silent Rollback, tamper rejection, and evidence restore | Production hosting, staging, or assistive-technology acceptance |
 | Rust/revm reports | The curated Solidity artifact agrees with the Rust lane for the published Silent Rollback, mutation, ERC-1271, and authority-rotation cases | Formal verification or all possible EVM/runtime behavior |
 | `npm run verify` | Preserved EVM, Python, fixture, Next.js typecheck/build, boundary, and package checks | Rust website visual quality or external user validation |
 | Sepolia deployment/readback | Recorded code, receipts, head, and second-endpoint observations match the published bundle | Light-client, consensus, or multi-provider consensus proof |

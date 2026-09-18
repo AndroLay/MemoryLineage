@@ -2,7 +2,8 @@
 
 MemoryLineage uses a small evidence-first monorepo. The structure follows the
 useful repository discipline of the RevenueCat reference project while
-remaining proportional to a protocol, verifier, and future Inspector MVP.
+remaining proportional to a protocol, verifier, and Rust/WASM Inspector
+submission product.
 
 ## Source boundaries
 

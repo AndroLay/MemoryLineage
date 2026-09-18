@@ -31,14 +31,15 @@ pub fn HomePage(data: UiData) -> Element {
                 }
             }
             section { class: "home-metrics section-wrap",
-                div { class: "home-metric", span { class: "metric-icon", "◎" }, div { strong { "{data.bundle.valid_history.len()}" }, span { "committed states in published replay" } } }
+                div { class: "home-metric", span { class: "metric-icon", "◎" }, div { strong { "{data.fixture.snapshots.len()}" }, span { "private snapshots in Silent Rollback fixture" } } }
                 div { class: "home-metric", span { class: "metric-icon", "◇" }, div { strong { "{data.mutation_rejected}/{data.mutation_count}" }, span { "published mutation rejections" } } }
-                div { class: "home-metric", span { class: "metric-icon", "◆" }, div { strong { "Sepolia" }, span { "observed Ethereum trust anchor" } } }
+                div { class: "home-metric", span { class: "metric-icon", "◆" }, div { strong { "{data.bundle.valid_history.len()}" }, span { "states in protocol replay corpus" } } }
             }
             section { class: "home-overview section-wrap content-panel",
                 div { class: "panel-title-row home-overview-heading",
                     div { p { class: "panel-kicker", "CANONICAL OVERVIEW" } h2 { "Committed private-memory lineage" } p { class: "panel-subtitle", "Latest committed state is shown on the right; the raw memory remains private." } }
-                    SourceLine { source: "PUBLISHED EVIDENCE".to_owned(), note: "local replay / Rust verifier".to_owned() }
+                    SourceLine { source: "PRIVATE FIXTURE".to_owned(), note: format!("{} snapshots / commitments only", data.fixture.snapshots.len()) }
+                    SourceLine { source: "PROTOCOL CORPUS".to_owned(), note: format!("{} transitions / Rust verifier", data.bundle.valid_history.len()) }
                 }
                 div { class: "home-overview-layout",
                     div { class: "home-overview-lineage",
@@ -117,7 +118,8 @@ pub fn InspectPage(data: UiData) -> Element {
                             ReadoutRow { label: "Network".to_owned(), value: format!("Ethereum Sepolia / chain {}", data.deployment.chain_id), detail: "read-only trust anchor".to_owned() }
                             ReadoutRow { label: "Registry".to_owned(), value: short_hash(&data.deployment.registry_address, 12, 8), detail: "workspace-owned deployment".to_owned() }
                             ReadoutRow { label: "Space ID".to_owned(), value: short_hash(&data.deployment.space_id, 14, 8), detail: "Sepolia registration".to_owned() }
-                            ReadoutRow { label: "Published replay head".to_owned(), value: format!("sequence {}", head.delta.sequence), detail: "local EVM evidence / chain 31337".to_owned() }
+                            ReadoutRow { label: "Protocol replay head".to_owned(), value: format!("sequence {}", head.delta.sequence), detail: "local EVM evidence / chain 31337".to_owned() }
+                            ReadoutRow { label: "Private fixture".to_owned(), value: format!("{} snapshots", data.fixture.snapshots.len()), detail: "raw SQLite remains local".to_owned() }
                         }
                         dl { class: "readout-list",
                             ReadoutRow { label: "State root".to_owned(), value: short_hash(&head.next_state_root, 14, 8), detail: "deterministically derived".to_owned() }
@@ -137,7 +139,8 @@ pub fn InspectPage(data: UiData) -> Element {
                     h2 { "Two lanes, explicitly labeled." }
                     p { "Sepolia is the public Ethereum anchor. The detailed four-transition replay shown here is the published local evidence bundle." }
                     SourceLine { source: "SEPOLIA / OBSERVED".to_owned(), note: format!("block {} / reread PASS", data.reread.block_number) }
-                    SourceLine { source: "LOCAL / PUBLISHED".to_owned(), note: format!("{} transitions / Rust replay", data.bundle.valid_history.len()) }
+                    SourceLine { source: "PRIVATE FIXTURE".to_owned(), note: format!("{} snapshots / commitments only", data.fixture.snapshots.len()) }
+                    SourceLine { source: "PROTOCOL CORPUS".to_owned(), note: format!("{} transitions / Rust replay", data.bundle.valid_history.len()) }
                     div { class: "mini-divider" }
                     div { class: "panel-kicker", "PRIVACY BOUNDARY" }
                     div { class: "boundary-columns",
@@ -203,7 +206,7 @@ pub fn HistoryPage(data: UiData) -> Element {
                         for authority in data.bundle.authority_history.iter() {
                             div { class: "authority-row", key: "{authority.config_nonce}-{authority.authorizer}", span { class: "authority-index", "{authority.config_nonce}" }, div { strong { "{authority.label.as_deref().unwrap_or(\"authority\")}" }, code { "{short_hash(&authority.authorizer, 10, 6)}" } } }
                         }
-                        p { class: "small-note", "Authority rotation is represented by configNonce and must be considered when replaying authorization." }
+                        p { class: "small-note", "Authority rotation is represented by configNonce and must be considered when replaying authorization. This history belongs to the protocol test corpus." }
                     }
                 }
             }
@@ -288,15 +291,18 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
     let was_attempted = attempted();
     let is_busy = busy();
     let result_detail = detail();
+    let stale_predecessor = data.restored_snapshot().snapshot_commitment.clone();
     let run_rollback = {
         let mut attempted = attempted;
         let mut busy = busy;
         let mut detail = detail;
+        let stale_predecessor = stale_predecessor.clone();
         move |_| {
             attempted.set(true);
             busy.set(true);
+            let stale_predecessor = stale_predecessor.clone();
             spawn(async move {
-                match live_silent_rollback().await {
+                match live_silent_rollback(&stale_predecessor).await {
                     Ok(value) => detail.set(value),
                     Err(reason) => detail.set(format!("LIVE RPC UNAVAILABLE / USING PUBLISHED EVIDENCE / BAD_PREVIOUS_STATE ({reason})")),
                 }
@@ -343,15 +349,15 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "CANONICAL VS ATTEMPT" } h2 { "{selected_scenario.title()}" } }, StatusBadge { label: result_label.to_owned(), tone: result_tone.to_owned() } }
                     if selected_scenario == Scenario::SilentRollback {
                         div { class: "rollback-story",
-                            div { class: "rollback-column", span { class: "panel-kicker", "CANONICAL HEAD" }, div { class: "snapshot-stack", span { "SNAPSHOT 17" }, span { "↓" }, span { "SNAPSHOT 18" }, span { "↓" }, strong { "SNAPSHOT 19 / COMMITTED" } }, code { "root {short_hash(&data.head().next_state_root, 12, 8)}" } }
+                            div { class: "rollback-column", span { class: "panel-kicker", "PRIVATE FIXTURE / CANONICAL SNAPSHOT" }, div { class: "snapshot-stack", for snapshot in data.fixture.snapshots.iter() { if snapshot.sequence == data.canonical_snapshot().sequence { strong { "SNAPSHOT {snapshot.sequence} / COMMITTED" } } else { span { "SNAPSHOT {snapshot.sequence}" } } if snapshot.sequence != data.canonical_snapshot().sequence { span { "↓" } } } }, code { "protocol root {short_hash(&data.head().next_state_root, 12, 8)}" } }
                             div { class: "rollback-operator", "→" }
-                            div { class: "rollback-column rollback-column-attempt", span { class: "panel-kicker", "LOCAL RESTORE ATTEMPT" }, div { class: "snapshot-stack snapshot-stack-danger", strong { "RESTORE SNAPSHOT 17" }, span { "↓" }, span { "TRY NEXT SEQUENCE" } }, code { "prev root 0x0000…0000" } }
+                            div { class: "rollback-column rollback-column-attempt", span { class: "panel-kicker", "LOCAL RESTORE ATTEMPT" }, div { class: "snapshot-stack snapshot-stack-danger", strong { "RESTORE SNAPSHOT {data.restored_snapshot().sequence}" }, span { "↓" }, span { "TRY NEXT SEQUENCE" } }, code { "stale snapshot commitment {short_hash(&data.restored_snapshot().snapshot_commitment, 12, 8)}" } }
                         }
                         div { class: if was_attempted { "result-panel result-panel-rejected" } else { "result-panel" },
                             if was_attempted {
                                 div { class: "result-heading", span { class: "result-symbol", "×" }, div { strong { "REJECTED" }, small { "{result_detail}" } } }
                                 h3 { "The restored snapshot cannot replace the committed history." }
-                                p { "The local memory snapshot changed. The registry's canonical head did not. The exact contract reason is preserved above." }
+                                p { "The local memory snapshot changed. The registry's canonical head did not. The stale predecessor was derived from the private fixture commitment, while the exact contract reason is preserved above." }
                                 button { class: "button button-quiet", onclick: move |_| attempted.set(false), "Reset rehearsal" }
                             } else {
                                 div { class: "result-heading result-heading-ready", span { class: "result-symbol", "◉" }, div { strong { "READY TO REHEARSE" }, small { "Browser will try read-only Sepolia eth_call first." } } }
@@ -543,7 +549,7 @@ pub fn VerifyPage(data: UiData) -> Element {
                 p { class: "announcement", "{announcement}" }
             }
             section { class: "section-wrap verify-bottom-grid",
-                div { class: "content-panel", div { class: "panel-kicker", "SECONDARY AUDITOR" }, h3 { "Rust CLI" }, p { "The same evidence can be checked outside the browser with the independent Rust verifier." }, code { class: "command-block", "cargo run -p ml-verifier-independent -- evidence.json" } }
+                div { class: "content-panel", div { class: "panel-kicker", "SECONDARY AUDITOR" }, h3 { "Rust CLI" }, p { "The same evidence can be checked outside the browser with the independent Rust verifier." }, code { class: "command-block", "cargo run -q -p ml-cli -- verify evidence.json" } }
                 div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "TRUST MODEL" }, h3 { "Do not trust the dashboard." }, p { "Trust the deterministic bundle, the pinned semantics, and a verifier you can run separately." }, a { class: "text-link", href: "/security", "Read the boundary →" } }
             }
         }
@@ -580,6 +586,7 @@ pub fn EvidencePage(data: UiData) -> Element {
                 }
             }
             section { class: "section-wrap evidence-lower-grid",
+                div { class: "content-panel", div { class: "panel-kicker", "DEMO FIXTURE" }, h3 { "Private snapshots remain separate from the protocol corpus." }, p { "The local Silent Rollback fixture contains {data.fixture.snapshots.len()} SQLite snapshots. Only their deterministic commitments are surfaced here; raw values are never bundled into public evidence." }, div { class: "reason-grid", for snapshot in data.fixture.snapshots.iter() { div { class: "reason-cell", key: "fixture-{snapshot.sequence}", code { "SNAPSHOT {snapshot.sequence}" }, span { "{snapshot.visible_label.as_deref().unwrap_or(\"private state\")}" } } } } }
                 div { class: "content-panel", div { class: "panel-kicker", "PUBLISHED ADVERSARIAL CORPUS" }, h3 { "{data.mutation_rejected}/{data.mutation_count} expected rejection cases observed" }, div { class: "reason-grid reason-grid-wide", for mutation in data.bundle.mutation_matrix.iter().filter(|mutation| mutation.expected == "REJECT").take(8) { div { class: "reason-cell", key: "{mutation.name}", code { "{mutation.observed.reason.as_deref().unwrap_or(\"NO_REASON\")}" }, span { "{mutation.name}" } } } }, a { class: "text-link", href: "/lab", "Open Tampering Lab →" } }
                 div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "EXTERNAL REPRODUCTION" }, h3 { "NOT YET DEMONSTRATED" }, p { "No independent human clean-checkout result is claimed in this workspace yet. The repository's own gates remain separate from that future evidence." }, a { class: "text-link", href: "/reproduce", "See the reproducible commands →" } }
             }
@@ -588,6 +595,7 @@ pub fn EvidencePage(data: UiData) -> Element {
                 div { class: "artifact-row", span { "evidence/local/rust_revm_conformance.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/rust_revm_mutation_matrix.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/sepolia/sepolia_reread.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
+                div { class: "artifact-row", span { "evidence/sepolia/silent_rollback_fixture_eth_call.json" }, StatusBadge { label: "READ-ONLY".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "contracts/vectors/erc8350_conformance.json" }, StatusBadge { label: "PINNED".to_owned(), tone: "warning".to_owned() } }
             }
         }
@@ -680,11 +688,11 @@ pub fn PriorWorkPage(data: UiData) -> Element {
             section { class: "section-wrap provenance-grid",
                 div { class: "content-panel provenance-column", div { class: "panel-kicker", "BEFORE 3RD-WEB-HACK" }, h2 { "Standards and primitives" }, ProvenanceRow { label: "ERC-8350 draft semantics".to_owned(), detail: "pinned as an external standard snapshot".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "EIP-712".to_owned(), detail: "Ethereum typed-data authorization primitive".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "ERC-1271".to_owned(), detail: "contract-based signature validation boundary".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "Ethereum Sepolia".to_owned(), detail: "public testnet used as trust anchor".to_owned(), tone: "observed".to_owned() } }
                 div { class: "provenance-divider", "→" }
-                div { class: "content-panel provenance-column provenance-column-built", div { class: "panel-kicker", "BUILT / EVIDENCED FOR THIS SUBMISSION" }, h2 { "Independent audit product" }, ProvenanceRow { label: "MemoryLineage Inspector".to_owned(), detail: "Rust/WASM evidence workspace".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Rust reference + verifier".to_owned(), detail: "separate deterministic replay paths".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Silent Rollback fixture".to_owned(), detail: "synthetic SQLite snapshots 17 / 18 / 19".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Tampering corpus".to_owned(), detail: format!("{}/{} expected rejection cases", data.mutation_rejected, data.mutation_count), tone: "verified".to_owned() }, ProvenanceRow { label: "Sepolia evidence".to_owned(), detail: "deployment + second RPC reread".to_owned(), tone: "verified".to_owned() } }
+                div { class: "content-panel provenance-column provenance-column-built", div { class: "panel-kicker", "BUILT / EVIDENCED FOR THIS SUBMISSION" }, h2 { "Independent audit product" }, ProvenanceRow { label: "MemoryLineage Inspector".to_owned(), detail: "Rust/WASM evidence workspace".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Rust reference + verifier".to_owned(), detail: "separate deterministic replay paths".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Silent Rollback fixture".to_owned(), detail: format!("private SQLite snapshots {} / {} / {}", data.fixture.snapshots[0].sequence, data.fixture.snapshots[1].sequence, data.fixture.snapshots[2].sequence), tone: "verified".to_owned() }, ProvenanceRow { label: "Tampering corpus".to_owned(), detail: format!("{}/{} expected rejection cases", data.mutation_rejected, data.mutation_count), tone: "verified".to_owned() }, ProvenanceRow { label: "Sepolia evidence".to_owned(), detail: "deployment + second RPC reread".to_owned(), tone: "verified".to_owned() } }
             }
             section { class: "section-wrap content-panel provenance-ledger",
                 div { class: "panel-title-row", div { p { class: "panel-kicker", "SUBMISSION IDENTITY" }, h2 { "Only finalized values are listed." } }, StatusBadge { label: "TRANSPARENT".to_owned(), tone: "warning".to_owned() } }
-                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "NOT CONFIGURED".to_owned(), detail: "no fabricated external destination".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "release identity remains pending".to_owned() } }
+                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "private repository / configured".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "release identity remains pending".to_owned() } }
                 p { class: "small-note", "MemoryLineage does not claim to have invented ERC-8350 or to be the first AI memory lineage system. Its distinction is the independent, authorization-bound audit surface and reproducible evidence around the pinned semantics." }
             }
             section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", a { href: "/architecture", "Architecture →" }, a { href: "/evidence", "Public evidence →" }, a { href: "/security", "Security boundary →" }, a { href: "/reproduce", "Reproduce →" } } }

@@ -5,53 +5,107 @@
 Operate. The visitor is investigating a committed memory history and needs a
 clear path from inspection to falsification to independent verification.
 
-## Visual world
+## Visual direction
 
-The Inspector uses a stage-manager cue board as its visual carrier. A memory
-history is a sequence of cues held in a ruled horizontal rail. The current
-canonical state is lit in cool white and cobalt; a rollback attempt enters as a
-rose warning cue and stays visible when rejected. The interface is an
-instrument for an incident review, not a generic crypto dashboard.
+The Inspector is a light evidence workspace carried by a stage-manager cue
+rail. A memory history is a sequence of cues held in a ruled timeline; the
+current canonical state is shown in cobalt, a rejected attempt in rose, and
+authority or scope warnings in brass. The interface is an incident-review
+instrument, not a generic crypto dashboard.
+
+The public website has four primary operational surfaces:
+
+- `Inspect` — current canonical state and source boundary;
+- `History` — ordered transitions and authority history;
+- `Tampering Lab` — falsifiable attack scenarios;
+- `Verify` — portable evidence import, export, tamper, and replay.
+
+Seven supporting surfaces complete the audit argument:
+
+- Home;
+- Transition detail;
+- Public Evidence;
+- Architecture;
+- Security and Scope;
+- Reproduce;
+- Prior Work and Submission Provenance.
+
+The primary navigation stays limited to the four operational surfaces. The
+supporting surfaces are reached through contextual links and the footer.
 
 ## First viewport contract
 
 Within the first viewport the visitor sees:
 
 - the product sentence “Verify the history, not the memory.”;
-- a real four-state evidence timeline;
-- the current verdict `VERIFIED`;
+- a real private-fixture and protocol-corpus distinction;
+- the current evidence source and verdict;
 - the raw-memory boundary;
 - the `Run Silent Rollback` action.
 
+Reference screenshot values are never runtime fixtures. Counts, roots,
+addresses, blocks, and statuses come from repository evidence or a labeled
+live observation.
+
 ## Tokens
 
-- Ink: `#17212b` for the dark stage surface and `#f4f0e7` for paper surfaces.
-- Cobalt: `#355c91` for canonical sequence and active controls.
-- Rose: `#b9574f` for rejected or dangerous attempts.
-- Brass: `#b08342` for warnings and authority changes.
-- Sage: `#5e8b73` for verified results.
-- Hairlines: `rgba(23, 33, 43, 0.16)` on paper and `rgba(244, 240, 231, 0.16)` on ink.
+- Navy: `#142238` for the top navigation.
+- Ink: `#101a31` for headings and primary text.
+- Muted: `#6d80a5` for supporting text.
+- Cobalt: `#1769f5` for canonical sequence and active controls.
+- Cobalt soft: `#edf4ff` for selected evidence surfaces.
+- Border: `#dbe5f3` for hairlines and table rules.
+- Surface: `#ffffff` for the main canvas.
+- Surface 2: `#f7faff` for supporting panels.
+- Success: `#18b979` for verified checks.
+- Danger: `#ed5963` for rejected attempts.
+- Warning: `#e4a12c` for authority and scope warnings.
+
+A color is never the only carrier of a status. Status text and a shape or icon
+remain visible in every state.
 
 ## Type and composition
 
-Use a warm serif stack for the main statement and a restrained sans stack for
-controls. Use a monospace stack only for hashes, sequences, and machine output.
-The timeline is the main composition; panels support it with a single elevation
-language and 12px corners. Avoid gradient text, glass decoration, and repeated
-metric-card grids.
+Use a restrained sans-serif family for controls, labels, and body copy. Use a
+strong display weight for page headings. Use monospace only for hashes,
+addresses, sequences, blocks, error codes, and machine output.
+
+Use a primary workspace, a secondary sidebar, tables, readout rows, and a
+timeline. Avoid gradient text, glass decoration, repeated metric-card grids,
+random crypto illustrations, and large empty marketing spaces.
 
 ## Interaction and states
 
-- Buttons have visible focus and pressed states.
-- The rollback action shows `RUNNING`, then `REJECTED` with the exact contract
-  reason.
-- Live Sepolia inspection shows `LIVE` or an explicit `PUBLISHED EVIDENCE`
-  fallback when the browser cannot reach the RPC.
-- Evidence verification shows loading, valid, malformed, and tampered states.
-- Reduced-motion users receive the same state changes without animated sweeps.
+- Buttons have visible focus, pressed, disabled, and keyboard states.
+- Silent Rollback shows loading, then `REJECTED / BAD_PREVIOUS_STATE` from a
+  real read-only contract call or an explicit `PUBLISHED EVIDENCE` fallback.
+- Evidence verification shows valid, malformed, unsupported, tampered, and
+  restored states.
+- `OUT OF SCOPE` is reserved for semantic poisoning and similar properties the
+  protocol intentionally does not evaluate.
+- Reduced-motion users receive the same state changes without sweeping motion.
 
 ## Responsive behavior
 
-Desktop uses a two-column incident header and a wide timeline. At narrow widths
-the timeline becomes a vertical cue rail, controls remain full-width, and hash
-details wrap without horizontal scrolling.
+The main review target is 1440px or wider; the compact target is 390px. Desktop
+uses a two-column incident header and wide timeline. At narrow widths, the
+timeline becomes a vertical rail or contained scroll region, sidebars stack,
+three-column lab content becomes a reading sequence, and hash details wrap or
+truncate with a copy affordance. There must be no page-level horizontal
+overflow.
+
+## Truth boundary
+
+The UI may show a private snapshot commitment, but it must never expose raw
+memory, private locator content, signing keys, or private prompt/context. The
+website distinguishes `LIVE RPC / OBSERVED`, `PUBLISHED EVIDENCE`, `VERIFIED`,
+`REJECTED`, `OUT OF SCOPE`, and `NOT YET DEMONSTRATED` consistently.
+
+The exact Solidity machine reason `BAD_PREVIOUS_STATE` remains visible even
+when the surrounding copy says “stale predecessor”.
+
+## Release boundary
+
+The private references under `internal/design/` are design inputs only. They
+are never imported by application code or included in a release archive. The
+runtime is rebuilt from Rust/WASM, HTML, CSS, SVG, and the supplied logo asset.

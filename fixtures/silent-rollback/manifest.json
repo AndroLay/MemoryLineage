@@ -1,16 +1,33 @@
 {
-  "fixtureId": "silent-rollback-v1",
-  "synthetic": true,
-  "description": "Three private SQLite snapshots used to demonstrate a stale restore.",
-  "snapshots": [
-    { "sequence": 17, "file": "snapshot-17.db", "visibleLabel": "Language preference recorded" },
-    { "sequence": 18, "file": "snapshot-18.db", "visibleLabel": "Evidence-backed claim policy recorded" },
-    { "sequence": 19, "file": "snapshot-19.db", "visibleLabel": "Raw-memory privacy boundary recorded" }
-  ],
   "attack": {
-    "name": "silent-rollback",
-    "restoredSequence": 17,
     "attemptedSequence": 20,
-    "expectedContractReason": "BAD_PREVIOUS_STATE"
-  }
+    "expectedContractReason": "BAD_PREVIOUS_STATE",
+    "name": "silent-rollback",
+    "restoredSequence": 17
+  },
+  "commitmentDomain": "memorylineage/private-snapshot/v1",
+  "description": "Three private SQLite snapshots used to demonstrate a stale restore.",
+  "fixtureId": "silent-rollback-v1",
+  "generatedBy": "ml-cli fixture manifest",
+  "snapshots": [
+    {
+      "file": "snapshot-17.db",
+      "sequence": 17,
+      "snapshotCommitment": "0x5697cf66e6fb2b729232781038ae35e2775328258ef40e16e3d034ea8b9d5ddf",
+      "visibleLabel": "Language preference recorded"
+    },
+    {
+      "file": "snapshot-18.db",
+      "sequence": 18,
+      "snapshotCommitment": "0x7e2b2e701d72af7aa3fe209fc0bc38c42eb8d58af3bc7a3057ed8984b4618e79",
+      "visibleLabel": "Evidence-backed claim policy recorded"
+    },
+    {
+      "file": "snapshot-19.db",
+      "sequence": 19,
+      "snapshotCommitment": "0xca7b6ef14ecb2be0457d745abc63e4a7297ba7969edb5aa345720152503d004b",
+      "visibleLabel": "Raw-memory privacy boundary recorded"
+    }
+  ],
+  "synthetic": true
 }

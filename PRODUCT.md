@@ -9,7 +9,8 @@ web
 ## Stack
 
 Rust 1.97.1, Dioxus Web/WASM, the Rust evidence and verification crates,
-read-only Alloy JSON-RPC access, and the Solidity Ethereum registry. The
+read-only Alloy host access plus a small Rust/WASM browser JSON-RPC transport,
+and the Solidity Ethereum registry. The
 preserved Next.js/React Inspector and Python replay lane are compatibility and
 migration oracles, not the primary product path.
 

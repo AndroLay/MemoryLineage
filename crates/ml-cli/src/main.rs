@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
 
 use ml_conformance::run_pinned;
-use ml_ethereum::{inspect_registry, simulate_silent_rollback};
+use ml_ethereum::{inspect_registry, simulate_silent_rollback_with_predecessor};
 use ml_evidence::{load_public_replay_bundle, public_replay_to_v2, write_v2_bundle};
 use ml_memory_store::{
     create_silent_rollback_fixture, inspect_silent_rollback_fixture, restore_snapshot,
+    snapshot_observations,
 };
 use ml_verifier_independent::verify_file;
 use std::path::{Path, PathBuf};
@@ -22,6 +23,7 @@ fn usage() {
         "Usage:\n  \
   cargo run -p ml-cli -- fixture create [ROOT]\n  \
   cargo run -p ml-cli -- fixture inspect [ROOT]\n  \
+  cargo run -p ml-cli -- fixture manifest [ROOT] [OUTPUT]\n  \
   cargo run -p ml-cli -- fixture restore <SOURCE> <DESTINATION>\n  \
   cargo run -p ml-cli -- verify <EVIDENCE.json>\n  \
   cargo run -p ml-cli -- conformance\n  \
@@ -64,6 +66,45 @@ fn fixture_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     snapshot.values.len()
                 );
             }
+        }
+        "manifest" => {
+            let root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_fixture_root);
+            let output = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| root.join("manifest.json"));
+            let mut manifest: serde_json::Value =
+                serde_json::from_str(&std::fs::read_to_string(root.join("manifest.json"))?)?;
+            let original_snapshots = manifest
+                .get("snapshots")
+                .and_then(serde_json::Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let mut observations = serde_json::to_value(snapshot_observations(&root)?)?;
+            if let Some(observations) = observations.as_array_mut() {
+                for observation in observations {
+                    let sequence = observation
+                        .get("sequence")
+                        .and_then(serde_json::Value::as_u64);
+                    if let Some(original) = original_snapshots.iter().find(|snapshot| {
+                        snapshot.get("sequence").and_then(serde_json::Value::as_u64) == sequence
+                    }) && let Some(label) = original.get("visibleLabel")
+                    {
+                        observation["visibleLabel"] = label.clone();
+                    }
+                }
+            }
+            manifest["commitmentDomain"] = serde_json::json!("memorylineage/private-snapshot/v1");
+            manifest["generatedBy"] = serde_json::json!("ml-cli fixture manifest");
+            manifest["snapshots"] = observations;
+            std::fs::write(
+                &output,
+                format!("{}\n", serde_json::to_string_pretty(&manifest)?),
+            )?;
+            println!("wrote private-snapshot commitments to {}", output.display());
         }
         "restore" => {
             let source = args
@@ -177,7 +218,23 @@ fn live_command(action: &str) -> Result<(), Box<dyn std::error::Error>> {
             println!("live Sepolia inspection: {inspection:#?}");
         }
         "rollback" => {
-            let simulation = runtime.block_on(simulate_silent_rollback(&rpc, &registry, &space))?;
+            let manifest = std::fs::read_to_string(
+                repository_root().join("fixtures/silent-rollback/manifest.json"),
+            )?;
+            let manifest: serde_json::Value = serde_json::from_str(&manifest)?;
+            let stale_predecessor = manifest
+                .get("snapshots")
+                .and_then(serde_json::Value::as_array)
+                .and_then(|snapshots| snapshots.first())
+                .and_then(|snapshot| snapshot.get("snapshotCommitment"))
+                .and_then(serde_json::Value::as_str)
+                .ok_or("fixture manifest has no snapshotCommitment")?;
+            let simulation = runtime.block_on(simulate_silent_rollback_with_predecessor(
+                &rpc,
+                &registry,
+                &space,
+                stale_predecessor,
+            ))?;
             println!("live Silent Rollback simulation: {simulation:#?}");
         }
         _ => return Err(format!("unknown live action: {action}").into()),

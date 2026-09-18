@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" role="img" aria-labelledby="title desc">
+  <title id="title">MemoryLineage mark</title>
+  <desc id="desc">A navy MemoryLineage M joined to a three-node lineage.</desc>
+  <path fill="#06245f" d="M235 920V348l314 238 314-238v572h-111V575L582 747h-66L346 575v345z"/>
+  <circle cx="449" cy="838" r="82" fill="#dbe5f3"/>
+  <circle cx="745" cy="838" r="82" fill="#dbe5f3"/>
+  <circle cx="1046" cy="838" r="82" fill="#1769f5"/>
+  <path stroke="#dbe5f3" stroke-width="46" d="M531 838h132m164 0h137"/>
+</svg>

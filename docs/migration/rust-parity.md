@@ -10,14 +10,15 @@ not a judge score.
 | Rust independent evidence replay | PASS | `cargo run -q -p ml-cli -- verify evidence/local/memory_lineage_evm_evidence.json` |
 | Structured conformance report | MATCH | `cargo run -q -p ml-cli -- conformance` |
 | SQLite snapshot read/restore | PASS | `cargo test -p ml-memory-store` |
+| SQLite fixture commitment manifest | PASS | `cargo xtask verify` regenerates the manifest in `/tmp` and compares it byte-for-byte |
 | Alloy host ABI and Sepolia read | PASS | `cargo run -q -p ml-cli -- live inspect` |
 | Real Sepolia stale predecessor `eth_call` | PASS | `cargo run -q -p ml-cli -- live rollback` |
 | Dioxus native compile | PASS | `cargo check -p memorylineage-inspector` |
 | Dioxus WASM compile | PASS | `cargo check -p memorylineage-inspector --target wasm32-unknown-unknown` |
 | Dioxus release artifact DOM smoke | PASS | Chromium loaded the static release artifact and rendered the hero, case board, tabs, and Verify view |
 | Dioxus release interaction smoke | PASS | Chromium/CDP clicked Silent Rollback, Verify, and Tamper; observed `BAD_PREVIOUS_STATE`, `VERIFIED`, and `TRANSITION_ID_MISMATCH` |
-| Dioxus public route smoke | PASS | Chromium/CDP loaded `/`, `/inspect`, `/history`, `/history/4`, `/lab`, `/verify`, `/evidence`, `/architecture`, `/security`, `/reproduce`, and `/prior-work` through a static SPA fallback |
-| Dioxus responsive smoke | PASS | Chromium rendered the Home page at the compact 390px viewport without critical clipping; full dev-server responsive parity remains separately qualified below |
+| Dioxus public route smoke | PASS | `cargo xtask smoke-web` loads `/`, `/inspect`, `/history`, `/history/3`, `/lab`, `/verify`, `/evidence`, `/architecture`, `/security`, `/reproduce`, and `/prior-work` through a static SPA fallback |
+| Dioxus responsive smoke | PASS | `cargo xtask smoke-web` renders Home at a 390px viewport and checks for page-level horizontal overflow; full dev-server parity remains separately qualified below |
 | Evidence decoder regression | PASS | `cargo test -p memorylineage-inspector` loads the bundled deployment, reread, replay, mutation, and conformance artifacts |
 | Legacy nine-step gate | PASS | `npm run verify` |
 | Dioxus dev-server route and full responsive parity | NOT YET DEMONSTRATED | `dx serve --web` currently fails in the dev emitter on the generated WASM exceptions proposal; release static artifact smoke is separate |
@@ -37,7 +38,9 @@ artifact and contain no raw memory or signing keys.
 The current browser target uses Rust/WASM verification and a browser JSON-RPC
 transport for read-only Sepolia `eth_call`. If the public RPC cannot be read,
 the UI must label the published evidence fallback rather than presenting it as
-a live result.
+a live result. The static release smoke is the reproducible browser gate; the
+pinned `dx serve --web` dev emitter remains separately qualified because it
+currently rejects the generated WASM exceptions proposal.
 
 The Rust/revm lane currently covers the registry deployment, registration,
 three valid direct-authorized commits, Rust reference root comparison, the

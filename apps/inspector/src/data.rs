@@ -7,6 +7,8 @@ use serde::Deserialize;
 
 pub const LOCAL_EVIDENCE: &str =
     include_str!("../../../evidence/local/memory_lineage_evm_evidence.json");
+pub const SILENT_ROLLBACK_MANIFEST: &str =
+    include_str!("../../../fixtures/silent-rollback/manifest.json");
 const SEPOLIA_DEPLOYMENT: &str = include_str!("../../../evidence/sepolia/sepolia_deployment.json");
 const SEPOLIA_REREAD: &str = include_str!("../../../evidence/sepolia/sepolia_reread.json");
 const CONFORMANCE_REPORT: &str = include_str!("../../../evidence/local/rust_revm_conformance.json");
@@ -260,10 +262,49 @@ pub struct ConformanceEvidence {
     pub next_state_root: Option<String>,
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateSnapshotRecord {
+    pub sequence: u64,
+    pub file: String,
+    #[serde(rename = "visibleLabel")]
+    pub visible_label: Option<String>,
+    #[serde(rename = "snapshotCommitment")]
+    pub snapshot_commitment: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct SilentRollbackAttack {
+    pub name: String,
+    #[serde(rename = "restoredSequence")]
+    pub restored_sequence: u64,
+    #[serde(rename = "attemptedSequence")]
+    pub attempted_sequence: u64,
+    #[serde(rename = "expectedContractReason")]
+    pub expected_contract_reason: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PrivateFixtureManifest {
+    #[serde(rename = "fixtureId")]
+    pub fixture_id: String,
+    pub synthetic: bool,
+    pub description: String,
+    #[serde(rename = "commitmentDomain")]
+    pub commitment_domain: String,
+    #[serde(default, rename = "generatedBy")]
+    pub generated_by: Option<String>,
+    pub snapshots: Vec<PrivateSnapshotRecord>,
+    pub attack: SilentRollbackAttack,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiData {
     pub bundle: PublicReplayBundle,
     pub v2: EvidenceBundleV2,
+    pub fixture: PrivateFixtureManifest,
     pub report: Option<VerificationReport>,
     pub deployment: DeploymentRecord,
     pub reread: SepoliaReread,
@@ -277,6 +318,8 @@ impl UiData {
         let bundle: PublicReplayBundle =
             serde_json::from_str(LOCAL_EVIDENCE).expect("published evidence must remain valid");
         let v2 = public_replay_to_v2(&bundle);
+        let fixture: PrivateFixtureManifest = serde_json::from_str(SILENT_ROLLBACK_MANIFEST)
+            .expect("private fixture manifest must remain valid");
         let report = verify_v2_bundle(&v2).ok();
         let deployment =
             serde_json::from_str(SEPOLIA_DEPLOYMENT).expect("Sepolia deployment evidence valid");
@@ -298,6 +341,7 @@ impl UiData {
         Self {
             bundle,
             v2,
+            fixture,
             report,
             deployment,
             reread,
@@ -333,6 +377,23 @@ impl UiData {
             .find(|transition| transition.delta.sequence == sequence)
             .unwrap_or_else(|| self.head())
     }
+
+    pub fn restored_snapshot(&self) -> &PrivateSnapshotRecord {
+        self.fixture
+            .snapshots
+            .iter()
+            .find(|snapshot| snapshot.sequence == self.fixture.attack.restored_sequence)
+            .unwrap_or_else(|| {
+                self.fixture
+                    .snapshots
+                    .first()
+                    .expect("fixture is non-empty")
+            })
+    }
+
+    pub fn canonical_snapshot(&self) -> &PrivateSnapshotRecord {
+        self.fixture.snapshots.last().expect("fixture is non-empty")
+    }
 }
 
 pub fn verify_evidence_json(json: &str) -> Result<VerificationReport, String> {
@@ -365,5 +426,15 @@ mod tests {
         assert_eq!(data.bundle.mutation_matrix.len(), 21);
         assert!(data.report.is_some());
         assert_eq!(data.deployment.chain_id, "11155111");
+        assert_eq!(data.fixture.snapshots.len(), 3);
+        assert_eq!(
+            data.fixture.attack.expected_contract_reason,
+            "BAD_PREVIOUS_STATE"
+        );
+        assert!(
+            data.restored_snapshot()
+                .snapshot_commitment
+                .starts_with("0x")
+        );
     }
 }

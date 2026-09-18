@@ -29,13 +29,23 @@ independent verifier can replay the evidence without receiving the raw memory.
 
 ```text
 contracts/vectors ───────┬──> evm
-                         └──> verifier/python
-contracts/solidity ─────────> evm compiler/harness
+                         ├──> verifier/python
+                         └──> crates/ml-core and ml-conformance
+contracts/solidity ─────────> evm compiler/harness and crates/ml-local-evm
+
+fixtures/silent-rollback ──> crates/ml-memory-store and ml-cli
+evidence/local,sepolia ────> crates/ml-evidence, ml-cli, and apps/inspector
+crates/ml-spec-types ──────> passive formats only
+crates/ml-core ────────────> Rust reference algorithms
+crates/ml-verifier-independent ──> separate replay algorithms
+apps/inspector ────────────> Dioxus/WASM presentation and read-only RPC
 
 evidence/public ─────────────> verifier and documentation tools
 research/ and docs/ ──────────> no executable product code
 ```
 
-The separate Python replay implementation is an intentional independence
-boundary. It must not import JavaScript output or execute the EVM harness as its
-verification mechanism.
+The separate Python replay implementation is an intentional historical
+independence boundary. The Rust independent verifier follows the same rule: it
+may consume passive evidence structures, but it must not import `ml-core`'s
+hash/state-transition implementation. Neither verifier may execute the EVM
+harness as its verification mechanism.

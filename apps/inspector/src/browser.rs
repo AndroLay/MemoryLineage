@@ -73,7 +73,7 @@ fn decode_head(value: &str) -> Result<(u64, String), String> {
     Ok((sequence, root))
 }
 
-pub async fn live_silent_rollback() -> Result<String, String> {
+pub async fn live_silent_rollback(stale_predecessor: &str) -> Result<String, String> {
     #[cfg(target_arch = "wasm32")]
     {
         let head_data =
@@ -87,8 +87,9 @@ pub async fn live_silent_rollback() -> Result<String, String> {
             .as_str()
             .ok_or_else(|| "HEAD_RESULT_NOT_STRING".to_owned())?;
         let (sequence, canonical_root) = decode_head(head_hex)?;
-        let rollback_data = ml_ethereum::silent_rollback_call_data(SEPOLIA_SPACE, sequence)
-            .map_err(|error| error.to_string())?;
+        let rollback_data =
+            ml_ethereum::silent_rollback_call_data(SEPOLIA_SPACE, sequence, stale_predecessor)
+                .map_err(|error| error.to_string())?;
         let attempt = rpc(
             "eth_call",
             serde_json::json!([{"to": SEPOLIA_REGISTRY, "data": rollback_data}, "latest"]),
@@ -106,6 +107,7 @@ pub async fn live_silent_rollback() -> Result<String, String> {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
+        let _ = stale_predecessor;
         Err("BROWSER_RPC_UNAVAILABLE".to_owned())
     }
 }

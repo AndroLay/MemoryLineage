@@ -34,7 +34,7 @@ pub fn TopNavigation(route: Route) -> Element {
             }
             div { class: "topbar-meta",
                 span { class: "source-chip source-observed", span { class: "source-dot" }, "SEPOLIA / READ-ONLY" }
-                span { class: "topbar-muted", "GITHUB / NOT CONFIGURED" }
+                a { class: "topbar-muted topbar-link", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noreferrer", "GITHUB / PRIVATE REPO" }
             }
         }
     }

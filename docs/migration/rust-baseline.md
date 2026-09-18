@@ -24,9 +24,10 @@ Dioxus CLI: not installed at baseline; source and WASM checks are now available
 solc executable: not installed; legacy lane uses the pinned npm solc package
 ```
 
-This workspace has no usable Git history, so no baseline commit or tag can be
-recorded without violating the repository preservation rule. The source,
-curated evidence, and `package-lock.json` are the preserved rebuild inputs.
+At the time this baseline was captured, the extracted workspace had no usable
+Git history. The source, curated evidence, and `package-lock.json` were the
+preserved rebuild inputs. The current repository now has a normal Git history;
+this paragraph remains a historical note about the migration starting point.
 
 ## Migration rule
 

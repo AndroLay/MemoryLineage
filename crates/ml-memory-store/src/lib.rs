@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use rusqlite::{Connection, params};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -11,6 +12,18 @@ pub const SCHEMA_VERSION: i64 = 1;
 pub struct MemorySnapshot {
     pub sequence: u64,
     pub values: BTreeMap<String, String>,
+}
+
+/// A public observation of a private snapshot. It deliberately contains only
+/// the deterministic commitment, never the snapshot values themselves.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct SnapshotObservation {
+    pub sequence: u64,
+    pub file: String,
+    #[serde(rename = "visibleLabel", skip_serializing_if = "Option::is_none")]
+    pub visible_label: Option<String>,
+    #[serde(rename = "snapshotCommitment")]
+    pub snapshot_commitment: String,
 }
 
 #[derive(Debug, Error)]
@@ -123,6 +136,41 @@ pub fn restore_snapshot(
     write_snapshot(destination, snapshot.sequence, &snapshot.values)
 }
 
+/// Derive a deterministic commitment for a private snapshot without exposing
+/// its contents. This is a fixture commitment, not a claim that the raw
+/// SQLite state is a semantic memory root.
+pub fn snapshot_commitment(snapshot: &MemorySnapshot) -> String {
+    let mut canonical = format!(
+        "memorylineage/private-snapshot/v1|sequence={}|",
+        snapshot.sequence
+    );
+    for (key, value) in &snapshot.values {
+        canonical.push_str(key);
+        canonical.push('=');
+        canonical.push_str(value);
+        canonical.push('|');
+    }
+    ml_core::keccak_text(&canonical)
+}
+
+pub fn snapshot_observations(
+    root: impl AsRef<Path>,
+) -> Result<Vec<SnapshotObservation>, MemoryStoreError> {
+    let root = root.as_ref();
+    inspect_silent_rollback_fixture(root)?
+        .into_iter()
+        .map(|snapshot| {
+            let file = format!("snapshot-{}.db", snapshot.sequence);
+            Ok(SnapshotObservation {
+                sequence: snapshot.sequence,
+                file,
+                visible_label: None,
+                snapshot_commitment: snapshot_commitment(&snapshot),
+            })
+        })
+        .collect()
+}
+
 pub fn silent_rollback_states() -> [(u64, &'static [(&'static str, &'static str)]); 3] {
     [
         (17, &[("language", "Indonesian")]),
@@ -224,5 +272,18 @@ mod tests {
         assert_eq!(snapshot.values["language"], "Indonesian");
         assert!(!snapshot.values.contains_key("privacy"));
         let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn snapshot_commitment_is_deterministic_and_private() {
+        let snapshots = inspect_silent_rollback_fixture(existing_fixture_root())
+            .expect("existing fixture should be readable by Rust");
+        let first = snapshot_commitment(&snapshots[0]);
+        let second = snapshot_commitment(&snapshots[0]);
+        assert_eq!(first, second);
+        assert!(first.starts_with("0x"));
+        assert_eq!(first.len(), 66);
+        assert_ne!(first, snapshot_commitment(&snapshots[1]));
+        assert!(!first.contains("Indonesian"));
     }
 }

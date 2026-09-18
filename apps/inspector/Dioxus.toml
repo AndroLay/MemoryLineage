@@ -4,6 +4,6 @@ default_platform = "web"
 asset_dir = "assets"
 
 [web.app]
-title = "MemoryLineage Inspector"
+title = "MemoryLineage — Verify the history, not the memory."
 
 [web.resource.dev]

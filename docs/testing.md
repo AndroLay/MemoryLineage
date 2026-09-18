@@ -8,6 +8,28 @@ Rust-first gate:
 cargo xtask verify
 ```
 
+The gate includes Rust formatting, Clippy, workspace tests, pinned conformance,
+independent evidence replay, the Rust/revm Silent Rollback/mutation/ERC-1271/
+authority lanes, the WASM compile, and the public package boundary check.
+
+The static browser acceptance gate is separate and reproducible after the
+release artifact exists:
+
+```bash
+cargo xtask build-web
+cargo xtask smoke-web
+# or, for the complete local release-preparation sequence:
+cargo xtask release
+```
+
+`smoke-web` uses only Python's standard library and a locally installed
+Chromium. It serves the static output with an `index.html` fallback, checks all
+11 routes, checks the 390px viewport for page-level overflow, then exercises
+Silent Rollback, evidence tampering, and evidence restore. It does not deploy
+or contact a staging environment. `cargo xtask release` runs the same smoke
+after building the release artifact and then checks the release package
+boundary.
+
 The release website artifact is built separately because it invokes the pinned
 Dioxus CLI:
 
@@ -65,6 +87,7 @@ cargo run -q -p ml-cli -- revm erc1271
 cargo run -q -p ml-cli -- revm authority-rotation
 cargo run -q -p ml-cli -- evidence export-v2 evidence/local/memory_lineage_evm_evidence.json /tmp/memorylineage-evidence-v2.json
 cargo run -q -p ml-cli -- verify /tmp/memorylineage-evidence-v2.json
+cargo run -q -p ml-cli -- fixture manifest
 python3 verifier/verify.py evidence/local/memory_lineage_evm_evidence.json
 ```
 
@@ -101,6 +124,10 @@ and the historical V1 public replay shape.
 Sepolia deployment and readback artifacts are observations of the named
 deployment at the time they were generated. A second RPC readback is an
 independent endpoint observation; it is not a light-client or consensus proof.
+The current read-only fixture rehearsal is recorded in
+`evidence/sepolia/silent_rollback_fixture_eth_call.json`; it uses the existing
+deployment, a commitment from fixture snapshot 17, and broadcasts no
+transaction.
 
 ## Reproducibility rules
 

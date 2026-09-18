@@ -31,23 +31,27 @@ if find contracts verifier evm scripts apps crates fixtures xtask -type f \( -na
 fi
 
 if [[ "$MODE" == "--release" ]]; then
-  if [[ -e internal ]]; then
-    echo "FAIL: release package contains private internal material: internal" >&2
+  tracked_forbidden="$(git ls-files | rg '(^|/)(internal|target|node_modules|\.next|out|evidence/generated)(/|$)|(__pycache__|\.pyc|\.pyo)$' || true)"
+  if [[ -n "$tracked_forbidden" ]]; then
+    echo "FAIL: release would contain ignored/private/generated tracked paths:" >&2
+    echo "$tracked_forbidden" >&2
     exit 1
   fi
-  for generated_path in evidence/generated; do
-    if [[ -e "$generated_path" ]]; then
-      echo "FAIL: release package contains generated path: $generated_path" >&2
+
+  package_root="${RELEASE_PACKAGE_ROOT:-}"
+  if [[ -n "$package_root" ]]; then
+    if [[ ! -d "$package_root" ]]; then
+      echo "FAIL: RELEASE_PACKAGE_ROOT does not exist: $package_root" >&2
       exit 1
     fi
-  done
-  if find . -type d \( -name target -o -name node_modules -o -name .next -o -name out \) -print -quit | grep -q .; then
-    echo "FAIL: release package contains dependency or build output" >&2
-    exit 1
-  fi
-  if find . -type d -name '__pycache__' -o -type f \( -name '*.pyc' -o -name '*.pyo' \) | grep -q .; then
-    echo "FAIL: release package contains Python cache output" >&2
-    exit 1
+    if find "$package_root" -type d \( -name internal -o -name target -o -name node_modules -o -name .next -o -name out -o -name __pycache__ \) -print -quit | grep -q .; then
+      echo "FAIL: extracted release package contains private or generated output" >&2
+      exit 1
+    fi
+    if find "$package_root" -type f \( -name '*.pyc' -o -name '*.pyo' \) -print -quit | grep -q .; then
+      echo "FAIL: extracted release package contains Python cache output" >&2
+      exit 1
+    fi
   fi
 fi
 

@@ -27,14 +27,16 @@ when the legacy compatibility oracle is needed.
    verdict, the Sepolia observation or published-evidence source label, and the
    raw-memory boundary.
 2. Choose `Run Silent Rollback`. The browser reads the observed canonical head,
-   constructs a stale-predecessor call, and sends it to the deployed registry
-   with `eth_call`; no transaction is broadcast. The local SQLite fixture and
+   constructs a stale-predecessor call using the commitment of the restored
+   private fixture snapshot, and sends it to the deployed registry with
+   `eth_call`; no transaction is broadcast. The local SQLite fixture and
    Rust/revm lane provide the reproducible offline counterpart.
 3. Show `REJECTED / BAD_PREVIOUS_STATE`. The response comes from the existing
    Solidity registry, not a browser-only rule. If the public RPC is unavailable,
    the UI labels the result `PUBLISHED EVIDENCE`.
 4. Open `History` to inspect the four public transition records. Payload,
-   provenance, and locator values are not included.
+   provenance, and locator values are not included. The three private fixture
+   snapshots are shown as a separate commitment-only lane.
 5. Open `Verify`, choose `Export evidence.json`, and run the independent Rust path:
 
   ```bash
@@ -56,6 +58,6 @@ content is true, safe, or semantically correct.
 ## Fallback behavior
 
 `Read Sepolia now` attempts a read-only `head` and `spaceAuthorization` call
-with viem. When browser access to the public RPC is unavailable, the page
-labels the result `PUBLISHED EVIDENCE` and shows the recorded second-endpoint
-readback instead.
+through the Rust/WASM browser JSON-RPC transport. When browser access to the
+public RPC is unavailable, the page labels the result `PUBLISHED EVIDENCE` and
+shows the recorded second-endpoint readback instead.

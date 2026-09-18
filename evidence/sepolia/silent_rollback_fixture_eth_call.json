@@ -1,0 +1,25 @@
+{
+  "evidenceType": "read_only_eth_call_silent_rollback_fixture",
+  "chainId": "11155111",
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "registryAddress": "0x36fE9FA585565615Adcfe8680a126F770931E160",
+  "spaceId": "0x910968e7e2ae2899858c72b71683d55d3b1b11a69aae9f38448ee4cbb896580c",
+  "canonicalHead": {
+    "sequence": 1,
+    "stateRoot": "0x8485f63fe68b17121f08c56a88803307d889988854095d18ba49a58c3166cb95"
+  },
+  "attempt": {
+    "sequence": 2,
+    "stalePredecessor": "0x5697cf66e6fb2b729232781038ae35e2775328258ef40e16e3d034ea8b9d5ddf",
+    "source": "fixtures/silent-rollback/manifest.json / snapshot 17",
+    "rawMemoryPublished": false
+  },
+  "result": {
+    "status": "REJECTED",
+    "reason": "BAD_PREVIOUS_STATE",
+    "transactionBroadcast": false,
+    "canonicalRootReturned": "0x8485f63fe68b17121f08c56a88803307d889988854095d18ba49a58c3166cb95"
+  },
+  "sourceCommand": "cargo run -q -p ml-cli -- live rollback",
+  "note": "Read-only eth_call against the existing deployment. This proves the registry rejects the fixture commitment as a stale predecessor; it does not claim a new Sepolia demo space or a semantic memory verdict."
+}

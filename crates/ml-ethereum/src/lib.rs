@@ -105,6 +105,7 @@ pub fn head_call_data(space_id: &str) -> Result<String, EthereumError> {
 pub fn silent_rollback_call_data(
     space_id: &str,
     canonical_sequence: u64,
+    stale_predecessor: &str,
 ) -> Result<String, EthereumError> {
     let call = MemoryLineageRegistry::commitTransitionCall {
         delta: ExperienceDelta {
@@ -112,7 +113,7 @@ pub fn silent_rollback_call_data(
             sequence: canonical_sequence
                 .checked_add(1)
                 .ok_or_else(|| EthereumError::Rpc("canonical sequence overflow".to_owned()))?,
-            prevStateRoot: B256::ZERO,
+            prevStateRoot: bytes32(stale_predecessor)?,
             deltaCommitment: B256::from([0x11; 32]),
             provenanceCommitment: B256::from([0x22; 32]),
             profileId: B256::from([0x33; 32]),
@@ -188,6 +189,22 @@ pub async fn simulate_silent_rollback(
     registry_address: &str,
     space_id: &str,
 ) -> Result<RollbackSimulation, EthereumError> {
+    simulate_silent_rollback_with_predecessor(
+        rpc_url,
+        registry_address,
+        space_id,
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+    )
+    .await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn simulate_silent_rollback_with_predecessor(
+    rpc_url: &str,
+    registry_address: &str,
+    space_id: &str,
+    stale_predecessor: &str,
+) -> Result<RollbackSimulation, EthereumError> {
     let provider = provider(rpc_url)?;
     let registry = address(registry_address)?;
     let space = bytes32(space_id)?;
@@ -210,7 +227,7 @@ pub async fn simulate_silent_rollback(
         sequence: canonical_sequence
             .checked_add(1)
             .ok_or_else(|| EthereumError::Rpc("canonical sequence overflow".to_owned()))?,
-        prevStateRoot: B256::ZERO,
+        prevStateRoot: bytes32(stale_predecessor)?,
         deltaCommitment: B256::from([0x11; 32]),
         provenanceCommitment: B256::from([0x22; 32]),
         profileId: B256::from([0x33; 32]),
@@ -238,5 +255,25 @@ pub async fn simulate_silent_rollback(
                 Err(EthereumError::UnexpectedRevert(message))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{EthereumError, silent_rollback_call_data};
+
+    const SPACE: &str = "0x910968e7e2ae2899858c72b71683d55d3b1b11a69aae9f38448ee4cbb896580c";
+    const ZERO: &str = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    const STALE: &str = "0x5697cf66e6fb2b729232781038ae35e2775328258ef40e16e3d034ea8b9d5ddf";
+
+    #[test]
+    fn rollback_call_binds_the_fixture_predecessor() {
+        let zero_call = silent_rollback_call_data(SPACE, 1, ZERO).expect("zero call is valid");
+        let stale_call = silent_rollback_call_data(SPACE, 1, STALE).expect("stale call is valid");
+        assert_ne!(zero_call, stale_call);
+        assert!(matches!(
+            silent_rollback_call_data(SPACE, 1, "0x12"),
+            Err(EthereumError::InvalidBytes32(_))
+        ));
     }
 }

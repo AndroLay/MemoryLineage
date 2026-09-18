@@ -38,6 +38,8 @@ code { font-family: var(--mono); font-size: .79em; letter-spacing: -.02em; }
 .nav-link:hover, .nav-link-active { color: #fff; border-bottom-color: var(--cobalt); }
 .topbar-meta { display: flex; align-items: center; gap: 16px; margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: .06em; white-space: nowrap; }
 .topbar-muted { color: #7f91b0; }
+.topbar-link { text-decoration: none; transition: color .18s ease; }
+.topbar-link:hover, .topbar-link:focus-visible { color: #ffffff; }
 
 .page { max-width: 1420px; margin: 0 auto; padding: clamp(28px, 4vw, 56px) clamp(20px, 4vw, 64px) 72px; }
 .workspace-page { max-width: 1500px; }

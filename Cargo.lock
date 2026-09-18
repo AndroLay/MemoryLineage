@@ -3847,7 +3847,9 @@ dependencies = [
 name = "ml-memory-store"
 version = "0.1.0"
 dependencies = [
+ "ml-core",
  "rusqlite",
+ "serde",
  "thiserror 2.0.20",
 ]
 
@@ -6676,6 +6678,9 @@ dependencies = [
 [[package]]
 name = "xtask"
 version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "xxhash-rust"
