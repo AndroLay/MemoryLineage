@@ -21,7 +21,9 @@ pub fn TopNavigation(route: Route) -> Element {
     rsx! {
         header { class: "topbar",
             a { class: "brand", href: "/", aria_label: "MemoryLineage home",
-                span { class: "brand-mark", "ML" }
+                span { class: "brand-mark",
+                    img { class: "brand-logo", src: asset!("/assets/memorylineage-logo.png"), alt: "MemoryLineage logo" }
+                }
                 span { strong { "MEMORYLINEAGE" } small { "INDEPENDENT MEMORY AUDITOR" } }
             }
             nav { class: "primary-nav", aria_label: "Primary navigation",

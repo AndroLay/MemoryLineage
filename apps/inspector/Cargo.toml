@@ -6,7 +6,7 @@ license = "MIT"
 description = "Rust/WASM MemoryLineage Inspector website"
 
 [dependencies]
-dioxus = { version = "=0.8.0-alpha.1", default-features = false, features = ["minimal", "web"] }
+dioxus = { version = "=0.8.0-alpha.1", default-features = false, features = ["minimal", "web", "asset"] }
 ml-spec-types = { path = "../../crates/ml-spec-types" }
 ml-evidence = { path = "../../crates/ml-evidence" }
 ml-ethereum = { path = "../../crates/ml-ethereum" }
