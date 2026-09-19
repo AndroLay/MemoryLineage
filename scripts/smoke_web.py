@@ -397,6 +397,7 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         "Load an older private snapshot locally.",
         "Check it against the committed head.",
         "See the exact Solidity reason.",
+        "WHY A SHARED REGISTRY",
         "A judge can understand the failure before reading the cryptography",
         *[snapshot["visibleLabel"] for snapshot in manifest["snapshots"]],
     ]

@@ -48,6 +48,15 @@ MemoryLineage is not a semantic memory-safety detector, an AI reasoning
 evaluator, a causal action proof, or a general agent-wallet guard. It verifies
 the history that was committed, not whether the underlying memory is true.
 
+### Why a shared registry?
+
+A signed local log can identify who signed a record, but if the same operator
+controls the runtime and its storage, the operator still controls which history
+is presented after a restore. MemoryLineage gives independent reviewers a
+shared committed predecessor and authority boundary. It publishes fixed-size
+commitments and transition metadata while keeping raw memory, documents, and
+locator contents outside the chain and portable evidence.
+
 [![Rust](https://img.shields.io/badge/Rust-1.97.1-orange?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Dioxus](https://img.shields.io/badge/Dioxus-0.8.0--alpha.1-1769f5)](https://dioxuslabs.com/)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.36-363636?logo=solidity&logoColor=white)](https://soliditylang.org/)

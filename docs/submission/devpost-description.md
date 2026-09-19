@@ -50,6 +50,12 @@ predecessor and authorization boundary while the private memory remains
 off-chain. The browser and CLI label local evidence, public-chain observations,
 and unsupported claims separately.
 
+A signed local log can identify its signer, but it does not by itself give
+independent parties a shared current predecessor when the operator controls the
+runtime and the log storage. MemoryLineage uses the registry for that shared
+checkpoint and authority boundary; it does not put the memory payload itself on
+chain.
+
 ## What is original in this submission
 
 MemoryLineage does not claim to have invented ERC-8350, EIP-712, or ERC-1271.
