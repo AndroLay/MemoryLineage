@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "memorylineage-evidence-v2",
+  "evidenceType": "memorylineage_evidence_v2",
+  "network": {
+    "name": "local-revm-demo-space-v2",
+    "chainId": "31337"
+  },
+  "registry": {
+    "address": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+    "codeHash": null,
+    "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1"
+  },
+  "spec": {
+    "name": "ERC-8350",
+    "snapshot": "v1-pinned-vector-2026-09-18",
+    "vectorHash": null
+  },
+  "head": {
+    "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+    "stateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809",
+    "sequence": 3
+  },
+  "transitions": [
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 1,
+      "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "deltaCommitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
+      "provenanceCommitment": "0x9de51a008605d3fa6b73013b2b9e65068087dd174a17d869b2191aaae3444ed7",
+      "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+      "locatorCommitment": "0x7e071a67e108e23664facceb5dc87e78462ccba229029b7b2c74b129ad30f67e",
+      "transitionId": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
+      "nextStateRoot": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b"
+    },
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 2,
+      "prevStateRoot": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b",
+      "deltaCommitment": "0x7e4497a6824ae736b7c12d99675d022e4a00525842b6cddc0016dc8682d8cf29",
+      "provenanceCommitment": "0x6fe99cdb29986e1dfb69e721910432f1b88789c20f6fc971330dd7b6a59448b4",
+      "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+      "locatorCommitment": "0xfa08b4557b5276d6b1c3bb4519aceba90f0c9f8e16b319bd37c0a827aa215246",
+      "transitionId": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
+      "nextStateRoot": "0xc8c3fc73d891d2b7ab61104a96a1fe8f0b23dd32efc15b25a501497fe8142b65"
+    },
+    {
+      "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+      "sequence": 3,
+      "prevStateRoot": "0xc8c3fc73d891d2b7ab61104a96a1fe8f0b23dd32efc15b25a501497fe8142b65",
+      "deltaCommitment": "0xc955da5c7817c8a4164b7186629b02150ae91f70c9aabb19178d8dcb5467d911",
+      "provenanceCommitment": "0x8502edd3da016685549fe72379b4229f6bfd15150443188c0b252b9c815024d5",
+      "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+      "locatorCommitment": "0xed830f48ee4628f74515a9cfa0aa7e7e1719d0d5d7bdea831aeff0b3b135886a",
+      "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "nextStateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809"
+    }
+  ],
+  "authorizationHistory": [
+    {
+      "controller": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+      "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+      "configNonce": 0,
+      "label": "initial authority"
+    },
+    {
+      "controller": "0x1563915e194d8cfba1943570603f7606a3115508",
+      "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+      "configNonce": 1,
+      "label": "rotated authority"
+    }
+  ],
+  "observations": [],
+  "attack": {
+    "name": "silent-rollback",
+    "status": "REJECTED",
+    "reason": "BAD_PREVIOUS_STATE",
+    "restoredSnapshotSequence": 1,
+    "attemptedSequence": 4,
+    "stalePredecessor": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b",
+    "canonicalPredecessor": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809",
+    "executionSource": "Rust/revm against published Solidity bytecode",
+    "transactionBroadcast": false,
+    "fixtureId": "silent-rollback-v2"
+  },
+  "privacy": {
+    "rawMemoryOnChain": false
+  },
+  "verificationMetadata": {
+    "producer": "ml-local-evm::demo-space-v2",
+    "generatedAt": null,
+    "legacySource": null
+  }
+}

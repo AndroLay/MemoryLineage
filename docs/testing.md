@@ -8,9 +8,12 @@ Rust-first gate:
 cargo xtask verify
 ```
 
-The gate includes Rust formatting, Clippy, workspace tests, pinned conformance,
-independent evidence replay, the Rust/revm Silent Rollback/mutation/ERC-1271/
-authority lanes, the WASM compile, and the public package boundary check.
+The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
+and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
+regeneration from freshly created SQLite files, snapshot/transition parity,
+stale-root attack checks, independent evidence replay, the Rust/revm Silent
+Rollback/mutation/ERC-1271/authority lanes, the WASM compile, and the public
+package boundary check.
 
 The static browser acceptance gate is separate and reproducible after the
 release artifact exists:
@@ -24,11 +27,13 @@ cargo xtask release
 
 `smoke-web` uses only Python's standard library and a locally installed
 Chromium. It serves the static output with an `index.html` fallback, checks all
-11 routes, checks the 390px viewport for page-level overflow, then exercises
-Silent Rollback, evidence tampering, and evidence restore. It does not deploy
-or contact a staging environment. `cargo xtask release` runs the same smoke
-after building the release artifact and then checks the release package
-boundary.
+11 routes, checks the 390px viewport for page-level overflow on every route,
+then exercises the local Silent Rollback evidence replay, evidence tampering,
+and evidence restore. The rollback smoke waits for the result panel's terminal
+state and checks that its detail contains the exact machine reason, so the
+pre-run expected-reason badge cannot count as a result. It does not deploy or
+contact a staging environment. `cargo xtask release` runs the same smoke after
+building the release artifact and then checks the release package boundary.
 
 The release website artifact is built separately because it invokes the pinned
 Dioxus CLI:
@@ -91,6 +96,23 @@ cargo run -q -p ml-cli -- fixture manifest
 python3 verifier/verify.py evidence/local/memory_lineage_evm_evidence.json
 ```
 
+The unified Demo Space V2 command is:
+
+```bash
+cargo run -q -p ml-cli -- demo silent-rollback
+cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json
+```
+
+It reads three actual SQLite snapshots, derives their commitments, executes
+three transitions against the published Solidity bytecode in `revm`, rotates
+the authorizer before transition 3, then submits transition 4 using the
+state-root from transition 1. The expected exact revert is
+`BAD_PREVIOUS_STATE`; no network write or transaction broadcast occurs. The
+independent verifier checks that the attack record's stale root is bound to the
+restored sequence, its canonical root matches the reconstructed head, and the
+reported attempt is the next sequence. Raw snapshot values do not enter the
+evidence JSON.
+
 The conformance command reports `MATCH` for the pinned vector, Rust reference,
 and independent Rust verifier, plus `REJECTED/BAD_PREVIOUS_STATE` and `20/20
 REJECTED` core mutations and the ERC-1271 accept/reject check from the Rust/revm registry execution slice. It
@@ -126,13 +148,16 @@ deployment at the time they were generated. A second RPC readback is an
 independent endpoint observation; it is not a light-client or consensus proof.
 The current read-only fixture rehearsal is recorded in
 `evidence/sepolia/silent_rollback_fixture_eth_call.json`; it uses the existing
-deployment, a commitment from fixture snapshot 17, and broadcasts no
-transaction.
+deployment and broadcasts no transaction. This is a separate Sepolia
+observation, not the local Demo Space V2 history. New public deployment is
+outside this work's scope.
 
 ## Reproducibility rules
 
 - Use the exact versions in `package-lock.json`.
-- Keep raw memory out of fixtures intended for public submission.
+- Never put real private memory in public fixtures. Synthetic sample values may
+  be included for deterministic reproduction; the evidence bundle, calldata,
+  and contract events must exclude those values.
 - Regenerate generated evidence with the documented command.
 - Pin the ERC-8350 draft/vector snapshot used by a claim.
 - Report failures rather than replacing evidence with a score.

@@ -8,6 +8,21 @@ pub const SEPOLIA_REGISTRY: &str = "0x36fE9FA585565615Adcfe8680a126F770931E160";
 pub const SEPOLIA_SPACE: &str =
     "0x910968e7e2ae2899858c72b71683d55d3b1b11a69aae9f38448ee4cbb896580c";
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LiveRollbackOutcome {
+    Rejected {
+        sequence: u64,
+        canonical_root: String,
+    },
+    Unavailable {
+        reason: String,
+    },
+    Unexpected {
+        reason: String,
+    },
+}
+
 #[cfg(target_arch = "wasm32")]
 async fn rpc(method: &str, params: serde_json::Value) -> Result<serde_json::Value, String> {
     use wasm_bindgen::{JsCast, JsValue};
@@ -73,42 +88,73 @@ fn decode_head(value: &str) -> Result<(u64, String), String> {
     Ok((sequence, root))
 }
 
-pub async fn live_silent_rollback(stale_predecessor: &str) -> Result<String, String> {
+pub async fn live_silent_rollback(stale_predecessor: &str) -> LiveRollbackOutcome {
     #[cfg(target_arch = "wasm32")]
     {
-        let head_data =
-            ml_ethereum::head_call_data(SEPOLIA_SPACE).map_err(|error| error.to_string())?;
-        let head = rpc(
+        let head_data = match ml_ethereum::head_call_data(SEPOLIA_SPACE) {
+            Ok(data) => data,
+            Err(error) => {
+                return LiveRollbackOutcome::Unexpected {
+                    reason: format!("HEAD_CALL_DATA_INVALID:{error}"),
+                };
+            }
+        };
+        let head = match rpc(
             "eth_call",
             serde_json::json!([{"to": SEPOLIA_REGISTRY, "data": head_data}, "latest"]),
         )
-        .await?;
-        let head_hex = head
-            .as_str()
-            .ok_or_else(|| "HEAD_RESULT_NOT_STRING".to_owned())?;
-        let (sequence, canonical_root) = decode_head(head_hex)?;
-        let rollback_data =
-            ml_ethereum::silent_rollback_call_data(SEPOLIA_SPACE, sequence, stale_predecessor)
-                .map_err(|error| error.to_string())?;
+        .await
+        {
+            Ok(value) => value,
+            Err(reason) => return LiveRollbackOutcome::Unavailable { reason },
+        };
+        let Some(head_hex) = head.as_str() else {
+            return LiveRollbackOutcome::Unexpected {
+                reason: "HEAD_RESULT_NOT_STRING".to_owned(),
+            };
+        };
+        let (sequence, canonical_root) = match decode_head(head_hex) {
+            Ok(head) => head,
+            Err(reason) => return LiveRollbackOutcome::Unexpected { reason },
+        };
+        let rollback_data = match ml_ethereum::silent_rollback_call_data(
+            SEPOLIA_SPACE,
+            sequence,
+            stale_predecessor,
+        ) {
+            Ok(data) => data,
+            Err(error) => {
+                return LiveRollbackOutcome::Unexpected {
+                    reason: format!("ROLLBACK_CALL_DATA_INVALID:{error}"),
+                };
+            }
+        };
         let attempt = rpc(
             "eth_call",
             serde_json::json!([{"to": SEPOLIA_REGISTRY, "data": rollback_data}, "latest"]),
         )
         .await;
         return match attempt {
-            Err(message) if message.contains("BAD_PREVIOUS_STATE") => Ok(format!(
-                "LIVE RPC / BAD_PREVIOUS_STATE / sequence {} / canonical root {}",
-                sequence + 1,
-                crate::data::short_hash(&canonical_root, 10, 8)
-            )),
-            Ok(_) => Err("UNEXPECTED_SUCCESS".to_owned()),
-            Err(message) => Err(format!("LIVE_RPC_REVERT_UNEXPECTED:{message}")),
+            Err(message) if message.contains("BAD_PREVIOUS_STATE") => {
+                LiveRollbackOutcome::Rejected {
+                    sequence: sequence.saturating_add(1),
+                    canonical_root,
+                }
+            }
+            Ok(_) => LiveRollbackOutcome::Unexpected {
+                reason: "UNEXPECTED_SUCCESS".to_owned(),
+            },
+            Err(message) => LiveRollbackOutcome::Unexpected {
+                reason: format!("LIVE_RPC_REVERT_UNEXPECTED:{message}"),
+            },
         };
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
         let _ = stale_predecessor;
-        Err("BROWSER_RPC_UNAVAILABLE".to_owned())
+        LiveRollbackOutcome::Unavailable {
+            reason: "BROWSER_RPC_UNAVAILABLE".to_owned(),
+        }
     }
 }
 

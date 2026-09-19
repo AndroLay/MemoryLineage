@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -20,8 +20,14 @@ jobs:
           components: rustfmt, clippy
       - name: Add browser target
         run: rustup target add wasm32-unknown-unknown
+      - name: Install pinned Dioxus CLI
+        run: cargo install dioxus-cli --version 0.8.0-alpha.1 --locked
       - name: Verify Rust workspace
         run: cargo xtask verify
+      - name: Build static Dioxus Inspector
+        run: cargo xtask build-web
+      - name: Smoke-test Inspector routes and evidence flows
+        run: cargo xtask smoke-web
       - name: Check tracked release boundary
         run: bash scripts/check-public-package.sh --release
       - name: Set up Node.js

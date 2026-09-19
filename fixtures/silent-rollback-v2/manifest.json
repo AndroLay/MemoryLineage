@@ -1,0 +1,33 @@
+{
+  "attack": {
+    "attemptedSequence": 4,
+    "expectedContractReason": "BAD_PREVIOUS_STATE",
+    "name": "silent-rollback",
+    "restoredSequence": 1
+  },
+  "commitmentDomain": "memorylineage/private-snapshot/v1",
+  "description": "Registry-aligned synthetic SQLite values modeling private agent snapshots for the unified Demo Space V2.",
+  "fixtureId": "silent-rollback-v2",
+  "generatedBy": "ml-cli fixture demo-manifest",
+  "snapshots": [
+    {
+      "file": "snapshot-1.db",
+      "sequence": 1,
+      "snapshotCommitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
+      "visibleLabel": "Language preference recorded"
+    },
+    {
+      "file": "snapshot-2.db",
+      "sequence": 2,
+      "snapshotCommitment": "0x7e4497a6824ae736b7c12d99675d022e4a00525842b6cddc0016dc8682d8cf29",
+      "visibleLabel": "Evidence-backed claim policy recorded"
+    },
+    {
+      "file": "snapshot-3.db",
+      "sequence": 3,
+      "snapshotCommitment": "0xc955da5c7817c8a4164b7186629b02150ae91f70c9aabb19178d8dcb5467d911",
+      "visibleLabel": "Raw-memory privacy boundary recorded"
+    }
+  ],
+  "synthetic": true
+}

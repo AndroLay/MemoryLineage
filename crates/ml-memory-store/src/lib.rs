@@ -171,6 +171,81 @@ pub fn snapshot_observations(
         .collect()
 }
 
+/// The final judge-facing fixture uses registry-aligned sequence numbers. The
+/// original 17/18/19 fixture remains available as historical provenance and is
+/// intentionally not rewritten by this helper.
+pub fn demo_space_v2_states() -> [(u64, &'static [(&'static str, &'static str)]); 3] {
+    [
+        (1, &[("language", "Indonesian")]),
+        (
+            2,
+            &[
+                ("language", "Indonesian"),
+                ("claim_policy", "evidence-backed"),
+            ],
+        ),
+        (
+            3,
+            &[
+                ("language", "Indonesian"),
+                ("claim_policy", "evidence-backed"),
+                ("privacy", "raw-memory-private"),
+            ],
+        ),
+    ]
+}
+
+pub fn demo_space_v2_paths(root: impl AsRef<Path>) -> [PathBuf; 3] {
+    let root = root.as_ref();
+    [
+        root.join("snapshot-1.db"),
+        root.join("snapshot-2.db"),
+        root.join("snapshot-3.db"),
+    ]
+}
+
+pub fn create_demo_space_v2_fixture(root: impl AsRef<Path>) -> Result<(), MemoryStoreError> {
+    let root = root.as_ref();
+    for ((sequence, entries), path) in demo_space_v2_states()
+        .into_iter()
+        .zip(demo_space_v2_paths(root))
+    {
+        let values = entries
+            .iter()
+            .map(|&(key, value)| (key.to_owned(), value.to_owned()))
+            .collect();
+        write_snapshot(path, sequence, &values)?;
+    }
+    Ok(())
+}
+
+pub fn inspect_demo_space_v2_fixture(
+    root: impl AsRef<Path>,
+) -> Result<[MemorySnapshot; 3], MemoryStoreError> {
+    let snapshots = demo_space_v2_paths(root)
+        .into_iter()
+        .map(read_snapshot)
+        .collect::<Result<Vec<_>, _>>()?;
+    snapshots
+        .try_into()
+        .map_err(|_| MemoryStoreError::InconsistentSequence)
+}
+
+pub fn demo_space_v2_observations(
+    root: impl AsRef<Path>,
+) -> Result<Vec<SnapshotObservation>, MemoryStoreError> {
+    let observations = inspect_demo_space_v2_fixture(root)?
+        .into_iter()
+        .map(|snapshot| SnapshotObservation {
+            sequence: snapshot.sequence,
+            file: format!("snapshot-{}.db", snapshot.sequence),
+            visible_label: None,
+            snapshot_commitment: snapshot_commitment(&snapshot),
+        })
+        .collect::<Vec<_>>();
+    Ok(observations)
+}
+
 pub fn silent_rollback_states() -> [(u64, &'static [(&'static str, &'static str)]); 3] {
     [
         (17, &[("language", "Indonesian")]),
@@ -285,5 +360,27 @@ mod tests {
         assert_eq!(first.len(), 66);
         assert_ne!(first, snapshot_commitment(&snapshots[1]));
         assert!(!first.contains("Indonesian"));
+    }
+
+    #[test]
+    fn demo_space_v2_uses_registry_aligned_sequences_without_rewriting_v1() {
+        let root = std::env::temp_dir().join(format!(
+            "memorylineage-demo-space-v2-{}",
+            std::process::id()
+        ));
+        create_demo_space_v2_fixture(&root).expect("V2 fixture should be generated");
+        let snapshots = inspect_demo_space_v2_fixture(&root).expect("V2 fixture should read");
+        assert_eq!(
+            snapshots
+                .iter()
+                .map(|snapshot| snapshot.sequence)
+                .collect::<Vec<_>>(),
+            [1, 2, 3]
+        );
+        assert_eq!(snapshots[2].values["privacy"], "raw-memory-private");
+        let observations = demo_space_v2_observations(&root).expect("observations should derive");
+        assert_eq!(observations.len(), 3);
+        assert!(!observations[0].snapshot_commitment.contains("Indonesian"));
+        let _ = std::fs::remove_dir_all(root);
     }
 }

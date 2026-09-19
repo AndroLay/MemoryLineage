@@ -223,6 +223,20 @@ pub struct AttackObservation {
     pub restored_snapshot_sequence: Option<u64>,
     #[serde(rename = "attemptedSequence", default)]
     pub attempted_sequence: Option<u64>,
+    /// The predecessor root taken from the restored private snapshot. This is
+    /// optional because older V2 bundles only recorded the scenario result.
+    #[serde(rename = "stalePredecessor", default)]
+    pub stale_predecessor: Option<String>,
+    /// The root that the registry considered canonical when the attack was
+    /// simulated.
+    #[serde(rename = "canonicalPredecessor", default)]
+    pub canonical_predecessor: Option<String>,
+    #[serde(rename = "executionSource", default)]
+    pub execution_source: Option<String>,
+    #[serde(rename = "transactionBroadcast", default)]
+    pub transaction_broadcast: Option<bool>,
+    #[serde(rename = "fixtureId", default)]
+    pub fixture_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

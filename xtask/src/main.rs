@@ -68,6 +68,286 @@ fn verify_fixture_manifest() -> Result<(), String> {
     Ok(())
 }
 
+fn verify_demo_space_v2() -> Result<(), String> {
+    let temp_root = std::env::temp_dir().join(format!(
+        "memorylineage-demo-space-v2-{}",
+        std::process::id()
+    ));
+    let fixture_root = temp_root.join("fixture");
+    let manifest_destination = temp_root.join("manifest.json");
+    let evidence_destination = temp_root.join("evidence.json");
+    fs::create_dir_all(&temp_root)
+        .map_err(|error| format!("could not create temporary Demo Space directory: {error}"))?;
+    let fixture_text = fixture_root
+        .to_str()
+        .ok_or_else(|| "temporary demo fixture path is not valid UTF-8".to_owned())?;
+    let manifest_text = manifest_destination
+        .to_str()
+        .ok_or_else(|| "temporary demo manifest path is not valid UTF-8".to_owned())?;
+    let evidence_text = evidence_destination
+        .to_str()
+        .ok_or_else(|| "temporary demo evidence path is not valid UTF-8".to_owned())?;
+
+    let result = (|| {
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "fixture",
+                "demo-create",
+                fixture_text,
+            ],
+        )?;
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "fixture",
+                "demo-manifest",
+                fixture_text,
+                manifest_text,
+            ],
+        )?;
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "evidence",
+                "demo-v2",
+                fixture_text,
+                evidence_text,
+            ],
+        )?;
+        let expected_manifest = fs::read("fixtures/silent-rollback-v2/manifest.json")
+            .map_err(|error| format!("could not read Demo Space V2 manifest: {error}"))?;
+        let generated_manifest = fs::read(&manifest_destination)
+            .map_err(|error| format!("could not read generated Demo Space V2 manifest: {error}"))?;
+        if expected_manifest != generated_manifest {
+            return Err("Demo Space V2 manifest is not reproducibly generated".to_owned());
+        }
+        let expected_evidence = fs::read("evidence/local/demo_space_v2_evidence.json")
+            .map_err(|error| format!("could not read Demo Space V2 evidence: {error}"))?;
+        let generated_evidence = fs::read(&evidence_destination)
+            .map_err(|error| format!("could not read generated Demo Space V2 evidence: {error}"))?;
+        if expected_evidence != generated_evidence {
+            return Err("Demo Space V2 evidence is not reproducibly generated".to_owned());
+        }
+
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&generated_manifest).map_err(|error| {
+                format!("generated Demo Space V2 manifest is invalid JSON: {error}")
+            })?;
+        let evidence: serde_json::Value =
+            serde_json::from_slice(&generated_evidence).map_err(|error| {
+                format!("generated Demo Space V2 evidence is invalid JSON: {error}")
+            })?;
+        let snapshots = manifest
+            .get("snapshots")
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| "Demo Space V2 fixture has no snapshot list".to_owned())?;
+        if manifest
+            .get("fixtureId")
+            .and_then(serde_json::Value::as_str)
+            != Some("silent-rollback-v2")
+            || manifest
+                .get("synthetic")
+                .and_then(serde_json::Value::as_bool)
+                != Some(true)
+        {
+            return Err("Demo Space V2 must identify its public fixture as synthetic".to_owned());
+        }
+        let transitions = evidence
+            .get("transitions")
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| "Demo Space V2 evidence has no transition list".to_owned())?;
+        if snapshots.len() != 3 || transitions.len() != 3 {
+            return Err(
+                "Demo Space V2 must contain exactly three snapshots and transitions".to_owned(),
+            );
+        }
+        for (index, (snapshot, transition)) in snapshots.iter().zip(transitions).enumerate() {
+            let expected_sequence = (index + 1) as u64;
+            if snapshot.get("sequence").and_then(serde_json::Value::as_u64)
+                != Some(expected_sequence)
+                || transition
+                    .get("sequence")
+                    .and_then(serde_json::Value::as_u64)
+                    != Some(expected_sequence)
+                || snapshot.get("snapshotCommitment") != transition.get("deltaCommitment")
+            {
+                return Err(format!(
+                    "Demo Space V2 snapshot/transition parity failed at sequence {expected_sequence}"
+                ));
+            }
+        }
+        let authorities = evidence
+            .get("authorizationHistory")
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| "Demo Space V2 evidence has no authority history".to_owned())?;
+        if authorities.len() != 2
+            || authorities[0]
+                .get("configNonce")
+                .and_then(serde_json::Value::as_u64)
+                != Some(0)
+            || authorities[1]
+                .get("configNonce")
+                .and_then(serde_json::Value::as_u64)
+                != Some(1)
+            || authorities[0].get("authorizer") == authorities[1].get("authorizer")
+        {
+            return Err("Demo Space V2 authority rotation evidence is inconsistent".to_owned());
+        }
+        let attack = evidence
+            .get("attack")
+            .ok_or_else(|| "Demo Space V2 evidence has no rollback attack".to_owned())?;
+        let manifest_attack = manifest
+            .get("attack")
+            .ok_or_else(|| "Demo Space V2 manifest has no rollback scenario".to_owned())?;
+        let transition_one_root = transitions[0]
+            .get("nextStateRoot")
+            .and_then(serde_json::Value::as_str);
+        let canonical_root = evidence
+            .pointer("/head/stateRoot")
+            .and_then(serde_json::Value::as_str);
+        if attack.get("status").and_then(serde_json::Value::as_str) != Some("REJECTED")
+            || attack.get("reason").and_then(serde_json::Value::as_str)
+                != Some("BAD_PREVIOUS_STATE")
+            || attack.get("fixtureId").and_then(serde_json::Value::as_str)
+                != Some("silent-rollback-v2")
+            || attack
+                .get("restoredSnapshotSequence")
+                .and_then(serde_json::Value::as_u64)
+                != manifest_attack
+                    .get("restoredSequence")
+                    .and_then(serde_json::Value::as_u64)
+            || attack
+                .get("attemptedSequence")
+                .and_then(serde_json::Value::as_u64)
+                != manifest_attack
+                    .get("attemptedSequence")
+                    .and_then(serde_json::Value::as_u64)
+            || !attack
+                .get("executionSource")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|source| source.contains("Rust/revm"))
+            || attack
+                .get("stalePredecessor")
+                .and_then(serde_json::Value::as_str)
+                != transition_one_root
+            || attack
+                .get("canonicalPredecessor")
+                .and_then(serde_json::Value::as_str)
+                != canonical_root
+            || attack
+                .get("transactionBroadcast")
+                .and_then(serde_json::Value::as_bool)
+                != Some(false)
+            || transitions
+                .last()
+                .and_then(|transition| transition.get("nextStateRoot"))
+                != evidence.pointer("/head/stateRoot")
+            || evidence
+                .pointer("/privacy/rawMemoryOnChain")
+                .and_then(serde_json::Value::as_bool)
+                != Some(false)
+        {
+            return Err("Demo Space V2 attack, head, or privacy invariants failed".to_owned());
+        }
+        let generated_evidence_text = String::from_utf8_lossy(&generated_evidence);
+        for raw_sample_value in ["Indonesian", "evidence-backed", "raw-memory-private"] {
+            if generated_evidence_text.contains(raw_sample_value) {
+                return Err(format!(
+                    "Demo Space V2 public evidence contains a synthetic raw-memory value: {raw_sample_value}"
+                ));
+            }
+        }
+
+        run(
+            "cargo",
+            &["run", "-q", "-p", "ml-cli", "--", "verify", evidence_text],
+        )?;
+        Ok(())
+    })();
+    let _ = fs::remove_dir_all(&temp_root);
+    result.map(|_| println!("PASS Demo Space V2 evidence"))
+}
+
+fn doctor() -> Result<(), String> {
+    fn command_available(program: &str, args: &[&str]) -> bool {
+        Command::new(program)
+            .args(args)
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .map(|status| status.success())
+            .unwrap_or(false)
+    }
+
+    let mut ready = true;
+    for (label, program, args) in [
+        ("Rust compiler", "rustc", ["--version"].as_slice()),
+        ("Cargo", "cargo", ["--version"].as_slice()),
+        ("Dioxus CLI", "dx", ["--version"].as_slice()),
+        ("Solidity compiler", "solc", ["--version"].as_slice()),
+    ] {
+        let available = command_available(program, args);
+        println!(
+            "{}  {}",
+            label,
+            if available { "PASS" } else { "NOT FOUND" }
+        );
+        if matches!(label, "Rust compiler" | "Cargo" | "Dioxus CLI") && !available {
+            ready = false;
+        }
+    }
+    let target = command_available("rustup", &["target", "list", "--installed"])
+        && String::from_utf8_lossy(
+            &Command::new("rustup")
+                .args(["target", "list", "--installed"])
+                .output()
+                .map_err(|error| format!("could not inspect Rust targets: {error}"))?
+                .stdout,
+        )
+        .lines()
+        .any(|line| line == "wasm32-unknown-unknown");
+    println!(
+        "wasm32 target  {}",
+        if target { "PASS" } else { "NOT FOUND" }
+    );
+    if !target {
+        ready = false;
+    }
+    for path in [
+        "contracts/artifacts/memory_lineage_registry_creation.hex",
+        "evidence/local/demo_space_v2_evidence.json",
+        "fixtures/silent-rollback-v2/manifest.json",
+    ] {
+        let exists = PathBuf::from(path).is_file();
+        println!("{path}  {}", if exists { "PASS" } else { "MISSING" });
+        if !exists {
+            ready = false;
+        }
+    }
+    println!("Ready to verify  {}", if ready { "YES" } else { "NO" });
+    if ready {
+        Ok(())
+    } else {
+        Err("doctor found a missing required local capability".to_owned())
+    }
+}
+
 fn build_web() -> Result<(), String> {
     let dx = std::env::var("DX_BIN").unwrap_or_else(|_| "dx".to_owned());
     run(
@@ -104,6 +384,7 @@ fn verify() -> Result<(), String> {
         &["test", "--workspace", "--quiet"],
     )?;
     verify_fixture_manifest()?;
+    verify_demo_space_v2()?;
     step(
         "pinned conformance",
         "cargo",
@@ -205,14 +486,28 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "registry": "0x36fE9FA585565615Adcfe8680a126F770931E160",
             "deployment": "existing evidence; no deployment performed by this command"
         },
-        "fixture": "fixtures/silent-rollback/manifest.json",
+        "demo": {
+            "status": "LOCAL REVM EVIDENCE / NOT DEPLOYED",
+            "fixture": "fixtures/silent-rollback-v2/manifest.json",
+            "evidence": "evidence/local/demo_space_v2_evidence.json",
+            "headSequence": 3,
+            "authorityRecords": 2,
+            "stalePredecessorSource": "transition 1 nextStateRoot",
+            "expectedReason": "BAD_PREVIOUS_STATE",
+            "transactionBroadcast": false
+        },
+        "legacyFixture": "fixtures/silent-rollback/manifest.json",
         "evidence": [
+            "evidence/local/demo_space_v2_evidence.json",
+            "evidence/local/memory_lineage_evm_evidence.json",
             "evidence/local/rust_revm_conformance.json",
             "evidence/local/rust_revm_mutation_matrix.json",
+            "evidence/local/rust_revm_erc1271.json",
+            "evidence/local/rust_revm_authority_rotation.json",
             "evidence/sepolia/sepolia_reread.json",
             "evidence/sepolia/silent_rollback_fixture_eth_call.json"
         ],
-        "excludedByScope": ["demo video", "public deployment", "staging"]
+        "excludedByScope": ["demo video", "new public deployment", "staging"]
     });
     std::fs::write(
         &destination,
@@ -232,6 +527,7 @@ fn main() {
         .unwrap_or_else(|| "verify".to_owned());
     let result = match command.as_str() {
         "verify" => verify(),
+        "doctor" => doctor(),
         "conformance" => run(
             "cargo",
             &["test", "-p", "ml-core", "-p", "ml-verifier-independent"],
@@ -246,7 +542,7 @@ fn main() {
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use verify, conformance, fixture, build-web, package-check, release, smoke-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, smoke-web, or release-manifest"
         )),
     };
 

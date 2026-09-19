@@ -45,6 +45,7 @@ pub struct VerificationReport {
     pub authority_history: String,
     pub head_reconstruction: String,
     pub privacy_boundary: String,
+    pub attack_evidence: String,
     pub transition_count: usize,
     pub rejected_mutation_count: usize,
     pub final_root: String,
@@ -177,6 +178,69 @@ fn verify_transition(
     Ok(())
 }
 
+fn verify_attack_evidence(bundle: &EvidenceBundleV2) -> Result<&'static str, VerificationError> {
+    let Some(attack) = bundle.attack.as_ref() else {
+        return Ok("NOT PRESENT");
+    };
+    let has_extended_evidence = attack.stale_predecessor.is_some()
+        || attack.canonical_predecessor.is_some()
+        || attack.execution_source.is_some()
+        || attack.transaction_broadcast.is_some()
+        || attack.fixture_id.is_some();
+    if !has_extended_evidence {
+        return Ok("NOT REPLAYED / LEGACY RECORD");
+    }
+
+    if attack.status != "REJECTED" || attack.reason.as_deref() != Some("BAD_PREVIOUS_STATE") {
+        return Err(reject("ATTACK_RESULT_MISMATCH"));
+    }
+    if attack.transaction_broadcast != Some(false) {
+        return Err(reject("ATTACK_BROADCAST_STATUS_MISMATCH"));
+    }
+    if attack.execution_source.as_deref().is_none_or(str::is_empty) {
+        return Err(reject("ATTACK_EXECUTION_SOURCE_MISSING"));
+    }
+
+    let stale_predecessor = attack
+        .stale_predecessor
+        .as_deref()
+        .ok_or_else(|| reject("ATTACK_STALE_PREDECESSOR_MISSING"))?;
+    let canonical_predecessor = attack
+        .canonical_predecessor
+        .as_deref()
+        .ok_or_else(|| reject("ATTACK_CANONICAL_PREDECESSOR_MISSING"))?;
+    let restored_sequence = attack
+        .restored_snapshot_sequence
+        .ok_or_else(|| reject("ATTACK_RESTORED_SEQUENCE_MISSING"))?;
+    let attempted_sequence = attack
+        .attempted_sequence
+        .ok_or_else(|| reject("ATTACK_SEQUENCE_MISSING"))?;
+
+    let _ = bytes32(stale_predecessor)?;
+    if canonical_predecessor != bundle.head.state_root {
+        return Err(reject("ATTACK_CANONICAL_ROOT_MISMATCH"));
+    }
+    if attempted_sequence
+        != bundle
+            .head
+            .sequence
+            .checked_add(1)
+            .ok_or_else(|| reject("ATTACK_SEQUENCE_OVERFLOW"))?
+    {
+        return Err(reject("ATTACK_SEQUENCE_MISMATCH"));
+    }
+    if restored_sequence >= bundle.head.sequence
+        || !bundle.transitions.iter().any(|transition| {
+            transition.delta.sequence == restored_sequence
+                && transition.next_state_root == stale_predecessor
+        })
+    {
+        return Err(reject("ATTACK_STALE_PREDECESSOR_MISMATCH"));
+    }
+
+    Ok("PASS")
+}
+
 pub fn verify_bundle(bundle: &PublicReplayBundle) -> Result<VerificationReport, VerificationError> {
     if bundle.evidence_type != PUBLIC_REPLAY_BUNDLE {
         return Err(reject("EVIDENCE_TYPE_MISMATCH"));
@@ -303,6 +367,7 @@ pub fn verify_bundle(bundle: &PublicReplayBundle) -> Result<VerificationReport, 
         authority_history: "PASS".to_owned(),
         head_reconstruction: "MATCH".to_owned(),
         privacy_boundary: "PASS".to_owned(),
+        attack_evidence: "NOT PRESENT".to_owned(),
         transition_count: history.len(),
         rejected_mutation_count: rejected_mutations,
         final_root: previous_root,
@@ -376,6 +441,7 @@ pub fn verify_v2_bundle(
             return Err(reject("OBSERVATION_AHEAD_OF_BUNDLE"));
         }
     }
+    let attack_evidence = verify_attack_evidence(bundle)?.to_owned();
 
     Ok(VerificationReport {
         verdict: "VERIFIED".to_owned(),
@@ -389,6 +455,7 @@ pub fn verify_v2_bundle(
         authority_history: "PASS".to_owned(),
         head_reconstruction: "MATCH".to_owned(),
         privacy_boundary: "PASS".to_owned(),
+        attack_evidence,
         transition_count: bundle.transitions.len(),
         rejected_mutation_count: 0,
         final_root: previous_root,
@@ -427,8 +494,8 @@ pub fn verify_file(path: impl AsRef<Path>) -> Result<VerificationReport, Verific
 mod tests {
     use super::*;
     use ml_spec_types::{
-        EVIDENCE_V2, EvidenceNetwork, Head, PrivacyBoundary, RegistryObservation, SPEC_NAME,
-        SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
+        AttackObservation, EVIDENCE_V2, EvidenceNetwork, Head, PrivacyBoundary,
+        RegistryObservation, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
     };
 
     fn current_bundle() -> PublicReplayBundle {
@@ -505,6 +572,62 @@ mod tests {
         assert_eq!(report.verdict, "VERIFIED");
         assert_eq!(report.transition_count, 4);
         assert_eq!(report.rejected_mutation_count, 0);
+        assert_eq!(report.attack_evidence, "NOT PRESENT");
+    }
+
+    #[test]
+    fn extended_attack_evidence_is_bound_to_an_earlier_canonical_root() {
+        let mut bundle = current_v2_bundle();
+        let stale = bundle.transitions[0].next_state_root.clone();
+        bundle.attack = Some(AttackObservation {
+            name: "silent-rollback".to_owned(),
+            status: "REJECTED".to_owned(),
+            reason: Some("BAD_PREVIOUS_STATE".to_owned()),
+            restored_snapshot_sequence: Some(1),
+            attempted_sequence: Some(bundle.head.sequence + 1),
+            stale_predecessor: Some(stale.clone()),
+            canonical_predecessor: Some(bundle.head.state_root.clone()),
+            execution_source: Some("Rust/revm test execution".to_owned()),
+            transaction_broadcast: Some(false),
+            fixture_id: Some("silent-rollback-v2".to_owned()),
+        });
+
+        let report = verify_v2_bundle(&bundle).expect("coherent attack evidence should verify");
+        assert_eq!(report.attack_evidence, "PASS");
+
+        let attack = bundle.attack.as_mut().expect("attack was set above");
+        attack.stale_predecessor = Some(ZERO_ROOT.to_owned());
+        let error = verify_v2_bundle(&bundle).expect_err("unbound stale root must fail closed");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message)
+                if message == "ATTACK_STALE_PREDECESSOR_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn extended_attack_evidence_rejects_broadcast_claims() {
+        let mut bundle = current_v2_bundle();
+        let stale = bundle.transitions[0].next_state_root.clone();
+        bundle.attack = Some(AttackObservation {
+            name: "silent-rollback".to_owned(),
+            status: "REJECTED".to_owned(),
+            reason: Some("BAD_PREVIOUS_STATE".to_owned()),
+            restored_snapshot_sequence: Some(1),
+            attempted_sequence: Some(bundle.head.sequence + 1),
+            stale_predecessor: Some(stale),
+            canonical_predecessor: Some(bundle.head.state_root.clone()),
+            execution_source: Some("Rust/revm test execution".to_owned()),
+            transaction_broadcast: Some(true),
+            fixture_id: Some("silent-rollback-v2".to_owned()),
+        });
+
+        let error = verify_v2_bundle(&bundle).expect_err("broadcast claim must be rejected");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message)
+                if message == "ATTACK_BROADCAST_STATUS_MISMATCH"
+        ));
     }
 
     #[test]

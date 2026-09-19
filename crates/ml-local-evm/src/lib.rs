@@ -12,7 +12,11 @@ use alloy::sol;
 use alloy::sol_types::SolCall;
 use k256::ecdsa::SigningKey;
 use ml_core::{commitment, signing_digest, space_id, transition_and_root};
-use ml_spec_types::ExperienceDelta;
+use ml_spec_types::{
+    AttackObservation, AuthorizationRecord, EVIDENCE_V2, EvidenceBundleV2, EvidenceNetwork,
+    ExperienceDelta, Head as EvidenceHead, PrivacyBoundary, RegistryObservation, SPEC_NAME,
+    SPEC_SNAPSHOT, SpecSnapshot, TransitionRecord, VerificationMetadata,
+};
 use revm::context::{BlockEnv, CfgEnv, Context, TxEnv, result::ExecutionResult};
 use revm::database::{CacheDB, EmptyDB};
 use revm::handler::{MainBuilder, MainnetContext, MainnetEvm};
@@ -284,6 +288,39 @@ impl RegistryHarness {
         Ok(head)
     }
 
+    fn commit_delta(
+        &mut self,
+        delta: &ExperienceDelta,
+        caller: Address,
+        signature: Bytes,
+        nonce: u64,
+    ) -> Result<Head, LocalEvmError> {
+        let call = MemoryLineageRegistry::commitTransitionCall {
+            delta: delta_call(delta)?,
+            authorizerSignature: signature,
+        };
+        self.commit_to(caller, self.registry, call.abi_encode(), nonce)?;
+        let head = self.head()?;
+        let (expected_transition, expected_root) =
+            transition_and_root(delta).map_err(|error| LocalEvmError::InvalidValue {
+                name: "transition",
+                value: error.to_string(),
+            })?;
+        if format_b256(head.transition_id) != expected_transition
+            || format_b256(head.state_root) != expected_root
+        {
+            return Err(LocalEvmError::Transaction(format!(
+                "reference mismatch at sequence {}: EVM {}/{} vs Rust {}/{}",
+                delta.sequence,
+                format_b256(head.transition_id),
+                format_b256(head.state_root),
+                expected_transition,
+                expected_root
+            )));
+        }
+        Ok(head)
+    }
+
     fn commit_signed_transition(&mut self, delta: &ExperienceDelta) -> Result<Head, LocalEvmError> {
         let signature = self.sign_transition(delta, CHAIN_ID, self.registry)?;
         let call = MemoryLineageRegistry::commitTransitionCall {
@@ -400,7 +437,20 @@ impl RegistryHarness {
         sequence: u64,
         stale_root: B256,
     ) -> Result<ExecutionObservation, LocalEvmError> {
-        let delta = self.build_delta(sequence, stale_root, "private-snapshot-restored-17")?;
+        self.simulate_stale_predecessor_with_payload(
+            sequence,
+            stale_root,
+            "private-snapshot-restored",
+        )
+    }
+
+    fn simulate_stale_predecessor_with_payload(
+        &mut self,
+        sequence: u64,
+        stale_root: B256,
+        payload: &str,
+    ) -> Result<ExecutionObservation, LocalEvmError> {
+        let delta = self.build_delta(sequence, stale_root, payload)?;
         let call = MemoryLineageRegistry::commitTransitionCall {
             delta: delta_call(&delta)?,
             authorizerSignature: Bytes::new(),
@@ -547,6 +597,24 @@ impl RegistryHarness {
             provenance_commitment: commitment("private provenance omitted", "provenance-salt"),
             profile_id: format_b256(self.profile_id),
             locator_commitment: commitment("private locator omitted", "locator-salt"),
+        })
+    }
+
+    fn build_snapshot_delta(
+        &self,
+        sequence: u64,
+        previous_root: B256,
+        snapshot_commitment: &str,
+    ) -> Result<ExperienceDelta, LocalEvmError> {
+        let delta_commitment = b256(snapshot_commitment, "snapshot commitment")?;
+        Ok(ExperienceDelta {
+            space_id: format_b256(self.space_id),
+            sequence,
+            prev_state_root: format_b256(previous_root),
+            delta_commitment: format_b256(delta_commitment),
+            provenance_commitment: commitment(snapshot_commitment, "provenance-salt"),
+            profile_id: format_b256(self.profile_id),
+            locator_commitment: commitment(snapshot_commitment, "locator-salt"),
         })
     }
 }
@@ -706,6 +774,149 @@ pub fn run_silent_rollback() -> Result<ExecutionObservation, LocalEvmError> {
             .state_root;
     }
     harness.simulate_stale_predecessor(4, B256::ZERO)
+}
+
+/// Execute the judge-facing vertical slice against the published Solidity
+/// bytecode. The three commitments are supplied by the real SQLite fixture;
+/// the stale predecessor is the actual root produced by transition 1. This is
+/// deliberately local/revm evidence so it can be reproduced without a wallet
+/// or a network write.
+pub fn run_demo_space_v2(
+    snapshot_commitments: &[String],
+) -> Result<EvidenceBundleV2, LocalEvmError> {
+    if snapshot_commitments.len() != 3 {
+        return Err(LocalEvmError::InvalidValue {
+            name: "demo snapshot commitments",
+            value: format!("expected 3, got {}", snapshot_commitments.len()),
+        });
+    }
+
+    let mut harness = RegistryHarness::new()?;
+    let mut previous_root = B256::ZERO;
+    let mut transitions = Vec::with_capacity(3);
+
+    for (index, snapshot_commitment) in snapshot_commitments.iter().take(2).enumerate() {
+        let sequence = (index + 1) as u64;
+        let delta = harness.build_snapshot_delta(sequence, previous_root, snapshot_commitment)?;
+        let (transition_id, next_state_root) =
+            transition_and_root(&delta).map_err(|error| LocalEvmError::InvalidValue {
+                name: "demo transition",
+                value: error.to_string(),
+            })?;
+        harness.commit_delta(&delta, harness.signer, Bytes::new(), sequence + 1)?;
+        transitions.push(TransitionRecord {
+            delta,
+            transition_id: transition_id.clone(),
+            next_state_root: next_state_root.clone(),
+        });
+        previous_root = b256(&next_state_root, "demo state root")?;
+    }
+
+    let stale_predecessor = transitions
+        .first()
+        .map(|transition| transition.next_state_root.clone())
+        .ok_or_else(|| LocalEvmError::Transaction("demo transition 1 is missing".to_owned()))?;
+
+    harness.rotate_authorization(harness.relayer, harness.relayer)?;
+    let delta = harness.build_snapshot_delta(3, previous_root, &snapshot_commitments[2])?;
+    let (transition_id, next_state_root) =
+        transition_and_root(&delta).map_err(|error| LocalEvmError::InvalidValue {
+            name: "demo transition",
+            value: error.to_string(),
+        })?;
+    let signature = harness.sign_transition_with_relayer(&delta)?;
+    harness.commit_delta(&delta, harness.relayer, signature, 3)?;
+    transitions.push(TransitionRecord {
+        delta,
+        transition_id,
+        next_state_root: next_state_root.clone(),
+    });
+
+    let (_, authorizer, config_nonce) = harness.read_authorization()?;
+    if config_nonce != 1 || authorizer != harness.relayer {
+        return Err(LocalEvmError::Transaction(
+            "demo authority rotation did not become active".to_owned(),
+        ));
+    }
+
+    let attack = harness.simulate_stale_predecessor_with_payload(
+        4,
+        b256(&stale_predecessor, "stale predecessor")?,
+        "private-snapshot-restored-1",
+    )?;
+    if attack.reason.as_deref() != Some("BAD_PREVIOUS_STATE") {
+        return Err(LocalEvmError::Transaction(format!(
+            "demo attack returned {:?}",
+            attack.reason
+        )));
+    }
+
+    let head = transitions
+        .last()
+        .cloned()
+        .ok_or_else(|| LocalEvmError::Transaction("demo head is missing".to_owned()))?;
+    let initial_authority = format_address(harness.signer);
+    let rotated_authority = format_address(harness.relayer);
+
+    Ok(EvidenceBundleV2 {
+        schema_version: EVIDENCE_V2.to_owned(),
+        evidence_type: "memorylineage_evidence_v2".to_owned(),
+        network: EvidenceNetwork {
+            name: "local-revm-demo-space-v2".to_owned(),
+            chain_id: CHAIN_ID.to_string(),
+        },
+        registry: RegistryObservation {
+            address: format_address(harness.registry),
+            code_hash: None,
+            space_id: format_b256(harness.space_id),
+        },
+        spec: SpecSnapshot {
+            name: SPEC_NAME.to_owned(),
+            snapshot: SPEC_SNAPSHOT.to_owned(),
+            vector_hash: None,
+        },
+        head: EvidenceHead {
+            transition_id: head.transition_id.clone(),
+            state_root: head.next_state_root.clone(),
+            sequence: head.delta.sequence,
+        },
+        transitions,
+        authorization_history: vec![
+            AuthorizationRecord {
+                controller: initial_authority.clone(),
+                authorizer: initial_authority,
+                config_nonce: 0,
+                label: Some("initial authority".to_owned()),
+            },
+            AuthorizationRecord {
+                controller: rotated_authority.clone(),
+                authorizer: rotated_authority,
+                config_nonce: 1,
+                label: Some("rotated authority".to_owned()),
+            },
+        ],
+        observations: Vec::new(),
+        attack: Some(AttackObservation {
+            name: "silent-rollback".to_owned(),
+            status: attack.status.to_owned(),
+            reason: attack.reason,
+            restored_snapshot_sequence: Some(1),
+            attempted_sequence: Some(4),
+            stale_predecessor: Some(stale_predecessor),
+            canonical_predecessor: Some(head.next_state_root.clone()),
+            execution_source: Some("Rust/revm against published Solidity bytecode".to_owned()),
+            transaction_broadcast: Some(false),
+            fixture_id: Some("silent-rollback-v2".to_owned()),
+        }),
+        privacy: PrivacyBoundary {
+            raw_memory_on_chain: false,
+        },
+        verification_metadata: VerificationMetadata {
+            producer: "ml-local-evm::demo-space-v2".to_owned(),
+            generated_at: None,
+            legacy_source: None,
+        },
+    })
 }
 
 pub fn run_erc1271() -> Result<Erc1271Observation, LocalEvmError> {
@@ -1073,5 +1284,27 @@ mod tests {
         );
         assert_eq!(observation.old_authorizer_rejected, "INVALID_AUTHORIZATION");
         assert!(observation.new_authorizer_accepted);
+    }
+
+    #[test]
+    fn demo_space_v2_binds_real_snapshot_commitments_and_rotates_authority() {
+        let snapshots = vec![
+            ml_core::keccak_text("snapshot-1"),
+            ml_core::keccak_text("snapshot-2"),
+            ml_core::keccak_text("snapshot-3"),
+        ];
+        let evidence = run_demo_space_v2(&snapshots).expect("demo evidence should execute");
+        assert_eq!(evidence.transitions.len(), 3);
+        assert_eq!(evidence.head.sequence, 3);
+        assert_eq!(evidence.authorization_history.len(), 2);
+        let attack = evidence.attack.expect("demo includes attack evidence");
+        assert_eq!(attack.reason.as_deref(), Some("BAD_PREVIOUS_STATE"));
+        assert_eq!(attack.restored_snapshot_sequence, Some(1));
+        assert_eq!(attack.attempted_sequence, Some(4));
+        assert_eq!(attack.transaction_broadcast, Some(false));
+        assert_eq!(
+            attack.stale_predecessor.as_deref(),
+            Some(evidence.transitions[0].next_state_root.as_str())
+        );
     }
 }

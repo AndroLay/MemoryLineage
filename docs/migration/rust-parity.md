@@ -16,9 +16,11 @@ not a judge score.
 | Dioxus native compile | PASS | `cargo check -p memorylineage-inspector` |
 | Dioxus WASM compile | PASS | `cargo check -p memorylineage-inspector --target wasm32-unknown-unknown` |
 | Dioxus release artifact DOM smoke | PASS | Chromium loaded the static release artifact and rendered the hero, case board, tabs, and Verify view |
-| Dioxus release interaction smoke | PASS | Chromium/CDP clicked Silent Rollback, Verify, and Tamper; observed `BAD_PREVIOUS_STATE`, `VERIFIED`, and `TRANSITION_ID_MISMATCH` |
+| Dioxus release interaction smoke | PASS | Chromium/CDP replayed local Demo Space V2 in Silent Rollback, then tampered and restored the same V2 bundle; observed `BAD_PREVIOUS_STATE`, `TRANSITION_ID_MISMATCH`, and `VERIFIED` |
 | Dioxus public route smoke | PASS | `cargo xtask smoke-web` loads `/`, `/inspect`, `/history`, `/history/3`, `/lab`, `/verify`, `/evidence`, `/architecture`, `/security`, `/reproduce`, and `/prior-work` through a static SPA fallback |
-| Dioxus responsive smoke | PASS | `cargo xtask smoke-web` renders Home at a 390px viewport and checks for page-level horizontal overflow; full dev-server parity remains separately qualified below |
+| History ledger | PASS | Browser and Rust tests confirm three Demo Space V2 commits plus the stale-root rejection; the separate 20-case protocol corpus is explicitly labeled |
+| Dioxus responsive smoke | PASS | `cargo xtask smoke-web` checks every route at 390px for page-level horizontal overflow; full dev-server parity remains separately qualified below |
+| GitHub Actions browser gate | CONFIGURED | CI installs the pinned Dioxus CLI, builds the static Inspector, and runs `cargo xtask smoke-web`; report a remote PASS only after the run completes |
 | Evidence decoder regression | PASS | `cargo test -p memorylineage-inspector` loads the bundled deployment, reread, replay, mutation, and conformance artifacts |
 | Legacy nine-step gate | PASS | `npm run verify` |
 | Dioxus dev-server route and full responsive parity | NOT YET DEMONSTRATED | `dx serve --web` currently fails in the dev emitter on the generated WASM exceptions proposal; release static artifact smoke is separate |
@@ -35,12 +37,12 @@ Machine-readable outputs for these lanes are stored in
 `evidence/local/rust_revm_*.json`; they are deterministic outputs of the pinned
 artifact and contain no raw memory or signing keys.
 
-The current browser target uses Rust/WASM verification and a browser JSON-RPC
-transport for read-only Sepolia `eth_call`. If the public RPC cannot be read,
-the UI must label the published evidence fallback rather than presenting it as
-a live result. The static release smoke is the reproducible browser gate; the
-pinned `dx serve --web` dev emitter remains separately qualified because it
-currently rejects the generated WASM exceptions proposal.
+The primary Silent Rollback action replays the local Demo Space V2 bundle in
+Rust/WASM. A separate browser JSON-RPC control performs an optional read-only
+Sepolia `eth_call`; if it fails, the UI preserves the local result and reports
+the probe as unavailable. The static release smoke is the reproducible browser
+gate; the pinned `dx serve --web` dev emitter remains separately qualified
+because it currently rejects the generated WASM exceptions proposal.
 
 The Rust/revm lane currently covers the registry deployment, registration,
 three valid direct-authorized commits, Rust reference root comparison, the

@@ -131,7 +131,12 @@
         "status": { "type": "string" },
         "reason": { "type": ["string", "null"] },
         "restoredSnapshotSequence": { "type": ["integer", "null"], "minimum": 0 },
-        "attemptedSequence": { "type": ["integer", "null"], "minimum": 0 }
+        "attemptedSequence": { "type": ["integer", "null"], "minimum": 0 },
+        "stalePredecessor": { "type": ["string", "null"], "pattern": "^0x[0-9a-fA-F]{64}$" },
+        "canonicalPredecessor": { "type": ["string", "null"], "pattern": "^0x[0-9a-fA-F]{64}$" },
+        "executionSource": { "type": ["string", "null"] },
+        "transactionBroadcast": { "type": ["boolean", "null"] },
+        "fixtureId": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     }

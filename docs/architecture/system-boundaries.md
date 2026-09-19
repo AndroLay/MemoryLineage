@@ -2,9 +2,12 @@
 
 ## Trust boundary
 
-The operator may control the off-chain memory store. MemoryLineage therefore
-publishes commitments and authorized transitions to a public registry. An
-independent verifier can replay the evidence without receiving the raw memory.
+The operator may control the off-chain memory store. The registry semantics
+allow authorized commitments to be anchored on Ethereum; the existing
+deployment evidence is a separate earlier Sepolia space. The current Demo Space
+V2 is a local Rust/revm execution using public synthetic SQLite input, not a new
+Sepolia deployment. An independent verifier can replay its portable evidence
+without receiving raw memory.
 
 ## What is verified
 
@@ -14,6 +17,12 @@ independent verifier can replay the evidence without receiving the raw memory.
 - EIP-712 domain and field binding;
 - commitment and replay consistency;
 - the pinned vector and mutation corpus results.
+
+Demo Space V2 additionally records three SQLite-derived transitions, a local
+authority rotation, and a transition-4 rejection using the actual sequence-1
+root while the local head is sequence 3. The separate Sepolia probe is a
+read-only observation against the existing deployment; it is not evidence that
+the Demo Space V2 history exists on Sepolia.
 
 ## What is outside the boundary
 
@@ -33,7 +42,7 @@ contracts/vectors ───────┬──> evm
                          └──> crates/ml-core and ml-conformance
 contracts/solidity ─────────> evm compiler/harness and crates/ml-local-evm
 
-fixtures/silent-rollback ──> crates/ml-memory-store and ml-cli
+fixtures/silent-rollback{,-v2} ──> crates/ml-memory-store and ml-cli
 evidence/local,sepolia ────> crates/ml-evidence, ml-cli, and apps/inspector
 crates/ml-spec-types ──────> passive formats only
 crates/ml-core ────────────> Rust reference algorithms

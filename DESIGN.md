@@ -38,8 +38,8 @@ supporting surfaces are reached through contextual links and the footer.
 Within the first viewport the visitor sees:
 
 - the product sentence “Verify the history, not the memory.”;
-- a real private-fixture and protocol-corpus distinction;
-- the current evidence source and verdict;
+- a synthetic SQLite demo-fixture and separate protocol-corpus distinction;
+- the current local-evidence source and verdict, with Sepolia clearly separate;
 - the raw-memory boundary;
 - the `Run Silent Rollback` action.
 
@@ -77,8 +77,10 @@ random crypto illustrations, and large empty marketing spaces.
 ## Interaction and states
 
 - Buttons have visible focus, pressed, disabled, and keyboard states.
-- Silent Rollback shows loading, then `REJECTED / BAD_PREVIOUS_STATE` from a
-  real read-only contract call or an explicit `PUBLISHED EVIDENCE` fallback.
+- Silent Rollback replays the local Demo Space V2 bundle and shows
+  `REJECTED / BAD_PREVIOUS_STATE` using transition 1's actual root against the
+  reconstructed local head. An optional, separately labeled read-only Sepolia
+  probe does not replace the local result.
 - Evidence verification shows valid, malformed, unsupported, tampered, and
   restored states.
 - `OUT OF SCOPE` is reserved for semantic poisoning and similar properties the
@@ -98,8 +100,11 @@ overflow.
 
 The UI may show a private snapshot commitment, but it must never expose raw
 memory, private locator content, signing keys, or private prompt/context. The
-website distinguishes `LIVE RPC / OBSERVED`, `PUBLISHED EVIDENCE`, `VERIFIED`,
-`REJECTED`, `OUT OF SCOPE`, and `NOT YET DEMONSTRATED` consistently.
+SQLite values in the public demo fixture are synthetic and source-visible;
+portable evidence and on-chain data contain commitments only. The website
+distinguishes local Rust/revm evidence, `LIVE RPC / OBSERVED`, separate
+published protocol-corpus evidence, `VERIFIED`, `REJECTED`, `OUT OF SCOPE`,
+and `NOT YET DEMONSTRATED` consistently.
 
 The exact Solidity machine reason `BAD_PREVIOUS_STATE` remains visible even
 when the surrounding copy says “stale predecessor”.

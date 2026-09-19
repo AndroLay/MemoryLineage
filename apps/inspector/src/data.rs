@@ -7,8 +7,9 @@ use serde::Deserialize;
 
 pub const LOCAL_EVIDENCE: &str =
     include_str!("../../../evidence/local/memory_lineage_evm_evidence.json");
+pub const DEMO_EVIDENCE: &str = include_str!("../../../evidence/local/demo_space_v2_evidence.json");
 pub const SILENT_ROLLBACK_MANIFEST: &str =
-    include_str!("../../../fixtures/silent-rollback/manifest.json");
+    include_str!("../../../fixtures/silent-rollback-v2/manifest.json");
 const SEPOLIA_DEPLOYMENT: &str = include_str!("../../../evidence/sepolia/sepolia_deployment.json");
 const SEPOLIA_REREAD: &str = include_str!("../../../evidence/sepolia/sepolia_reread.json");
 const CONFORMANCE_REPORT: &str = include_str!("../../../evidence/local/rust_revm_conformance.json");
@@ -303,6 +304,7 @@ pub struct PrivateFixtureManifest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiData {
     pub bundle: PublicReplayBundle,
+    pub protocol_v2: EvidenceBundleV2,
     pub v2: EvidenceBundleV2,
     pub fixture: PrivateFixtureManifest,
     pub report: Option<VerificationReport>,
@@ -313,11 +315,23 @@ pub struct UiData {
     pub mutation_rejected: usize,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HistoryLedgerEvent {
+    pub order: usize,
+    pub event: String,
+    pub sequence: Option<u64>,
+    pub reference: String,
+    pub source: String,
+    pub status: String,
+}
+
 impl UiData {
     pub fn load() -> Self {
         let bundle: PublicReplayBundle =
             serde_json::from_str(LOCAL_EVIDENCE).expect("published evidence must remain valid");
-        let v2 = public_replay_to_v2(&bundle);
+        let protocol_v2 = public_replay_to_v2(&bundle);
+        let v2: EvidenceBundleV2 =
+            serde_json::from_str(DEMO_EVIDENCE).expect("Demo Space V2 evidence must remain valid");
         let fixture: PrivateFixtureManifest = serde_json::from_str(SILENT_ROLLBACK_MANIFEST)
             .expect("private fixture manifest must remain valid");
         let report = verify_v2_bundle(&v2).ok();
@@ -340,6 +354,7 @@ impl UiData {
             .count();
         Self {
             bundle,
+            protocol_v2,
             v2,
             fixture,
             report,
@@ -364,15 +379,15 @@ impl UiData {
     }
 
     pub fn head(&self) -> &TransitionRecord {
-        self.bundle
-            .valid_history
+        self.v2
+            .transitions
             .last()
-            .expect("published history is non-empty")
+            .expect("Demo Space V2 history is non-empty")
     }
 
     pub fn transition(&self, sequence: u64) -> &TransitionRecord {
-        self.bundle
-            .valid_history
+        self.v2
+            .transitions
             .iter()
             .find(|transition| transition.delta.sequence == sequence)
             .unwrap_or_else(|| self.head())
@@ -393,6 +408,47 @@ impl UiData {
 
     pub fn canonical_snapshot(&self) -> &PrivateSnapshotRecord {
         self.fixture.snapshots.last().expect("fixture is non-empty")
+    }
+
+    pub fn history_ledger(&self) -> Vec<HistoryLedgerEvent> {
+        let mut events = self
+            .v2
+            .transitions
+            .iter()
+            .map(|transition| HistoryLedgerEvent {
+                order: 0,
+                event: "Transition committed".to_owned(),
+                sequence: Some(transition.delta.sequence),
+                reference: transition.next_state_root.clone(),
+                source: "Demo Space V2 evidence".to_owned(),
+                status: "COMMITTED".to_owned(),
+            })
+            .collect::<Vec<_>>();
+
+        if let Some(attack) = self.v2.attack.as_ref()
+            && let (Some(sequence), Some(stale_predecessor), Some(reason)) = (
+                attack.attempted_sequence,
+                attack.stale_predecessor.as_ref(),
+                attack.reason.as_ref(),
+            )
+        {
+            events.push(HistoryLedgerEvent {
+                order: 0,
+                event: "Rollback attempt".to_owned(),
+                sequence: Some(sequence),
+                reference: stale_predecessor.clone(),
+                source: attack
+                    .execution_source
+                    .clone()
+                    .unwrap_or_else(|| "Demo Space V2 attack record".to_owned()),
+                status: format!("{} / {}", attack.status, reason),
+            });
+        }
+
+        for (index, event) in events.iter_mut().enumerate() {
+            event.order = index + 1;
+        }
+        events
     }
 }
 
@@ -423,10 +479,18 @@ mod tests {
     fn bundled_workspace_data_loads_and_replays() {
         let data = UiData::load();
         assert_eq!(data.bundle.valid_history.len(), 4);
+        assert_eq!(data.v2.transitions.len(), 3);
+        assert_eq!(data.v2.head.sequence, 3);
         assert_eq!(data.bundle.mutation_matrix.len(), 21);
-        assert!(data.report.is_some());
+        assert_eq!(
+            data.report
+                .as_ref()
+                .map(|report| report.attack_evidence.as_str()),
+            Some("PASS")
+        );
         assert_eq!(data.deployment.chain_id, "11155111");
         assert_eq!(data.fixture.snapshots.len(), 3);
+        assert_eq!(data.fixture.snapshots[0].sequence, 1);
         assert_eq!(
             data.fixture.attack.expected_contract_reason,
             "BAD_PREVIOUS_STATE"
@@ -436,5 +500,41 @@ mod tests {
                 .snapshot_commitment
                 .starts_with("0x")
         );
+        assert_eq!(
+            super::verify_evidence_json(&data.evidence_json())
+                .expect("bundled evidence should replay")
+                .verdict,
+            "VERIFIED"
+        );
+        assert_eq!(
+            super::verify_evidence_json(&data.tampered_json())
+                .expect_err("tampering the locator commitment must fail")
+                .to_string(),
+            "TRANSITION_ID_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn history_ledger_uses_demo_bundle_and_separates_protocol_mutations() {
+        let data = UiData::load();
+        let events = data.history_ledger();
+
+        assert_eq!(events.len(), 4);
+        assert_eq!(events[0].event, "Transition committed");
+        assert_eq!(events[0].sequence, Some(1));
+        assert_eq!(events[1].sequence, Some(2));
+        assert_eq!(events[0].status, "COMMITTED");
+        assert_eq!(events[2].event, "Transition committed");
+        assert_eq!(events[2].sequence, Some(3));
+        assert_eq!(events[3].event, "Rollback attempt");
+        assert_eq!(events[3].sequence, Some(4));
+        assert_eq!(events[3].status, "REJECTED / BAD_PREVIOUS_STATE");
+        assert_eq!(events[3].reference, data.v2.transitions[0].next_state_root);
+        assert_eq!(
+            events[3].source,
+            "Rust/revm against published Solidity bytecode"
+        );
+        assert_eq!(data.mutation_rejected, 20);
+        assert_eq!(data.mutation_count, 20);
     }
 }

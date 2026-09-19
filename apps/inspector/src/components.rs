@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 
 use crate::browser::copy_text;
-use crate::data::{Route, UiData, short_hash};
+use crate::data::{HistoryLedgerEvent, Route, UiData, short_hash};
 use dioxus::prelude::*;
 
 #[component]
@@ -95,7 +95,7 @@ pub fn LineageRail(data: UiData, compact: bool) -> Element {
     rsx! {
         div { class: class, aria_label: "Canonical committed history",
             div { class: "lineage-line" }
-            for transition in data.bundle.valid_history.iter() {
+            for transition in data.v2.transitions.iter() {
                 a { class: "lineage-node", href: "/history/{transition.delta.sequence}", key: "{transition.transition_id}",
                     span { class: "node-number", "{transition.delta.sequence:02}" }
                     span { class: "node-copy", strong { "SEQ {transition.delta.sequence}" }, small { "COMMITTED" } }
@@ -137,6 +137,44 @@ pub fn CommandRow(command: String, note: String) -> Element {
 pub fn ProvenanceRow(label: String, detail: String, tone: String) -> Element {
     let mark = if tone == "verified" { "✓" } else { "•" };
     rsx! { div { class: "provenance-row", span { class: "provenance-mark provenance-mark-{tone}", "{mark}" }, div { strong { "{label}" }, span { "{detail}" } } } }
+}
+
+#[component]
+pub fn HistoryEventTable(events: Vec<HistoryLedgerEvent>) -> Element {
+    rsx! {
+        div { class: "history-event-table-wrap",
+            table { class: "history-event-table",
+                thead {
+                    tr {
+                        th { "#" }
+                        th { "Event" }
+                        th { "Sequence" }
+                        th { "Evidence source" }
+                        th { "Root / result" }
+                        th { "Status" }
+                    }
+                }
+                tbody {
+                    for event in events.iter() {
+                        tr { key: "history-event-{event.order}",
+                            td { class: "history-event-order", "{event.order:02}" }
+                            td { strong { "{event.event}" } }
+                            td { if let Some(sequence) = event.sequence { code { "{sequence}" } } else { "—" } }
+                            td { class: "history-event-source", "{event.source}" }
+                            td { code { title: "{event.reference}", "{short_hash(&event.reference, 10, 8)}" } }
+                            td {
+                                if event.status.starts_with("REJECTED") {
+                                    StatusBadge { label: event.status.clone(), tone: "danger".to_owned() }
+                                } else {
+                                    StatusBadge { label: event.status.clone(), tone: "verified".to_owned() }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[component]

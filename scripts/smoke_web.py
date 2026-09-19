@@ -27,6 +27,25 @@ from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "target/dx/memorylineage-inspector/release/web/public"
+CDP_SOCKET_TIMEOUT_SECONDS = 8
+BOOT_TIMEOUT_SECONDS = 45
+INTERACTION_TIMEOUT_SECONDS = 25
+DESKTOP_VIEWPORT = (1440, 1000)
+MOBILE_VIEWPORT = (390, 844)
+
+ROUTES = {
+    "/": "Verify the history",
+    "/inspect": "What is canonical right now?",
+    "/history": "How did the canonical history get here?",
+    "/history/3": "What exactly happened in this transition?",
+    "/lab": "Can I break the committed history?",
+    "/verify": "Can I verify this without trusting the website?",
+    "/evidence": "Where is the proof behind the claims?",
+    "/architecture": "How does MemoryLineage work?",
+    "/security": "What does this system actually guarantee?",
+    "/reproduce": "Can another developer reproduce these claims?",
+    "/prior-work": "What existed before the hackathon",
+}
 
 
 class SpaHandler(http.server.SimpleHTTPRequestHandler):
@@ -52,7 +71,11 @@ class CdpSocket:
     def __init__(self, websocket_url: str):
         parsed = urlsplit(websocket_url)
         self.sock = socket.create_connection((parsed.hostname, parsed.port), timeout=10)
-        self.sock.settimeout(10)
+        # A cold Dioxus/WASM page can briefly occupy the renderer while the
+        # runtime mounts. Keep individual CDP reads short so the bounded
+        # polling loops can retry instead of treating that cold start as a
+        # failed route.
+        self.sock.settimeout(CDP_SOCKET_TIMEOUT_SECONDS)
         key = base64.b64encode(secrets.token_bytes(16)).decode("ascii")
         path = parsed.path or "/"
         if parsed.query:
@@ -128,6 +151,8 @@ class CdpSocket:
             if opcode != 1:
                 continue
             message = json.loads(payload.decode("utf-8"))
+            if message.get("method") and os.environ.get("MEMORYLINEAGE_CDP_DEBUG"):
+                print(f"CDP event {message['method']}", flush=True)
             if message.get("id") != command_id:
                 continue
             if "error" in message:
@@ -159,9 +184,20 @@ def find_chromium() -> str:
 
 def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
     cdp.command("Page.navigate", {"url": f"{base}{path}"})
-    deadline = time.time() + 12
+    # Dioxus/WASM may still be compiling and mounting immediately after the
+    # navigation response. Give the first runtime turn a bounded head start so
+    # the CDP probe does not race the WASM bootstrap itself.
+    time.sleep(1.5)
+    deadline = time.time() + BOOT_TIMEOUT_SECONDS
     while time.time() < deadline:
-        body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        try:
+            body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        except (TimeoutError, socket.timeout):
+            # The browser may still be compiling/mounting the WASM runtime.
+            # Retry until the route-level deadline rather than failing on one
+            # slow renderer turn.
+            time.sleep(1.0)
+            continue
         if expected in body:
             print(f"PASS route {path or '/'}")
             return
@@ -180,9 +216,13 @@ def click_and_wait(cdp: CdpSocket, text: str, expected: str) -> None:
     }})()"""
     if cdp.evaluate(expression) is not True:
         raise RuntimeError(f"button not found: {text}")
-    deadline = time.time() + 12
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
     while time.time() < deadline:
-        body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        try:
+            body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        except (TimeoutError, socket.timeout):
+            time.sleep(1.0)
+            continue
         if expected in body:
             print(f"PASS interaction {text} -> {expected}")
             return
@@ -190,28 +230,102 @@ def click_and_wait(cdp: CdpSocket, text: str, expected: str) -> None:
     raise RuntimeError(f"interaction {text} did not produce {expected}")
 
 
+def click_and_wait_for_rollback(cdp: CdpSocket) -> None:
+    expression = """(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        element => element.textContent && element.textContent.includes('Run Silent Rollback')
+      );
+      if (!button) return false;
+      button.click();
+      return true;
+    })()"""
+    if cdp.evaluate(expression) is not True:
+        raise RuntimeError("button not found: Run Silent Rollback")
+
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    terminal_states = {"LOCAL EVIDENCE: REJECTED"}
+    while time.time() < deadline:
+        try:
+            result = cdp.evaluate("""(() => {
+              const heading = document.querySelector('.result-panel .result-heading strong');
+              const detail = document.querySelector('.result-panel .result-heading small');
+              return { heading: heading?.textContent?.trim() || '', detail: detail?.textContent || '' };
+            })()""") or {}
+        except (TimeoutError, socket.timeout):
+            time.sleep(1.0)
+            continue
+        heading = result.get("heading", "") if isinstance(result, dict) else ""
+        detail = result.get("detail", "") if isinstance(result, dict) else ""
+        if heading in terminal_states:
+            if "BAD_PREVIOUS_STATE" not in detail:
+                raise RuntimeError("rollback result omitted the exact BAD_PREVIOUS_STATE reason")
+            print(f"PASS interaction Run Silent Rollback -> {heading} / BAD_PREVIOUS_STATE")
+            return
+        if heading == "UNEXPECTED LIVE RESULT":
+            raise RuntimeError(f"rollback returned an unexpected live result: {detail}")
+        time.sleep(0.25)
+    raise RuntimeError("Silent Rollback did not reach an actual rejection result")
+
+
+def verify_history_ledger(cdp: CdpSocket) -> None:
+    result = cdp.evaluate("""(() => {
+      const ledger = document.querySelector('.history-event-table');
+      return {
+        rows: ledger?.querySelectorAll('tbody tr').length || 0,
+        text: ledger?.innerText || ''
+      };
+    })()""") or {}
+    text = result.get("text", "") if isinstance(result, dict) else ""
+    rows = result.get("rows", 0) if isinstance(result, dict) else 0
+    required = (
+        "Transition committed",
+        "Rollback attempt",
+        "BAD_PREVIOUS_STATE",
+        "Rust/revm against published Solidity bytecode",
+    )
+    if rows != 4 or any(marker not in text for marker in required):
+        raise RuntimeError("History ledger did not render the four evidence-backed incident events")
+    print("PASS history ledger / 3 commits + stale-root rejection / evidence sources")
+
+
 def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
     destination_text = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
     if not destination_text:
         return
     destination = Path(destination_text)
-    destination.mkdir(parents=True, exist_ok=True)
-    cdp.command("Emulation.clearDeviceMetricsOverride")
-    for path, filename, expected in (
-        ("/", "home.png", "Verify the history"),
-        ("/inspect", "inspect.png", "What is canonical right now?"),
-        ("/lab/silent-rollback", "silent-rollback.png", "Run Silent Rollback"),
-        ("/verify", "verify.png", "Can I verify this without trusting the website?"),
-    ):
+    desktop = destination / "desktop"
+    desktop.mkdir(parents=True, exist_ok=True)
+    cdp.command(
+        "Emulation.setDeviceMetricsOverride",
+        {
+            "width": DESKTOP_VIEWPORT[0],
+            "height": DESKTOP_VIEWPORT[1],
+            "deviceScaleFactor": 1,
+            "mobile": False,
+        },
+    )
+    for path, expected in ROUTES.items():
         wait_for_url(base, path, expected, cdp)
+        if path == "/lab":
+            click_and_wait_for_rollback(cdp)
         payload = cdp.command(
             "Page.captureScreenshot",
             {"format": "png", "captureBeyondViewport": True},
         )
         image = base64.b64decode(payload["data"])
-        (destination / filename).write_bytes(image)
-        print(f"PASS screenshot {destination / filename}")
-
+        filename = (path.strip("/").replace("/", "-") or "home") + ".png"
+        (desktop / filename).write_bytes(image)
+        print(f"PASS desktop screenshot {desktop / filename}")
+        if path == "/verify":
+            click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
+            tampered = cdp.command(
+                "Page.captureScreenshot",
+                {"format": "png", "captureBeyondViewport": True},
+            )
+            (desktop / "verify-tampered.png").write_bytes(
+                base64.b64decode(tampered["data"])
+            )
+            click_and_wait(cdp, "Restore original", "VERIFIED")
 
 def main() -> int:
     if not (PUBLIC / "index.html").is_file():
@@ -248,7 +362,7 @@ def main() -> int:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        deadline = time.time() + 12
+        deadline = time.time() + BOOT_TIMEOUT_SECONDS
         page = None
         while time.time() < deadline:
             try:
@@ -272,37 +386,57 @@ def main() -> int:
         cdp = CdpSocket(page["webSocketDebuggerUrl"])
         cdp.command("Page.enable")
         cdp.command("Runtime.enable")
-        routes = {
-            "/": "Verify the history",
-            "/inspect": "What is canonical right now?",
-            "/history": "How did the canonical history get here?",
-            "/history/3": "What exactly happened in this transition?",
-            "/lab": "Can I break the committed history?",
-            "/verify": "Can I verify this without trusting the website?",
-            "/evidence": "Where is the proof behind the claims?",
-            "/architecture": "How does MemoryLineage work?",
-            "/security": "What does this system actually guarantee?",
-            "/reproduce": "Can another developer reproduce these claims?",
-            "/prior-work": "What existed before the hackathon",
-        }
-        for path, expected in routes.items():
+        cdp.command(
+            "Emulation.setDeviceMetricsOverride",
+            {
+                "width": DESKTOP_VIEWPORT[0],
+                "height": DESKTOP_VIEWPORT[1],
+                "deviceScaleFactor": 1,
+                "mobile": False,
+            },
+        )
+        for path, expected in ROUTES.items():
             wait_for_url(base, path, expected, cdp)
+            if path == "/history":
+                verify_history_ledger(cdp)
 
         wait_for_url(base, "/lab/silent-rollback", "Run Silent Rollback", cdp)
-        click_and_wait(cdp, "Run Silent Rollback", "BAD_PREVIOUS_STATE")
+        click_and_wait_for_rollback(cdp)
         wait_for_url(base, "/verify", "VERIFIED", cdp)
         click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
         click_and_wait(cdp, "Restore original", "VERIFIED")
+        screenshot_root = os.environ.get("MEMORYLINE_SCREENSHOT_DIR")
+        mobile_directory = Path(screenshot_root) / "mobile" if screenshot_root else None
+        if mobile_directory:
+            mobile_directory.mkdir(parents=True, exist_ok=True)
         cdp.command(
             "Emulation.setDeviceMetricsOverride",
-            {"width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": True},
+            {
+                "width": MOBILE_VIEWPORT[0],
+                "height": MOBILE_VIEWPORT[1],
+                "deviceScaleFactor": 1,
+                "mobile": True,
+            },
         )
-        wait_for_url(base, "/", "Verify the history", cdp)
-        if cdp.evaluate(
-            "document.documentElement.scrollWidth <= window.innerWidth"
-        ) is not True:
-            raise RuntimeError("390px viewport has page-level horizontal overflow")
-        print("PASS responsive 390px / no page overflow")
+        for path, expected in ROUTES.items():
+            wait_for_url(base, path, expected, cdp)
+            if cdp.evaluate(
+                "document.documentElement.scrollWidth <= window.innerWidth"
+            ) is not True:
+                raise RuntimeError(
+                    f"390px viewport has page-level horizontal overflow on {path}"
+                )
+            if mobile_directory:
+                payload = cdp.command(
+                    "Page.captureScreenshot",
+                    {"format": "png", "captureBeyondViewport": True},
+                )
+                image = base64.b64decode(payload["data"])
+                filename = (path.strip("/").replace("/", "-") or "home") + ".png"
+                (mobile_directory / filename).write_bytes(image)
+                print(f"PASS mobile screenshot {mobile_directory / filename}")
+            else:
+                print(f"PASS responsive 390px / no overflow / {path}")
         cdp.command("Emulation.clearDeviceMetricsOverride")
         capture_requested_screenshots(base, cdp)
         cdp.close()

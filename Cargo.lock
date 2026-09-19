@@ -3779,6 +3779,7 @@ dependencies = [
  "ml-evidence",
  "ml-local-evm",
  "ml-memory-store",
+ "ml-spec-types",
  "ml-verifier-independent",
  "serde_json",
  "tokio",

@@ -32,7 +32,7 @@ the history that was committed, not whether the underlying memory is true.
 | Browser | Rust/WASM Dioxus Inspector with Inspect, History, Tampering Lab, and Verify surfaces |
 | Trust anchor | Solidity registry on Ethereum Sepolia with EIP-712 and ERC-1271 authorization paths |
 | Private domain | SQLite snapshots, raw memory, documents, prompts, and locator contents remain off-chain |
-| Evidence | Four local committed transitions, a 20-case Rust/revm mutation lane, Sepolia deployment/readback, and a read-only fixture-commitment rollback observation |
+| Evidence | Unified local Demo Space V2 (three SQLite-derived transitions, one authority rotation, and a stale-root rejection), a separate four-transition protocol corpus, 20 Rust/revm mutation cases, and existing Sepolia deployment/readback |
 | Independent path | Separate Rust verifier; historical Python and JavaScript lanes remain compatibility oracles |
 | Repository license | MIT; see the single root [LICENSE](LICENSE) file |
 
@@ -43,13 +43,15 @@ stack:
 
 - a Solidity registry that enforces sequence, predecessor, authorization,
   state-root, and authorization-rotation rules;
-- a deterministic SQLite Silent Rollback fixture with private snapshots 17,
-  18, and 19;
+- a deterministic SQLite Demo Space V2 with synthetic snapshots 1, 2, and 3
+  that model private agent memory; the public sample database is not user data,
+  and portable evidence contains commitments only;
+  the historical 17/18/19 fixture is preserved separately;
 - Rust reference, evidence, Ethereum RPC, revm, CLI, and independent-verifier
   crates;
-- a Dioxus Web Inspector with 11 routes, evidence-backed data, live/fallback
-  source labels, browser evidence export/import, and browser-side tamper
-  verification;
+- a Dioxus Web Inspector with 11 routes, evidence-backed data, clearly labeled
+  local-demo and separate Sepolia observations, browser evidence export/import,
+  and Rust/WASM-side tamper verification;
 - published local reports for conformance, mutation rejection, ERC-1271
   acceptance/rejection, and authority rotation;
 - an Ethereum Sepolia deployment at
@@ -58,9 +60,10 @@ stack:
 
 The current read-only Sepolia rollback observation is published at
 [`evidence/sepolia/silent_rollback_fixture_eth_call.json`](evidence/sepolia/silent_rollback_fixture_eth_call.json).
-It uses the commitment derived from fixture snapshot 17, returns
-`BAD_PREVIOUS_STATE`, broadcasts no transaction, and does not claim a new
-deployment or semantic memory verdict.
+It belongs to the previously deployed Sepolia space and returns
+`BAD_PREVIOUS_STATE` without broadcasting a transaction. It is separate from
+the local Demo Space V2 incident; the repository does not claim that this demo
+history has been deployed to Sepolia.
 
 The static Dioxus release artifact and browser interaction smoke path are
 verified. The pinned Dioxus development emitter still has a known WASM
@@ -114,25 +117,30 @@ supporting pages are reached through contextual links.
 
 ### The Silent Rollback
 
-The public fixture contains three private snapshots:
+The unified local Demo Space V2 contains three synthetic SQLite snapshots that
+model private agent state. Their sample values are included in the public test
+fixture, but not in portable evidence or on-chain data:
 
 ~~~text
-State 17 → State 18 → State 19  ← canonical committed head
+State 1 → State 2 → State 3  ← local canonical committed head
 ~~~
 
-The operator restores snapshot 17 locally and attempts the next transition
-using its stale predecessor root. The registry still has the root for state 19,
-so the real Solidity result is:
+The operator restores snapshot 1 locally. The Rust/revm harness has executed
+the three SQLite-derived commitments against the published Solidity bytecode,
+including one authority rotation. It then attempts transition 4 using the
+actual state root produced by transition 1 while the local registry head is
+transition 3. The result is:
 
 ~~~text
 REJECTED
 BAD_PREVIOUS_STATE
 ~~~
 
-The browser uses a read-only `eth_call` against the deployed registry when the
-configured Sepolia RPC is available. If the RPC cannot be reached, the UI
-shows the published evidence path explicitly. The local SQLite fixture and
-Rust/revm lane provide a reproducible offline counterpart.
+The primary browser action replays and verifies the local Demo Space V2 bundle.
+The separate Sepolia probe is optional and read-only; an unavailable or
+unexpected RPC result does not replace or change the local result. The Rust CLI
+gate regenerates the synthetic SQLite fixture and executes the Solidity
+bytecode in `revm`. No transaction is broadcast in either flow.
 
 The result means that a stale restored snapshot cannot silently become the next
 canonical committed state under the registry rules. It does not mean that all
@@ -195,7 +203,7 @@ remains outside the chain.
 | Website | Dioxus `0.8.0-alpha.1` Web/WASM | Browser Inspector, route surfaces, evidence import/export, read-only RPC, and browser verification |
 | Ethereum access | Alloy primitives and read-only JSON-RPC | Sepolia head, registry, event, code-hash, and `eth_call` observations |
 | Local execution | `revm` | Rust execution slice for registry, Silent Rollback, mutation, ERC-1271, and authority-rotation cases |
-| Private fixture | SQLite | Deterministic snapshots and restore rehearsal without publishing raw memory |
+| Demo fixture | Synthetic SQLite | Deterministic snapshot/restore rehearsal; no real user or agent memory |
 | Independent verification | Rust `ml-verifier-independent` | Separate evidence replay and fail-closed tamper checks |
 | Compatibility lanes | JavaScript/EthereumJS and Python | Preserved historical execution and cross-language replay oracles |
 | Submission evidence | JSON bundles and reports | Conformance, local execution, Sepolia observation, mutation, and provenance records |
@@ -215,13 +223,13 @@ moving draft must not be described as final standard compliance.
 | `crates/ml-evidence/` | Versioned evidence projection and serialization |
 | `crates/ml-ethereum/` | Alloy ABI/data layer and host-side Sepolia reads |
 | `crates/ml-local-evm/` | Rust/revm execution slice for the curated Solidity artifact |
-| `crates/ml-memory-store/` | Deterministic SQLite private-memory fixture tooling |
+| `crates/ml-memory-store/` | Deterministic SQLite tooling for synthetic private-memory-shaped fixtures |
 | `crates/ml-verifier-independent/` | Independent Rust evidence replay |
 | `crates/ml-cli/` | Developer and auditor command surface |
 | `apps/inspector/` | Primary Dioxus Web/WASM product surface |
 | `evm/` | Preserved JavaScript/EthereumJS execution and Sepolia compatibility lane |
 | `verifier/python/` | Historical independent replay oracle |
-| `fixtures/` | Synthetic private snapshot inputs for the hero scenario |
+| `fixtures/` | Public synthetic snapshot inputs for the hero scenario; no real private data |
 | `evidence/` | Curated local, Sepolia, schema, and Rust/revm outputs |
 | `docs/` | Product, architecture, testing, research, and submission documentation |
 | `research/` | Exploratory work outside the product path |
@@ -371,7 +379,7 @@ gates for a release candidate:
 
 | Evidence | Proves | Does not prove |
 | --- | --- | --- |
-| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, fixture manifest reproducibility, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
+| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, both fixture manifests, reproducible Demo Space V2 evidence, stale-root/authority/privacy invariants, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
 | `cargo xtask build-web` | The pinned Dioxus application produces a static release artifact | A deployment platform serves every deep link correctly |
 | `cargo xtask smoke-web` | Chromium checks the static SPA fallback, 11 routes, Silent Rollback, tamper rejection, and evidence restore | Production hosting, staging, or assistive-technology acceptance |
 | Rust/revm reports | The curated Solidity artifact agrees with the Rust lane for the published Silent Rollback, mutation, ERC-1271, and authority-rotation cases | Formal verification or all possible EVM/runtime behavior |
@@ -429,7 +437,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Changes should preserve:
 - pinned vector and evidence compatibility;
 - the separation between raw private memory and public commitments;
 - independent replay without sharing the reference algorithm;
-- truthful live/fallback/source labels;
+- truthful local-evidence and live-observation source labels;
 - the release boundary that excludes private references and generated output.
 
 When documentation conflicts with a reproducible source, test, or evidence

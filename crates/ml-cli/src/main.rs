@@ -4,9 +4,11 @@ use ml_conformance::run_pinned;
 use ml_ethereum::{inspect_registry, simulate_silent_rollback_with_predecessor};
 use ml_evidence::{load_public_replay_bundle, public_replay_to_v2, write_v2_bundle};
 use ml_memory_store::{
-    create_silent_rollback_fixture, inspect_silent_rollback_fixture, restore_snapshot,
+    create_demo_space_v2_fixture, create_silent_rollback_fixture, demo_space_v2_observations,
+    inspect_demo_space_v2_fixture, inspect_silent_rollback_fixture, restore_snapshot,
     snapshot_observations,
 };
+use ml_spec_types::EvidenceBundleV2;
 use ml_verifier_independent::verify_file;
 use std::path::{Path, PathBuf};
 
@@ -18,12 +20,18 @@ fn default_fixture_root() -> PathBuf {
     repository_root().join("fixtures/silent-rollback")
 }
 
+fn default_demo_fixture_root() -> PathBuf {
+    repository_root().join("fixtures/silent-rollback-v2")
+}
+
 fn usage() {
     eprintln!(
         "Usage:\n  \
   cargo run -p ml-cli -- fixture create [ROOT]\n  \
   cargo run -p ml-cli -- fixture inspect [ROOT]\n  \
   cargo run -p ml-cli -- fixture manifest [ROOT] [OUTPUT]\n  \
+  cargo run -p ml-cli -- fixture demo-create [ROOT]\n  \
+  cargo run -p ml-cli -- fixture demo-manifest [ROOT] [OUTPUT]\n  \
   cargo run -p ml-cli -- fixture restore <SOURCE> <DESTINATION>\n  \
   cargo run -p ml-cli -- verify <EVIDENCE.json>\n  \
   cargo run -p ml-cli -- conformance\n  \
@@ -31,8 +39,11 @@ fn usage() {
   cargo run -p ml-cli -- revm mutations\n  \
   cargo run -p ml-cli -- revm erc1271\n  \
   cargo run -p ml-cli -- revm authority-rotation\n  \
+  cargo run -p ml-cli -- revm demo-space-v2 [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- evidence export-v2 [SOURCE] [DESTINATION]\n  \
-  cargo run -p ml-cli -- demo silent-rollback [ROOT]\n  \
+  cargo run -p ml-cli -- evidence demo-v2 [FIXTURE_ROOT] [DESTINATION]\n  \
+  cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
+  cargo run -p ml-cli -- demo legacy-silent-rollback [ROOT]\n  \
   cargo run -p ml-cli -- live inspect\n  \
   cargo run -p ml-cli -- live rollback"
     );
@@ -49,6 +60,17 @@ fn fixture_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             create_silent_rollback_fixture(&root)?;
             println!(
                 "created deterministic Silent Rollback fixture at {}",
+                root.display()
+            );
+        }
+        "demo-create" => {
+            let root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_fixture_root);
+            create_demo_space_v2_fixture(&root)?;
+            println!(
+                "created deterministic Demo Space V2 fixture at {}",
                 root.display()
             );
         }
@@ -106,6 +128,44 @@ fn fixture_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             )?;
             println!("wrote private-snapshot commitments to {}", output.display());
         }
+        "demo-manifest" => {
+            let root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_fixture_root);
+            let output = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(|| root.join("manifest.json"));
+            let labels = [
+                "Language preference recorded",
+                "Evidence-backed claim policy recorded",
+                "Raw-memory privacy boundary recorded",
+            ];
+            let mut observations = demo_space_v2_observations(&root)?;
+            for (observation, label) in observations.iter_mut().zip(labels) {
+                observation.visible_label = Some(label.to_owned());
+            }
+            let manifest = serde_json::json!({
+                "fixtureId": "silent-rollback-v2",
+                "synthetic": true,
+                "description": "Registry-aligned synthetic SQLite values modeling private agent snapshots for the unified Demo Space V2.",
+                "commitmentDomain": "memorylineage/private-snapshot/v1",
+                "generatedBy": "ml-cli fixture demo-manifest",
+                "snapshots": observations,
+                "attack": {
+                    "name": "silent-rollback",
+                    "restoredSequence": 1,
+                    "attemptedSequence": 4,
+                    "expectedContractReason": "BAD_PREVIOUS_STATE"
+                }
+            });
+            std::fs::write(
+                &output,
+                format!("{}\n", serde_json::to_string_pretty(&manifest)?),
+            )?;
+            println!("wrote Demo Space V2 manifest to {}", output.display());
+        }
         "restore" => {
             let source = args
                 .get(1)
@@ -135,7 +195,8 @@ fn conformance_command() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn revm_command(action: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn revm_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let action = args.first().map(String::as_str).unwrap_or("");
     match action {
         "silent-rollback" => {
             let observation = ml_local_evm::run_silent_rollback()?;
@@ -155,6 +216,20 @@ fn revm_command(action: &str) -> Result<(), Box<dyn std::error::Error>> {
         "authority-rotation" => {
             let observation = ml_local_evm::run_authority_rotation()?;
             println!("{}", serde_json::to_string_pretty(&observation)?);
+            Ok(())
+        }
+        "demo-space-v2" => {
+            let root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_fixture_root);
+            let snapshots = inspect_demo_space_v2_fixture(&root)?;
+            let commitments = snapshots
+                .iter()
+                .map(ml_memory_store::snapshot_commitment)
+                .collect::<Vec<_>>();
+            let evidence = ml_local_evm::run_demo_space_v2(&commitments)?;
+            println!("{}", serde_json::to_string_pretty(&evidence)?);
             Ok(())
         }
         _ => Err(format!("unknown revm action: {action}").into()),
@@ -177,12 +252,30 @@ fn evidence_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             println!("wrote V2 evidence to {}", destination.display());
             Ok(())
         }
+        Some("demo-v2") => {
+            let root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_fixture_root);
+            let destination = args.get(2).map(PathBuf::from).unwrap_or_else(|| {
+                repository_root().join("evidence/local/demo_space_v2_evidence.json")
+            });
+            let snapshots = inspect_demo_space_v2_fixture(&root)?;
+            let commitments = snapshots
+                .iter()
+                .map(ml_memory_store::snapshot_commitment)
+                .collect::<Vec<_>>();
+            let evidence: EvidenceBundleV2 = ml_local_evm::run_demo_space_v2(&commitments)?;
+            write_v2_bundle(&evidence, &destination)?;
+            println!("wrote Demo Space V2 evidence to {}", destination.display());
+            Ok(())
+        }
         Some(other) => Err(format!("unknown evidence action: {other}").into()),
         None => Err("evidence requires an action".into()),
     }
 }
 
-fn silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn legacy_silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let snapshots = inspect_silent_rollback_fixture(root)?;
     let canonical = snapshots.last().ok_or("fixture has no snapshots")?;
     let restored = snapshots.first().ok_or("fixture has no snapshots")?;
@@ -200,6 +293,57 @@ fn silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
         "explanation: the restored local snapshot cannot replace the previously committed canonical history"
     );
     println!("live RPC simulation: run `cargo run -p ml-cli -- live rollback`");
+    Ok(())
+}
+
+fn silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let snapshots = inspect_demo_space_v2_fixture(root)?;
+    let commitments = snapshots
+        .iter()
+        .map(ml_memory_store::snapshot_commitment)
+        .collect::<Vec<_>>();
+    let evidence = ml_local_evm::run_demo_space_v2(&commitments)?;
+    let attack = evidence
+        .attack
+        .as_ref()
+        .ok_or("Demo Space V2 is missing attack evidence")?;
+
+    println!("MemoryLineage — The Silent Rollback / Demo Space V2");
+    println!("synthetic SQLite snapshots: #1 → #2 → #3");
+    println!("canonical committed head: #{}", evidence.head.sequence);
+    println!(
+        "authority records: {}",
+        evidence.authorization_history.len()
+    );
+    println!(
+        "restored private snapshot: #{}",
+        attack.restored_snapshot_sequence.unwrap_or(0)
+    );
+    println!(
+        "attempted transition: #{}",
+        attack.attempted_sequence.unwrap_or(0)
+    );
+    println!(
+        "stale predecessor from transition 1: {}",
+        attack
+            .stale_predecessor
+            .as_deref()
+            .unwrap_or("NOT AVAILABLE")
+    );
+    println!(
+        "result: {} / {}",
+        attack.status,
+        attack.reason.as_deref().unwrap_or("NO REASON")
+    );
+    println!(
+        "execution: {}; transaction broadcast: {}",
+        attack.execution_source.as_deref().unwrap_or("NOT RECORDED"),
+        attack.transaction_broadcast.unwrap_or(true)
+    );
+    println!("evidence: evidence/local/demo_space_v2_evidence.json");
+    println!(
+        "verify with: cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json"
+    );
     Ok(())
 }
 
@@ -251,20 +395,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             verify_command(&path)
         }
         Some("conformance") => conformance_command(),
-        Some("revm") => {
-            let action = args
-                .next()
-                .ok_or("revm requires silent-rollback or mutations")?;
-            revm_command(&action)
-        }
+        Some("revm") => revm_command(&args.collect::<Vec<_>>()),
         Some("evidence") => evidence_command(&args.collect::<Vec<_>>()),
         Some("demo") => match args.next().as_deref() {
             Some("silent-rollback") => {
                 let root = args
                     .next()
                     .map(PathBuf::from)
-                    .unwrap_or_else(default_fixture_root);
+                    .unwrap_or_else(default_demo_fixture_root);
                 silent_rollback_demo(&root)
+            }
+            Some("legacy-silent-rollback") => {
+                let root = args
+                    .next()
+                    .map(PathBuf::from)
+                    .unwrap_or_else(default_fixture_root);
+                legacy_silent_rollback_demo(&root)
             }
             Some(other) => Err(format!("unknown demo: {other}").into()),
             None => Err("demo requires a demo name".into()),
