@@ -26,6 +26,7 @@ mutation corpus separate in every explanation.
 | Static Inspector website | Verified locally | “The release WASM build and Chromium smoke cover all 11 routes, the local rollback flow, evidence tampering/restoration, and page-level overflow at 390px.” |
 | Automated clean-checkout path | Verified locally | “`cargo xtask reproduce` runs the local toolchain check, complete Rust/revm/evidence gates, static website build, browser smoke, and package boundary. It does not count as external human reproduction.” |
 | Reviewer source/evidence archive | Available after a clean commit | “`cargo xtask reviewer-package` creates and checks a dependency-free source/evidence archive from the exact committed `HEAD`; it does not make a private repository public or prove human reproduction.” |
+| Reviewer archive runnable without Git metadata | Owner-side gate | “`cargo xtask reviewer-reproduce` extracts the exact archive and runs the automated reproduction path; it remains automated evidence, not external human reproduction.” |
 | GitHub Actions browser gate | Configured; remote result pending | “CI is configured to verify Rust, build the Dioxus site, and run Chromium smoke. Report the remote run only after GitHub Actions completes successfully.” |
 | Independent human clean-checkout reproduction | Not yet demonstrated | Do not imply external developers have reproduced the project. |
 | Production HTTPS website or staging | Not in scope for this work | No public deployment or staging environment is claimed. |

@@ -31,7 +31,21 @@ if find contracts verifier evm scripts apps crates fixtures xtask -type f \( -na
 fi
 
 if [[ "$MODE" == "--release" ]]; then
-  tracked_forbidden="$(git ls-files | rg '(^|/)(internal|target|node_modules|\.next|out|evidence/generated)(/|$)|(__pycache__|\.pyc|\.pyo)$' || true)"
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    tracked_forbidden="$(git ls-files | rg '(^|/)(internal|target|node_modules|\.next|out|evidence/generated)(/|$)|(__pycache__|\.pyc|\.pyo)$' || true)"
+  else
+    # A reviewer archive created by `git archive` intentionally has no `.git`
+    # directory. Inspect the extracted filesystem in that case; every file in
+    # the archive is already a release candidate, so a tracked-file query is
+    # neither available nor necessary.
+    # The source archive was checked before the reproduction build. During the
+    # gate, target/.next and similar directories are generated intentionally;
+    # exclude them from this post-build filesystem scan while still rejecting
+    # private references and generated evidence that could have been archived.
+    tracked_forbidden="$(find . \
+      \( -type d \( -name target -o -name node_modules -o -name .next -o -name out -o -name __pycache__ \) -prune \) -o \
+      -type f -print | sed 's#^\./##' | rg '(^|/)(internal|evidence/generated)(/|$)|(__pycache__|\.pyc|\.pyo)$' || true)"
+  fi
   if [[ -n "$tracked_forbidden" ]]; then
     echo "FAIL: release would contain ignored/private/generated tracked paths:" >&2
     echo "$tracked_forbidden" >&2

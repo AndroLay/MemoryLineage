@@ -413,13 +413,16 @@ For a reviewer-oriented one-command path, use:
 ~~~bash
 cargo xtask reproduce
 cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
+cargo xtask reviewer-reproduce
 ~~~
 
 This runs the local environment check, the complete automated release path, and
 prints an explicit note that external human reproduction still requires a real
 second developer. `reviewer-package` creates a clean source/evidence archive
 from the exact committed `HEAD`; it requires a clean worktree and does not
-change GitHub visibility. The runbook and report template are in
+change GitHub visibility. `reviewer-reproduce` extracts that exact archive into
+a temporary checkout and runs the same gate without relying on `.git`, proving
+that the transportable packet itself is runnable. The runbook and report template are in
 [`docs/reproduction/`](docs/reproduction/).
 
 This prepares artifacts without deploying hosting, staging, or recording the

@@ -790,6 +790,63 @@ fn reviewer_package(output: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+fn reviewer_reproduce() -> Result<(), String> {
+    // Keep the clean checkout on the repository's disk-backed filesystem. The
+    // default system temp directory may be a small tmpfs, while a release
+    // build can legitimately need more space than that. The temporary parent
+    // remains outside the repository so the initial clean-worktree check is
+    // unaffected.
+    let workspace = std::env::current_dir()
+        .map_err(|error| format!("could not determine workspace directory: {error}"))?;
+    let parent = workspace
+        .parent()
+        .ok_or_else(|| "workspace has no parent directory".to_owned())?;
+    let temp_root = parent.join(format!(
+        ".memorylineage-reviewer-reproduce-{}",
+        std::process::id()
+    ));
+    let archive = temp_root.join("reviewer-package.tar.gz");
+    let checkout = temp_root.join("checkout");
+    fs::create_dir_all(&temp_root)
+        .map_err(|error| format!("could not create reviewer reproduction directory: {error}"))?;
+    let archive_text = archive
+        .to_str()
+        .ok_or_else(|| "reviewer archive path is not valid UTF-8".to_owned())?;
+    let checkout_text = checkout
+        .to_str()
+        .ok_or_else(|| "reviewer checkout path is not valid UTF-8".to_owned())?;
+
+    let result = (|| {
+        reviewer_package(Some(archive_text))?;
+        fs::create_dir_all(&checkout)
+            .map_err(|error| format!("could not create reviewer checkout: {error}"))?;
+        run("tar", &["-xzf", archive_text, "-C", checkout_text])?;
+
+        let output = Command::new("cargo")
+            .args(["xtask", "reproduce"])
+            .env("CCACHE_DISABLE", "1")
+            .env_remove("RUSTC_WRAPPER")
+            .current_dir(&checkout)
+            .output()
+            .map_err(|error| {
+                format!("could not run reproduction from reviewer archive: {error}")
+            })?;
+        if !output.status.success() {
+            return Err(format!(
+                "reviewer archive reproduction failed with {}\n{}{}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        println!("PASS clean reviewer archive reproduction");
+        println!("archive checkout: {}", checkout.display());
+        Ok(())
+    })();
+    let _ = fs::remove_dir_all(&temp_root);
+    result
+}
+
 fn release_manifest(output: Option<&str>) -> Result<(), String> {
     let destination = output
         .map(PathBuf::from)
@@ -881,10 +938,11 @@ fn main() {
         "release" => release_prep(),
         "reproduce" => reproduce(),
         "reviewer-package" => reviewer_package(std::env::args().nth(2).as_deref()),
+        "reviewer-reproduce" => reviewer_reproduce(),
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, reviewer-package, smoke-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, reviewer-package, reviewer-reproduce, smoke-web, or release-manifest"
         )),
     };
 

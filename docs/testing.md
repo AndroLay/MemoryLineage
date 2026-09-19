@@ -26,6 +26,12 @@ checked with:
 cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
 ```
 
+To exercise the archive itself without relying on `.git` metadata:
+
+```bash
+cargo xtask reviewer-reproduce
+```
+
 This command checks the archive contents; it does not change GitHub visibility
 or create a hosted website.
 

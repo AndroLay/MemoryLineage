@@ -52,6 +52,17 @@ and generated evidence. This archive is a transportable review surface when a
 hosted website is intentionally unavailable; it does not make a private GitHub
 repository public.
 
+The owner can verify that the transportable packet is runnable without Git
+metadata by running:
+
+```bash
+cargo xtask reviewer-reproduce
+```
+
+This creates the archive from the clean committed `HEAD`, extracts it into a
+temporary checkout, and runs `cargo xtask reproduce` there. It is still an
+automated owner-side check; it does not become an external human report.
+
 ## Human comprehension path
 
 After the automated command passes:
