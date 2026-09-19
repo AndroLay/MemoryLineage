@@ -52,6 +52,28 @@ and generated evidence. This archive is a transportable review surface when a
 hosted website is intentionally unavailable; it does not make a private GitHub
 repository public.
 
+A reviewer who receives the archive can run the same path without GitHub
+access:
+
+```bash
+mkdir -p /tmp/memorylineage-review
+tar -xzf /path/to/memorylineage-reviewer-package.tar.gz \
+  -C /tmp/memorylineage-review
+cd /tmp/memorylineage-review
+cargo xtask reproduce
+```
+
+After the gate builds the static site, a reviewer can inspect it locally with
+an SPA fallback server, for example:
+
+```bash
+python3 -m http.server 4173 \
+  --directory target/dx/memorylineage-inspector/release/web/public
+```
+
+The archive is the source/evidence transport surface; it does not expose the
+private GitHub repository or create a public website.
+
 The owner can verify that the transportable packet is runnable without Git
 metadata by running:
 
