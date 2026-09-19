@@ -1,5 +1,30 @@
 # MemoryLineage
 
+> **Verify the history, not the memory.**
+
+## The problem
+
+Persistent AI-agent memory can live in private storage controlled by its
+operator. If the operator restores an older backup, the local snapshot can move
+back while a registry still records later committed states. A reviewer cannot
+establish from that restored snapshot alone whether the next update continues
+from the current history or is built on a stale state.
+
+MemoryLineage gives the reviewer a shared reference point: it checks whether a
+new committed transition uses the next sequence, the registry's current state
+root, and the configured authorization. In the published local Demo Space V2,
+the registry has states 1–3; transition 4 uses the actual root from state 1 and
+the Rust/revm run executes the Solidity bytecode, which rejects it with
+`BAD_PREVIOUS_STATE`.
+
+The local restore itself is still possible. MemoryLineage does not inspect the
+meaning of the private memory or stop an operator from changing local storage;
+it rejects a stale-root transition when that transition is submitted to the
+registry. The demo uses a public synthetic SQLite fixture, while portable
+evidence contains commitments rather than its sample values.
+
+## What MemoryLineage does
+
 MemoryLineage is an independent auditor for private AI-agent memory history.
 It verifies whether committed memory states form a continuous, authorized
 canonical history without requiring raw memory to be published on-chain.
@@ -8,7 +33,7 @@ canonical history without requiring raw memory to be published on-chain.
 Private memory → Commitment → Canonical registry → Portable evidence → Independent replay
 ~~~
 
-The product is built around one question:
+The product answers one narrow question:
 
 > **Is this committed state the authorized continuation of the previously
 > committed history?**

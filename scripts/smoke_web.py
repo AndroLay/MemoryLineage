@@ -38,7 +38,7 @@ ROUTES = {
     "/inspect": "What is canonical right now?",
     "/history": "How did the canonical history get here?",
     "/history/3": "What exactly happened in this transition?",
-    "/lab": "Can I break the committed history?",
+    "/lab": "Will an old backup pass as the next state?",
     "/verify": "Can I verify this without trusting the website?",
     "/evidence": "Where is the proof behind the claims?",
     "/architecture": "How does MemoryLineage work?",
@@ -93,6 +93,7 @@ class CdpSocket:
         if b" 101 " not in response:
             raise RuntimeError("CDP WebSocket handshake failed")
         self.next_id = 1
+        self.events: list[dict] = []
 
     def _read_until(self, marker: bytes) -> bytes:
         data = b""
@@ -153,6 +154,8 @@ class CdpSocket:
             message = json.loads(payload.decode("utf-8"))
             if message.get("method") and os.environ.get("MEMORYLINEAGE_CDP_DEBUG"):
                 print(f"CDP event {message['method']}", flush=True)
+            if message.get("method"):
+                self.events.append(message)
             if message.get("id") != command_id:
                 continue
             if "error" in message:
@@ -189,6 +192,7 @@ def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
     # the CDP probe does not race the WASM bootstrap itself.
     time.sleep(1.5)
     deadline = time.time() + BOOT_TIMEOUT_SECONDS
+    last_body = ""
     while time.time() < deadline:
         try:
             body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
@@ -198,11 +202,223 @@ def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
             # slow renderer turn.
             time.sleep(1.0)
             continue
+        last_body = body
         if expected in body:
             print(f"PASS route {path or '/'}")
             return
         time.sleep(0.25)
-    raise RuntimeError(f"route {path or '/'} did not render expected marker")
+    preview = " ".join(last_body.split())[:360]
+    runtime_errors = [
+        (
+            event.get("params", {}).get("exceptionDetails", {}).get("exception", {}).get("description")
+            or event.get("params", {}).get("exceptionDetails", {}).get("text", "")
+        )
+        for event in cdp.events
+        if event.get("method") == "Runtime.exceptionThrown"
+    ]
+    console_errors = [
+        " ".join(
+            str(argument.get("value") or argument.get("description") or "")
+            for argument in event.get("params", {}).get("args", [])
+        ).strip()
+        for event in cdp.events
+        if event.get("method") == "Runtime.consoleAPICalled"
+        and event.get("params", {}).get("type") == "error"
+    ]
+    network_failures = [
+        f"{event.get('params', {}).get('request', {}).get('url', '')}: "
+        f"{event.get('params', {}).get('errorText', '')}"
+        for event in cdp.events
+        if event.get("method") == "Network.loadingFailed"
+    ]
+    frame_urls = [
+        event.get("params", {}).get("frame", {}).get("url", "")
+        for event in cdp.events
+        if event.get("method") == "Page.frameNavigated"
+    ]
+    network_responses = [
+        (
+            event.get("params", {}).get("type", ""),
+            event.get("params", {}).get("response", {}).get("status", ""),
+            event.get("params", {}).get("response", {}).get("url", ""),
+        )
+        for event in cdp.events
+        if event.get("method") == "Network.responseReceived"
+    ]
+    error_summary = "; ".join((runtime_errors + console_errors + network_failures)[-3:])
+    try:
+        page_state = cdp.evaluate("""(() => ({
+          href: location.href,
+          readyState: document.readyState,
+          title: document.title,
+          mainHtml: document.querySelector('#main')?.innerHTML?.slice(0, 320) || ''
+        }))()""")
+    except Exception as error:
+        page_state = f"evaluation failed: {type(error).__name__}"
+    try:
+        frame_tree = cdp.command("Page.getFrameTree").get("frameTree", {}).get("frame", {}).get("url")
+    except Exception as error:
+        frame_tree = f"unavailable: {type(error).__name__}"
+    raise RuntimeError(
+        f"route {path or '/'} did not render expected marker {expected!r}; "
+        f"page text starts with {preview!r}; "
+        f"runtime errors: {error_summary or 'none captured'}; "
+        f"navigated frames: {frame_urls[-3:]!r}; "
+        f"responses: {network_responses[-8:]!r}; "
+        f"frame tree URL: {frame_tree!r}; "
+        f"page state: {page_state!r}"
+    )
+
+
+def navigate_via_internal_link(
+    cdp: CdpSocket, path: str, expected: str
+) -> None:
+    main_frame_navigations = sum(
+        1
+        for event in cdp.events
+        if event.get("method") == "Page.frameNavigated"
+        and not event.get("params", {}).get("frame", {}).get("parentId")
+    )
+    expression = f"""(() => {{
+      const target = {json.dumps(path)};
+      const anchor = Array.from(document.querySelectorAll('a[href]')).find(
+        element => new URL(element.href).pathname === target
+      );
+      if (!anchor) return false;
+      const rect = anchor.getBoundingClientRect();
+      return {{ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }};
+    }})()"""
+    point = cdp.evaluate(expression)
+    if not isinstance(point, dict):
+        raise RuntimeError(f"internal link not found for route {path}")
+    cdp.command(
+        "Input.dispatchMouseEvent",
+        {
+            "type": "mousePressed",
+            "x": point["x"],
+            "y": point["y"],
+            "button": "left",
+            "clickCount": 1,
+        },
+    )
+    cdp.command(
+        "Input.dispatchMouseEvent",
+        {
+            "type": "mouseReleased",
+            "x": point["x"],
+            "y": point["y"],
+            "button": "left",
+            "clickCount": 1,
+        },
+    )
+
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    last_state: dict = {}
+    while time.time() < deadline:
+        try:
+            state = cdp.evaluate("""(() => ({
+              path: location.pathname,
+              body: document.body ? document.body.innerText : '',
+              page: document.querySelector('.page')?.className || '',
+              heading: document.querySelector('.page h1')?.innerText || ''
+            }))()""") or {}
+        except (TimeoutError, socket.timeout):
+            navigations = sum(
+                1
+                for event in cdp.events
+                if event.get("method") == "Page.frameNavigated"
+                and not event.get("params", {}).get("frame", {}).get("parentId")
+            )
+            if navigations > main_frame_navigations:
+                raise RuntimeError(
+                    f"internal link to {path} performed a full document reload; "
+                    "the Inspector requires client-side route navigation"
+                )
+            time.sleep(0.25)
+            continue
+        last_state = state
+
+        navigations = sum(
+            1
+            for event in cdp.events
+            if event.get("method") == "Page.frameNavigated"
+            and not event.get("params", {}).get("frame", {}).get("parentId")
+        )
+        if navigations > main_frame_navigations:
+            raise RuntimeError(
+                f"internal link to {path} performed a full document reload; "
+                "the Inspector requires client-side route navigation"
+            )
+        if state.get("path") == path and expected in state.get("body", ""):
+            print(f"PASS client navigation {path}")
+            return
+        time.sleep(0.25)
+
+    navigated_frames = [
+        event.get("params", {}).get("frame", {}).get("url", "")
+        for event in cdp.events
+        if event.get("method") == "Page.frameNavigated"
+    ]
+    runtime_errors = [
+        event.get("params", {}).get("exceptionDetails", {}).get("text", "")
+        for event in cdp.events
+        if event.get("method") == "Runtime.exceptionThrown"
+    ]
+    raise RuntimeError(
+        f"internal link did not reach {path} with expected marker {expected!r}; "
+        f"last route={last_state.get('path')!r}; "
+        f"body={ ' '.join(last_state.get('body', '').split())[:220]!r}; "
+        f"page={last_state.get('page')!r}; heading={last_state.get('heading')!r}; "
+        f"navigated frames={navigated_frames[-3:]!r}; "
+        f"runtime errors={runtime_errors[-3:]!r}"
+    )
+
+
+def verify_home_problem_story(cdp: CdpSocket) -> None:
+    manifest = json.loads(
+        (ROOT / "fixtures/silent-rollback-v2/manifest.json").read_text()
+    )
+    evidence = json.loads(
+        (ROOT / "evidence/local/demo_space_v2_evidence.json").read_text()
+    )
+    restored_sequence = manifest["attack"]["restoredSequence"]
+    attempted_sequence = manifest["attack"]["attemptedSequence"]
+    head_sequence = evidence["head"]["sequence"]
+    expected_reason = manifest["attack"]["expectedContractReason"]
+    expected = [
+        "old memory backup",
+        f"registry remains at state {head_sequence}",
+        f"state {restored_sequence}",
+        f"Transition {attempted_sequence}",
+        "stale predecessor root",
+        expected_reason,
+        "Raw memory is not required on-chain",
+        "existing Sepolia deployment is a separate observation",
+        *[snapshot["visibleLabel"] for snapshot in manifest["snapshots"]],
+    ]
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    body = ""
+    missing = expected
+    while time.time() < deadline:
+        try:
+            body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        except (TimeoutError, socket.timeout):
+            time.sleep(0.5)
+            continue
+        body = " ".join(body.split())
+        missing = [marker for marker in expected if marker not in body]
+        if not missing:
+            print("PASS home problem story / old backup + canonical head + fixture labels")
+            return
+        time.sleep(0.25)
+    note_nodes = cdp.evaluate(
+        "Array.from(document.querySelectorAll('.home-source-note')).map(node => "
+        "({text: node.textContent, visibleText: node.innerText}))"
+    )
+    raise RuntimeError(
+        f"home problem story is incomplete; missing source-backed context: {missing!r}; "
+        f"visible body: {' '.join(body.split())[:700]!r}; note nodes: {note_nodes!r}"
+    )
 
 
 def click_and_wait(cdp: CdpSocket, text: str, expected: str) -> None:
@@ -386,6 +602,7 @@ def main() -> int:
         cdp = CdpSocket(page["webSocketDebuggerUrl"])
         cdp.command("Page.enable")
         cdp.command("Runtime.enable")
+        cdp.command("Network.enable")
         cdp.command(
             "Emulation.setDeviceMetricsOverride",
             {
@@ -395,6 +612,9 @@ def main() -> int:
                 "mobile": False,
             },
         )
+        wait_for_url(base, "/", ROUTES["/"], cdp)
+        verify_home_problem_story(cdp)
+        navigate_via_internal_link(cdp, "/inspect", ROUTES["/inspect"])
         for path, expected in ROUTES.items():
             wait_for_url(base, path, expected, cdp)
             if path == "/history":
@@ -405,7 +625,7 @@ def main() -> int:
         wait_for_url(base, "/verify", "VERIFIED", cdp)
         click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
         click_and_wait(cdp, "Restore original", "VERIFIED")
-        screenshot_root = os.environ.get("MEMORYLINE_SCREENSHOT_DIR")
+        screenshot_root = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
         mobile_directory = Path(screenshot_root) / "mobile" if screenshot_root else None
         if mobile_directory:
             mobile_directory.mkdir(parents=True, exist_ok=True)

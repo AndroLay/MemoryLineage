@@ -4,6 +4,16 @@ MemoryLineage Inspector is a Rust/WASM Dioxus website over curated evidence,
 independent replay, and an optional read-only Sepolia probe. It does not require
 a wallet, private key, transaction broadcast, or authoritative backend.
 
+## The problem this demo makes visible
+
+An operator may restore the agent's private off-chain store to an older
+snapshot, while the registry still records newer committed states. A reviewer
+cannot establish from the local snapshot alone whether a proposed update
+continues from the latest committed head. MemoryLineage checks that transition
+against the shared registry history. It does not prevent the local restore; it
+rejects a submitted transition that names the old snapshot's root as its
+predecessor.
+
 ## Start
 
 Run the deterministic verification gate and build the static website:

@@ -6,7 +6,7 @@ license = "MIT"
 description = "Rust/WASM MemoryLineage Inspector website"
 
 [dependencies]
-dioxus = { version = "=0.8.0-alpha.1", default-features = false, features = ["minimal", "web", "asset"] }
+dioxus = { version = "=0.8.0-alpha.1", default-features = false, features = ["minimal", "web", "asset", "router"] }
 ml-spec-types = { path = "../../crates/ml-spec-types" }
 ml-evidence = { path = "../../crates/ml-evidence" }
 ml-ethereum = { path = "../../crates/ml-ethereum" }
@@ -16,6 +16,7 @@ serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+dioxus = { version = "=0.8.0-alpha.1", default-features = false, features = ["document"] }
 js-sys = "=0.3.105"
 wasm-bindgen = "=0.2.128"
 wasm-bindgen-futures = "=0.4.78"

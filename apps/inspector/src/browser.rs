@@ -158,24 +158,6 @@ pub async fn live_silent_rollback(stale_predecessor: &str) -> LiveRollbackOutcom
     }
 }
 
-pub fn browser_path() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        return web_sys::window()
-            .map(|window| {
-                window
-                    .location()
-                    .pathname()
-                    .unwrap_or_else(|_| "/".to_owned())
-            })
-            .unwrap_or_else(|| "/".to_owned());
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "/".to_owned()
-    }
-}
-
 pub fn copy_text(value: String) {
     #[cfg(target_arch = "wasm32")]
     {

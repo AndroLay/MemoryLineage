@@ -10,10 +10,17 @@ Its central question is:
 
 ## Hero scenario: Silent Rollback
 
-An agent progresses through private states `S1 -> S2 -> S3`. An operator
-restores `S1` and tries to continue the history as if `S2` and `S3` never
-existed. The registry rejects the stale predecessor, and the independent
-verifier explains the exact invariant that failed.
+The agent's private memory lives in an off-chain store controlled by its
+operator. The registry has accepted transitions `S1 -> S2 -> S3`. The operator
+can restore the local store to `S1`; that changes the local snapshot, not the
+registry history. If the operator submits transition `S4` using the root from
+`S1`, the registry rejects it with `BAD_PREVIOUS_STATE` because the canonical
+head is `S3`. The independent verifier can replay the evidence and show which
+predecessor failed.
+
+This demonstrates one narrow guarantee: a stale snapshot cannot be accepted as
+the next canonical committed transition under the registry rules. MemoryLineage
+does not prevent a local restore or evaluate the meaning of the private memory.
 
 ## Product flow
 

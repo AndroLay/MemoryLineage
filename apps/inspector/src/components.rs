@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use crate::AppRoute;
 use crate::browser::copy_text;
 use crate::data::{HistoryLedgerEvent, Route, UiData, short_hash};
 use dioxus::prelude::*;
@@ -20,17 +21,17 @@ pub fn TopNavigation(route: Route) -> Element {
     };
     rsx! {
         header { class: "topbar",
-            a { class: "brand", href: "/", aria_label: "MemoryLineage home",
+            Link { class: "brand", to: AppRoute::Home {}, aria_label: "MemoryLineage home",
                 span { class: "brand-mark",
                     img { class: "brand-logo", src: asset!("/assets/memorylineage-logo.png"), alt: "MemoryLineage logo" }
                 }
                 span { strong { "MEMORYLINEAGE" } small { "INDEPENDENT MEMORY AUDITOR" } }
             }
             nav { class: "primary-nav", aria_label: "Primary navigation",
-                a { class: active(Route::Inspect), href: "/inspect", "Inspect" }
-                a { class: active(Route::History), href: "/history", "History" }
-                a { class: lab_class, href: "/lab", "Tampering Lab" }
-                a { class: active(Route::Verify), href: "/verify", "Verify" }
+                Link { class: active(Route::Inspect), to: AppRoute::Inspect {}, "Inspect" }
+                Link { class: active(Route::History), to: AppRoute::History {}, "History" }
+                Link { class: lab_class, to: AppRoute::Lab {}, "Tampering Lab" }
+                Link { class: active(Route::Verify), to: AppRoute::Verify {}, "Verify" }
             }
             div { class: "topbar-meta",
                 span { class: "source-chip source-observed", span { class: "source-dot" }, "SEPOLIA / READ-ONLY" }
@@ -96,7 +97,7 @@ pub fn LineageRail(data: UiData, compact: bool) -> Element {
         div { class: class, aria_label: "Canonical committed history",
             div { class: "lineage-line" }
             for transition in data.v2.transitions.iter() {
-                a { class: "lineage-node", href: "/history/{transition.delta.sequence}", key: "{transition.transition_id}",
+                Link { class: "lineage-node", to: AppRoute::Transition { sequence: transition.delta.sequence }, key: "{transition.transition_id}",
                     span { class: "node-number", "{transition.delta.sequence:02}" }
                     span { class: "node-copy", strong { "SEQ {transition.delta.sequence}" }, small { "COMMITTED" } }
                     code { "{short_hash(&transition.next_state_root, 8, 6)}" }
@@ -183,7 +184,12 @@ pub fn Footer() -> Element {
         footer { class: "site-footer",
             span { "MEMORYLINEAGE / INSPECTOR" }
             span { "We prove history integrity. We do not claim semantic truth." }
-            div { class: "footer-links", a { href: "/evidence", "Evidence" }, a { href: "/security", "Security" }, a { href: "/reproduce", "Reproduce" } }
+            div { class: "footer-links",
+                Link { to: AppRoute::Evidence {}, "Evidence" }
+                Link { to: AppRoute::Security {}, "Security" }
+                Link { to: AppRoute::Reproduce {}, "Reproduce" }
+                Link { to: AppRoute::PriorWork {}, "Prior work" }
+            }
         }
     }
 }

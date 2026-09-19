@@ -36,18 +36,6 @@ impl Scenario {
         Self::SemanticPoisoning,
     ];
 
-    pub fn id(self) -> &'static str {
-        match self {
-            Self::SilentRollback => "silent-rollback",
-            Self::SequenceGap => "sequence-gap",
-            Self::ParallelHistory => "parallel-history",
-            Self::WrongEoa => "wrong-eoa-signer",
-            Self::LocatorBinding => "locator-binding",
-            Self::WrongDomain => "wrong-chain-domain",
-            Self::SemanticPoisoning => "semantic-poisoning",
-        }
-    }
-
     pub fn title(self) -> &'static str {
         match self {
             Self::SilentRollback => "Silent Rollback",
@@ -93,10 +81,16 @@ impl Scenario {
     }
 
     pub fn from_id(value: &str) -> Self {
-        Self::ALL
-            .into_iter()
-            .find(|scenario| scenario.id() == value)
-            .unwrap_or(Self::SilentRollback)
+        match value {
+            "silent-rollback" => Self::SilentRollback,
+            "sequence-gap" => Self::SequenceGap,
+            "parallel-history" => Self::ParallelHistory,
+            "wrong-eoa-signer" => Self::WrongEoa,
+            "locator-binding" => Self::LocatorBinding,
+            "wrong-chain-domain" => Self::WrongDomain,
+            "semantic-poisoning" => Self::SemanticPoisoning,
+            _ => Self::SilentRollback,
+        }
     }
 }
 
@@ -113,33 +107,6 @@ pub enum Route {
     Security,
     Reproduce,
     PriorWork,
-}
-
-impl Route {
-    pub fn from_path(path: &str) -> Self {
-        let clean = path.split('?').next().unwrap_or(path).trim_end_matches('/');
-        match clean {
-            "" => Self::Home,
-            "/inspect" => Self::Inspect,
-            "/history" => Self::History,
-            "/lab" => Self::Lab(Scenario::SilentRollback),
-            "/verify" => Self::Verify,
-            "/evidence" => Self::Evidence,
-            "/architecture" => Self::Architecture,
-            "/security" => Self::Security,
-            "/reproduce" => Self::Reproduce,
-            "/prior-work" => Self::PriorWork,
-            path if path.starts_with("/history/") => path
-                .strip_prefix("/history/")
-                .and_then(|sequence| sequence.parse().ok())
-                .map(Self::Transition)
-                .unwrap_or(Self::History),
-            path if path.starts_with("/lab/") => Self::Lab(Scenario::from_id(
-                path.strip_prefix("/lab/").unwrap_or("silent-rollback"),
-            )),
-            _ => Self::Home,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
@@ -393,6 +360,14 @@ impl UiData {
             .unwrap_or_else(|| self.head())
     }
 
+    pub fn snapshot_label(&self, sequence: u64) -> Option<&str> {
+        self.fixture
+            .snapshots
+            .iter()
+            .find(|snapshot| snapshot.sequence == sequence)
+            .and_then(|snapshot| snapshot.visible_label.as_deref())
+    }
+
     pub fn restored_snapshot(&self) -> &PrivateSnapshotRecord {
         self.fixture
             .snapshots
@@ -473,7 +448,43 @@ pub fn short_hash(value: &str, head: usize, tail: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::UiData;
+    use super::{Scenario, UiData};
+
+    #[test]
+    fn scenario_routes_resolve_to_known_tampering_cases() {
+        let cases = [
+            ("silent-rollback", Scenario::SilentRollback),
+            ("sequence-gap", Scenario::SequenceGap),
+            ("parallel-history", Scenario::ParallelHistory),
+            ("wrong-eoa-signer", Scenario::WrongEoa),
+            ("locator-binding", Scenario::LocatorBinding),
+            ("wrong-chain-domain", Scenario::WrongDomain),
+            ("semantic-poisoning", Scenario::SemanticPoisoning),
+        ];
+        for (slug, expected) in cases {
+            assert_eq!(Scenario::from_id(slug), expected, "{slug}");
+        }
+        assert_eq!(
+            Scenario::from_id("unknown"),
+            Scenario::SilentRollback,
+            "unknown scenario slugs fail back to the hero case"
+        );
+    }
+
+    #[test]
+    fn demo_snapshot_labels_are_available_for_product_explanations() {
+        let data = UiData::load();
+        assert_eq!(data.snapshot_label(1), Some("Language preference recorded"));
+        assert_eq!(
+            data.snapshot_label(2),
+            Some("Evidence-backed claim policy recorded")
+        );
+        assert_eq!(
+            data.snapshot_label(3),
+            Some("Raw-memory privacy boundary recorded")
+        );
+        assert_eq!(data.snapshot_label(4), None);
+    }
 
     #[test]
     fn bundled_workspace_data_loads_and_replays() {

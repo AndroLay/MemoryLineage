@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use crate::AppRoute;
 use crate::browser::{LiveRollbackOutcome, download_json, live_silent_rollback};
 use crate::components::*;
 use crate::data::{Scenario, UiData, short_hash, verify_evidence_json};
@@ -23,34 +24,47 @@ pub fn HomePage(data: UiData) -> Element {
     let stale_root = attack
         .and_then(|attack| attack.stale_predecessor.as_deref())
         .unwrap_or("NOT AVAILABLE");
+    let restored_sequence = data.restored_snapshot().sequence;
+    let attempted_sequence = attack
+        .and_then(|value| value.attempted_sequence)
+        .unwrap_or(head.delta.sequence.saturating_add(1));
+    let first_sequence = data
+        .v2
+        .transitions
+        .first()
+        .map(|transition| transition.delta.sequence)
+        .unwrap_or_default();
+    let contract_reason = attack
+        .and_then(|value| value.reason.as_deref())
+        .unwrap_or("BAD_PREVIOUS_STATE");
     rsx! {
         div { class: "page page-home",
             section { class: "home-hero",
                 div { class: "home-hero-copy",
-                    p { class: "eyebrow", "THE SILENT ROLLBACK / PRIVATE AGENT STATE" }
+                    p { class: "eyebrow", "PRIVATE AI MEMORY / STALE RESTORE" }
                     p { class: "home-tagline", "Verify the history, not the memory." }
-                    h1 { "An AI agent was restored to an older snapshot. ", em { "Can the next state still be canonical?" } }
-                    p { class: "home-lede", "MemoryLineage checks whether the next committed state continues the authorized history. Raw agent memory need not be published on-chain; the demo uses synthetic sample values, while portable evidence contains commitments only." }
+                    h1 { "Can an old memory backup continue the agent's committed history?" }
+                    p { class: "home-lede", "AI operators control their agents' local memory databases. After a restore from an older snapshot, a third party needs an independent reference to tell whether the next transition extends the accepted history or reuses an obsolete root. MemoryLineage anchors sequence, predecessor, and authority in a registry reviewers can inspect. Raw memory is not required on-chain." }
                     div { class: "action-row",
-                        a { class: "button button-primary", href: "/lab/silent-rollback", "Run Silent Rollback →" }
-                        a { class: "button button-secondary", href: "/verify", "Verify Evidence" }
+                        Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Run Silent Rollback →" }
+                        Link { class: "button button-secondary", to: AppRoute::Verify {}, "Verify Evidence" }
                     }
                 }
                 div { class: "home-hero-trust content-panel",
-                    div { class: "panel-title-row", div { p { class: "panel-kicker", "SILENT ROLLBACK / DEMO SPACE V2" } h2 { "Canonical history" } }, StatusBadge { label: "LOCAL REVM / VERIFIED".to_owned(), tone: "verified".to_owned() } }
+                    div { class: "panel-title-row", div { p { class: "panel-kicker", "DEMO SPACE V2 / LOCAL REVM" } h2 { "Canonical head" } }, StatusBadge { label: "LOCAL EVIDENCE / VERIFIED".to_owned(), tone: "verified".to_owned() } }
                     div { class: "incident-rail",
                         for transition in data.v2.transitions.iter() {
-                            div { class: "incident-state", key: "home-incident-{transition.delta.sequence}", span { class: "incident-sequence", "{transition.delta.sequence}" }, strong { "COMMITTED" }, code { "{short_hash(&transition.next_state_root, 8, 6)}" } }
+                            div { class: "incident-state", key: "home-incident-{transition.delta.sequence}", span { class: "incident-sequence", "{transition.delta.sequence}" }, small { class: "incident-label", "{data.snapshot_label(transition.delta.sequence).unwrap_or(\"Label unavailable\")}" }, strong { "COMMITTED" }, code { "{short_hash(&transition.next_state_root, 8, 6)}" } }
                         }
                     }
                     div { class: "incident-attempt",
-                        div { span { "RESTORED" }, strong { "Snapshot {data.restored_snapshot().sequence}" }, code { "{short_hash(&stale_root, 10, 8)}" } }
+                        div { span { "RESTORED SNAPSHOT" }, strong { "State {data.restored_snapshot().sequence}" }, small { class: "incident-label", "{data.restored_snapshot().visible_label.as_deref().unwrap_or(\"Label unavailable\")}" }, code { "{short_hash(&stale_root, 10, 8)}" } }
                         span { class: "incident-arrow", "→" }
-                        div { span { "ATTEMPT" }, strong { "Transition {attack.and_then(|value| value.attempted_sequence).unwrap_or(4)}" }, code { "stale predecessor" } }
+                        div { span { "ATTEMPT" }, strong { "Transition {attempted_sequence}" }, code { "stale predecessor root from state {restored_sequence}" } }
                     }
-                    div { class: "incident-result", span { "RESULT" }, StatusBadge { label: attack.and_then(|value| value.reason.clone()).unwrap_or_else(|| "BAD_PREVIOUS_STATE".to_owned()), tone: "danger".to_owned() } }
+                    div { class: "incident-result", span { "RESULT" }, StatusBadge { label: contract_reason.to_owned(), tone: "danger".to_owned() } }
                     SourceLine { source: "PUBLISHED LOCAL REVM".to_owned(), note: "real Solidity bytecode / no transaction broadcast".to_owned() }
-                    p { class: "small-note", "The demo is deterministic local evidence until a matching public Demo Space is deployed. The public Sepolia observation remains available on the Evidence page." }
+                    p { class: "home-source-note", "The registry remains at state {head.delta.sequence}; restoring snapshot {restored_sequence} does not change it. Snapshot labels are synthetic public descriptors, not private memory text. The existing Sepolia deployment is a separate observation." }
                 }
             }
             section { class: "home-metrics section-wrap",
@@ -60,14 +74,14 @@ pub fn HomePage(data: UiData) -> Element {
             }
             section { class: "home-overview section-wrap content-panel",
                 div { class: "panel-title-row home-overview-heading",
-                    div { p { class: "panel-kicker", "UNIFIED DEMO SPACE V2" } h2 { "Committed private-memory lineage" } p { class: "panel-subtitle", "Three synthetic SQLite snapshots, three committed transitions, and one rollback attempt form a reproducible local incident. The sample database is public; its values are not included in portable evidence or on-chain." } }
+                    div { p { class: "panel-kicker", "UNIFIED DEMO SPACE V2" } h2 { "Restoring local storage does not move the head" } p { class: "panel-subtitle", "The demo restores the local database to snapshot {restored_sequence} after transitions {first_sequence}–{head.delta.sequence} are committed. Transition {attempted_sequence} presents the root recorded after that snapshot was committed and is rejected. The fixture is synthetic and public; portable evidence contains commitments, not its sample values." } }
                     SourceLine { source: "SYNTHETIC SNAPSHOTS".to_owned(), note: format!("{} commitments / sample values are public", data.fixture.snapshots.len()) }
                     SourceLine { source: "LOCAL REVM".to_owned(), note: format!("{} transitions / authority rotation", data.v2.transitions.len()) }
                 }
                 div { class: "home-overview-layout",
                     div { class: "home-overview-lineage",
                         LineageRail { data: data.clone(), compact: false }
-                        a { class: "text-link", href: "/history", "View full history →" }
+                        Link { class: "text-link", to: AppRoute::History {}, "View full history →" }
                     }
                     aside { class: "home-selected-state",
                         div { class: "panel-title-row", div { p { class: "panel-kicker", "SELECTED CANONICAL HEAD" } h2 { "State {head.delta.sequence}" } }, StatusBadge { label: "CURRENT / CANONICAL".to_owned(), tone: "verified".to_owned() } }
@@ -77,7 +91,7 @@ pub fn HomePage(data: UiData) -> Element {
                             ReadoutRow { label: "Registry".to_owned(), value: short_hash(&data.v2.registry.address, 12, 8), detail: "Rust/revm Solidity lane".to_owned() }
                             ReadoutRow { label: "Sequence".to_owned(), value: head.delta.sequence.to_string(), detail: "ordered transition".to_owned() }
                         }
-                        a { class: "button button-secondary button-full", href: "/inspect", "View on Inspect →" }
+                        Link { class: "button button-secondary button-full", to: AppRoute::Inspect {}, "View on Inspect →" }
                     }
                 }
             }
@@ -86,19 +100,19 @@ pub fn HomePage(data: UiData) -> Element {
                     div { class: "panel-kicker", "WHAT MEMORYLINEAGE VERIFIES" }
                     h2 { "Continuity, authority, commitments." }
                     ul { class: "scope-list scope-list-positive",
-                        li { strong { "Ordered history" }, span { "Sequence values extend one another without gaps." } }
-                        li { strong { "Predecessor binding" }, span { "Each transition names the current committed root." } }
-                        li { strong { "Authorization" }, span { "Configured registry rules are replayable." } }
-                        li { strong { "Portable evidence" }, span { "A separate Rust verifier can replay the bundle." } }
+                        li { strong { "Ordered history" }, span { "Each accepted update uses the next sequence; gaps are rejected." } }
+                        li { strong { "Predecessor binding" }, span { "A new update must extend the current root, not an older backup." } }
+                        li { strong { "Authorization" }, span { "The transition must match the configured authority." } }
+                        li { strong { "Portable evidence" }, span { "A separate Rust verifier can replay the commitments and head." } }
                     }
                 }
                 div { class: "content-panel content-panel-muted scope-panel-negative",
                     div { class: "panel-kicker", "WHAT MEMORYLINEAGE DOES NOT VERIFY" }
                     h2 { "A valid lineage is not semantic truth." }
                     ul { class: "scope-list scope-list-muted",
-                        li { strong { "Not memory truth" }, span { "The underlying private content is not semantically evaluated." } }
+                        li { strong { "Not memory truth" }, span { "The verifier checks commitments, not the meaning or accuracy of private text." } }
                         li { strong { "Not AI reasoning" }, span { "The protocol does not explain why an agent made a decision." } }
-                        li { strong { "Not total safety" }, span { "Semantic poisoning remains outside this audit boundary." } }
+                        li { strong { "Not total safety" }, span { "An authorized transition can still contain unsafe content." } }
                     }
                 }
             }
@@ -110,7 +124,7 @@ pub fn HomePage(data: UiData) -> Element {
                     span { "Solidity registry" } span { class: "flow-arrow", "→" }
                     span { "Independent replay" }
                 }
-                a { class: "text-link", href: "/architecture", "Read the architecture →" }
+                Link { class: "text-link", to: AppRoute::Architecture {}, "Read the architecture →" }
             }
         }
     }
@@ -126,7 +140,7 @@ pub fn InspectPage(data: UiData) -> Element {
             PageHeader {
                 kicker: "INSPECT / MEMORY SPACE".to_owned(),
                 title: "What is canonical right now?".to_owned(),
-                description: "Read the committed head, its authority, and the evidence source without exposing the private memory behind the commitments.".to_owned(),
+                description: "See the latest committed sequence and root—the reference point a restored local snapshot must extend. This view uses published local Demo Space V2 evidence; Sepolia is a separate observation.".to_owned(),
                 source: "DEMO SPACE V2 / LOCAL REVM".to_owned(),
             }
             div { class: "workspace-grid workspace-grid-inspect",
@@ -138,6 +152,7 @@ pub fn InspectPage(data: UiData) -> Element {
                             ReadoutRow { label: "Registry".to_owned(), value: short_hash(&data.v2.registry.address, 12, 8), detail: "deterministic local contract instance".to_owned() }
                             ReadoutRow { label: "Space ID".to_owned(), value: short_hash(&data.v2.registry.space_id, 14, 8), detail: "Demo Space V2".to_owned() }
                             ReadoutRow { label: "Canonical head".to_owned(), value: format!("sequence {}", head.delta.sequence), detail: "three committed demo states".to_owned() }
+                            ReadoutRow { label: "Current demo label".to_owned(), value: data.snapshot_label(head.delta.sequence).unwrap_or("Label unavailable").to_owned(), detail: "synthetic fixture metadata; not a registry field".to_owned() }
                             ReadoutRow { label: "Synthetic fixture".to_owned(), value: format!("{} snapshots", data.fixture.snapshots.len()), detail: "sample values are source-visible; omitted from evidence and chain".to_owned() }
                         }
                         dl { class: "readout-list",
@@ -148,15 +163,15 @@ pub fn InspectPage(data: UiData) -> Element {
                         }
                     }
                     div { class: "action-row action-row-tight",
-                        a { class: "button button-primary", href: "/lab/silent-rollback", "Simulate Rollback" }
-                        a { class: "button button-secondary", href: "/history", "View History" }
-                        a { class: "button button-quiet", href: "/verify", "Verify Bundle" }
+                        Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Simulate Rollback" }
+                        Link { class: "button button-secondary", to: AppRoute::History {}, "View History" }
+                        Link { class: "button button-quiet", to: AppRoute::Verify {}, "Verify Bundle" }
                     }
                 }
                 aside { class: "content-panel boundary-panel-light",
                     div { class: "panel-kicker", "EVIDENCE SOURCE" }
-                    h2 { "The local incident has one source of truth." }
-                    p { "The Demo Space V2 bundle ties SQLite-derived commitments to local Solidity execution, authority rotation, and the stale-predecessor rejection. Sepolia is a separate read-only observation." }
+                    h2 { "A local restore does not move the registry head." }
+                    p { "The Demo Space V2 bundle ties SQLite-derived commitments to local Solidity execution, authority rotation, and the stale-predecessor rejection. Restoring snapshot 1 changes the fixture's local state; the registry head remains at state 3. Sepolia is a separate read-only observation." }
                     SourceLine { source: "SEPOLIA / OBSERVED".to_owned(), note: format!("block {} / reread PASS", data.reread.block_number) }
                     SourceLine { source: "DEMO SPACE V2".to_owned(), note: format!("{} snapshots → {} transitions", data.fixture.snapshots.len(), data.v2.transitions.len()) }
                     SourceLine { source: "PROTOCOL CORPUS".to_owned(), note: format!("{} transitions / {} mutations", data.bundle.valid_history.len(), data.mutation_count) }
@@ -203,7 +218,7 @@ pub fn HistoryPage(data: UiData) -> Element {
     };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "HISTORY / CANONICAL LINEAGE".to_owned(), title: "How did the canonical history get here?".to_owned(), description: "Review the ordered transitions, authority change, and final root as one evidence-backed Demo Space V2 incident.".to_owned(), source: "DEMO SPACE V2 / LOCAL REVM".to_owned() }
+            PageHeader { kicker: "HISTORY / CANONICAL LINEAGE".to_owned(), title: "How did the canonical history get here?".to_owned(), description: "Trace the accepted updates and authority change. Restoring an older SQLite snapshot changes local storage; it does not rewrite the transitions already recorded in this registry history.".to_owned(), source: "DEMO SPACE V2 / LOCAL REVM".to_owned() }
             div { class: "history-workspace",
                 section { class: "content-panel history-main-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "CANONICAL LINEAGE RAIL" } h2 { "Sequence of record" } }, StatusBadge { label: history_verdict.to_owned(), tone: history_verdict_tone.to_owned() } }
@@ -213,8 +228,9 @@ pub fn HistoryPage(data: UiData) -> Element {
                                 div { class: "history-sequence", strong { "{transition.delta.sequence:02}" }, span { "SEQ" } }
                                 div { class: "history-event",
                                     div { class: "event-title-row", h3 { "Committed transition {transition.delta.sequence}" }, StatusBadge { label: "COMMITTED".to_owned(), tone: "verified".to_owned() } }
-                                    p { "The transition extends the previous committed state root under the pinned registry rules." }
-                                    div { class: "history-meta", span { "PREV ", code { "{short_hash(&transition.delta.prev_state_root, 10, 6)}" } }, span { "NEXT ", code { "{short_hash(&transition.next_state_root, 10, 6)}" } }, a { href: "/history/{transition.delta.sequence}", "View detail →" } }
+                                p { class: "history-snapshot-label", "Synthetic demo label: {data.snapshot_label(transition.delta.sequence).unwrap_or(\"Label unavailable\")}" }
+                                p { "This transition extends the previous committed root under the registry rules. A restored older snapshot does not rewrite this accepted record." }
+                                    div { class: "history-meta", span { "PREV ", code { "{short_hash(&transition.delta.prev_state_root, 10, 6)}" } }, span { "NEXT ", code { "{short_hash(&transition.next_state_root, 10, 6)}" } }, Link { to: AppRoute::Transition { sequence: transition.delta.sequence }, "View detail →" } }
                                 }
                             }
                         }
@@ -228,7 +244,7 @@ pub fn HistoryPage(data: UiData) -> Element {
                         StatusBadge { label: "LOCAL REVM HEAD".to_owned(), tone: "verified".to_owned() }
                         div { class: "sidebar-readout", span { "STATE ROOT" }, CopyValue { label: "current state root".to_owned(), value: head.next_state_root.clone(), compact: false } }
                         div { class: "sidebar-readout", span { "TRANSITION ID" }, CopyValue { label: "current transition id".to_owned(), value: head.transition_id.clone(), compact: true } }
-                        a { class: "text-link", href: "/history/{head.delta.sequence}", "Open transition detail →" }
+                        Link { class: "text-link", to: AppRoute::Transition { sequence: head.delta.sequence }, "Open transition detail →" }
                     }
                     div { class: "content-panel",
                         div { class: "panel-kicker", "AUTHORITY HISTORY" }
@@ -276,7 +292,7 @@ pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
     };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "HISTORY / TRANSITION FORENSICS".to_owned(), title: "What exactly happened in this transition?".to_owned(), description: format!("Inspect the commitment fields and derived state for sequence {} without opening the private memory.", transition.delta.sequence), source: "DEMO SPACE V2 / LOCAL REVM".to_owned() }
+            PageHeader { kicker: "HISTORY / TRANSITION FORENSICS".to_owned(), title: "What exactly happened in this transition?".to_owned(), description: format!("The public synthetic fixture labels sequence {} as '{}'. Inspect its commitments and predecessor root; this label is illustrative metadata, not private memory content.", transition.delta.sequence, data.snapshot_label(transition.delta.sequence).unwrap_or("Label unavailable")), source: "DEMO SPACE V2 / LOCAL REVM".to_owned() }
             div { class: "detail-hero-row",
                 div { class: "content-panel detail-identity",
                     div { class: "panel-kicker", "TRANSITION" }
@@ -316,7 +332,7 @@ pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
                     }
                 }
             }
-            section { class: "section-wrap detail-footer-row", a { class: "button button-secondary", href: "/history", "← Back to History" }, a { class: "button button-primary", href: "/lab/silent-rollback", "Test a stale predecessor →" } }
+            section { class: "section-wrap detail-footer-row", Link { class: "button button-secondary", to: AppRoute::History {}, "← Back to History" }, Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Test a stale predecessor →" } }
         }
     }
 }
@@ -480,7 +496,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
     };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Can I break the committed history?".to_owned(), description: "Replay the contract-backed local rollback evidence or inspect the published mutation corpus. The optional Sepolia read is a separate observation, and every result keeps its machine reason.".to_owned(), source: page_source.to_owned() }
+            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Will an old backup pass as the next state?".to_owned(), description: "The Demo Space V2 execution records states 1–3, then attempts transition 4 with state 1's actual root. The browser verifies the published Solidity/revm rejection; other attacks show published corpus results, and the optional Sepolia read is separate.".to_owned(), source: page_source.to_owned() }
             div { class: "lab-workspace",
                 aside { class: "scenario-list content-panel",
                     div { class: "panel-kicker", "ATTACK SCENARIOS" }
@@ -496,9 +512,9 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "CANONICAL VS ATTEMPT" } h2 { "{selected_scenario.title()}" } }, StatusBadge { label: result_label.to_owned(), tone: result_tone.to_owned() } }
                     if selected_scenario == Scenario::SilentRollback {
                     div { class: "rollback-story",
-                            div { class: "rollback-column", span { class: "panel-kicker", "SYNTHETIC FIXTURE / CANONICAL SNAPSHOT" }, div { class: "snapshot-stack", for snapshot in data.fixture.snapshots.iter() { if snapshot.sequence == data.canonical_snapshot().sequence { strong { "SNAPSHOT {snapshot.sequence} / COMMITTED" } } else { span { "SNAPSHOT {snapshot.sequence}" } } if snapshot.sequence != data.canonical_snapshot().sequence { span { "↓" } } } }, code { "protocol root {short_hash(&data.head().next_state_root, 12, 8)}" } }
+                            div { class: "rollback-column", span { class: "panel-kicker", "SYNTHETIC FIXTURE / CANONICAL SNAPSHOT" }, div { class: "snapshot-stack", for snapshot in data.fixture.snapshots.iter() { if snapshot.sequence == data.canonical_snapshot().sequence { strong { "SNAPSHOT {snapshot.sequence} / COMMITTED" } } else { span { "SNAPSHOT {snapshot.sequence}" } } small { class: "snapshot-label", "{snapshot.visible_label.as_deref().unwrap_or(\"Label unavailable\")}" } if snapshot.sequence != data.canonical_snapshot().sequence { span { "↓" } } } }, code { "protocol root {short_hash(&data.head().next_state_root, 12, 8)}" } }
                             div { class: "rollback-operator", "→" }
-                            div { class: "rollback-column rollback-column-attempt", span { class: "panel-kicker", "LOCAL RESTORE ATTEMPT" }, div { class: "snapshot-stack snapshot-stack-danger", strong { "RESTORE SNAPSHOT {data.restored_snapshot().sequence}" }, span { "↓" }, span { "ATTEMPT TRANSITION {data.v2.attack.as_ref().and_then(|attack| attack.attempted_sequence).unwrap_or(4)}" } }, code { "stale predecessor {short_hash(&stale_predecessor, 12, 8)}" } }
+                            div { class: "rollback-column rollback-column-attempt", span { class: "panel-kicker", "LOCAL RESTORE ATTEMPT" }, div { class: "snapshot-stack snapshot-stack-danger", strong { "RESTORE SNAPSHOT {data.restored_snapshot().sequence}" }, small { class: "snapshot-label", "{data.restored_snapshot().visible_label.as_deref().unwrap_or(\"Label unavailable\")}" }, span { "↓" }, span { "ATTEMPT TRANSITION {data.v2.attack.as_ref().and_then(|attack| attack.attempted_sequence).unwrap_or(4)}" } }, code { "stale predecessor {short_hash(&stale_predecessor, 12, 8)}" } }
                         }
                         div { class: result_panel_class, aria_live: "polite",
                             if was_attempted && current_state != RollbackUiState::Ready && current_state != RollbackUiState::ProbingSepolia {
@@ -559,7 +575,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
             }
             section { class: "section-wrap lab-footer-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "EXACT REASONS" }, div { class: "reason-grid", for mutation in data.bundle.mutation_matrix.iter().filter(|mutation| mutation.expected == "REJECT").take(8) { div { class: "reason-cell", key: "{mutation.name}", code { "{mutation.observed.reason.as_deref().unwrap_or(\"NO_REASON\")}" }, span { "{mutation.name}" } } } } }
-                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "NEXT STEP" }, h3 { "Take the evidence with you." }, p { "A browser rejection is useful only when the bundle can be independently replayed." }, a { class: "text-link", href: "/verify", "Open the Verify workspace →" } }
+                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "NEXT STEP" }, h3 { "Take the evidence with you." }, p { "A browser rejection is useful only when the bundle can be independently replayed." }, Link { class: "text-link", to: AppRoute::Verify {}, "Open the Verify workspace →" } }
             }
         }
     }
@@ -723,7 +739,7 @@ pub fn VerifyPage(data: UiData) -> Element {
             }
             section { class: "section-wrap verify-bottom-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "SECONDARY AUDITOR" }, h3 { "Rust CLI" }, p { "The same evidence can be checked outside the browser with the independent Rust verifier." }, code { class: "command-block", "cargo run -q -p ml-cli -- verify evidence.json" } }
-                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "TRUST MODEL" }, h3 { "Do not trust the dashboard." }, p { "Trust the deterministic bundle, the pinned semantics, and a verifier you can run separately." }, a { class: "text-link", href: "/security", "Read the boundary →" } }
+                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "TRUST MODEL" }, h3 { "Do not trust the dashboard." }, p { "Trust the deterministic bundle, the pinned semantics, and a verifier you can run separately." }, Link { class: "text-link", to: AppRoute::Security {}, "Read the boundary →" } }
             }
         }
     }
@@ -760,8 +776,8 @@ pub fn EvidencePage(data: UiData) -> Element {
             }
             section { class: "section-wrap evidence-lower-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "UNIFIED DEMO SPACE V2" }, h3 { "One incident, one portable bundle." }, p { "The local Demo Space V2 ties commitments derived from synthetic SQLite snapshots to three Solidity transitions, one authority rotation, and the stale-predecessor rejection. Sample values are excluded from the bundle." }, dl { class: "readout-list", ReadoutRow { label: "Canonical head".to_owned(), value: format!("sequence {}", data.v2.head.sequence), detail: "Rust/revm execution".to_owned() }, ReadoutRow { label: "Rollback result".to_owned(), value: data.v2.attack.as_ref().and_then(|attack| attack.reason.clone()).unwrap_or_else(|| "NOT RECORDED".to_owned()), detail: "Transition 1 root used as stale predecessor".to_owned() }, ReadoutRow { label: "Authority".to_owned(), value: format!("{} records", data.v2.authorization_history.len()), detail: "configNonce 0 → 1".to_owned() } } }
-                div { class: "content-panel", div { class: "panel-kicker", "PUBLISHED ADVERSARIAL CORPUS" }, h3 { "{data.mutation_rejected}/{data.mutation_count} expected rejection cases observed" }, div { class: "reason-grid reason-grid-wide", for mutation in data.bundle.mutation_matrix.iter().filter(|mutation| mutation.expected == "REJECT").take(8) { div { class: "reason-cell", key: "{mutation.name}", code { "{mutation.observed.reason.as_deref().unwrap_or(\"NO_REASON\")}" }, span { "{mutation.name}" } } } }, a { class: "text-link", href: "/lab", "Open Tampering Lab →" } }
-                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "EXTERNAL REPRODUCTION" }, h3 { "NOT YET DEMONSTRATED" }, p { "No independent human clean-checkout result is claimed in this workspace yet. The repository's own gates remain separate from that future evidence." }, a { class: "text-link", href: "/reproduce", "See the reproducible commands →" } }
+                div { class: "content-panel", div { class: "panel-kicker", "PUBLISHED ADVERSARIAL CORPUS" }, h3 { "{data.mutation_rejected}/{data.mutation_count} expected rejection cases observed" }, div { class: "reason-grid reason-grid-wide", for mutation in data.bundle.mutation_matrix.iter().filter(|mutation| mutation.expected == "REJECT").take(8) { div { class: "reason-cell", key: "{mutation.name}", code { "{mutation.observed.reason.as_deref().unwrap_or(\"NO_REASON\")}" }, span { "{mutation.name}" } } } }, Link { class: "text-link", to: AppRoute::Lab {}, "Open Tampering Lab →" } }
+                div { class: "content-panel content-panel-muted", div { class: "panel-kicker", "EXTERNAL REPRODUCTION" }, h3 { "NOT YET DEMONSTRATED" }, p { "No independent human clean-checkout result is claimed in this workspace yet. The repository's own gates remain separate from that future evidence." }, Link { class: "text-link", to: AppRoute::Reproduce {}, "See the reproducible commands →" } }
             }
             section { class: "section-wrap artifact-list content-panel",
                 div { class: "panel-kicker", "AVAILABLE ARTIFACTS" }
@@ -793,7 +809,7 @@ pub fn ArchitecturePage(data: UiData) -> Element {
                 div { class: "architecture-branches", div { class: "architecture-branch", strong { "Rust/WASM Inspector" }, span { "read-only RPC + browser verifier" } }, div { class: "architecture-branch", strong { "Portable Evidence" }, span { "V1/V2 JSON + independent replay" } }, div { class: "architecture-branch", strong { "Rust CLI" }, span { "secondary developer auditor" } } }
             }
             section { class: "section-wrap architecture-grid",
-                div { class: "content-panel", div { class: "panel-kicker", "WHY BLOCKCHAIN" }, h2 { "The operator should not be the only historian." }, p { "The registry enforces a public append-only boundary for the commitments that define succession. The operator may still control private memory storage; an external verifier does not have to blindly trust its presented order." }, a { class: "text-link", href: "/security", "Read the trust boundary →" } }
+                div { class: "content-panel", div { class: "panel-kicker", "WHY BLOCKCHAIN" }, h2 { "The operator should not be the only historian." }, p { "The registry enforces a public append-only boundary for the commitments that define succession. The operator may still control private memory storage; an external verifier does not have to blindly trust its presented order." }, Link { class: "text-link", to: AppRoute::Security {}, "Read the trust boundary →" } }
                 div { class: "content-panel", div { class: "panel-kicker", "CURRENT EVIDENCE" }, dl { class: "readout-list", ReadoutRow { label: "Rust toolchain".to_owned(), value: "1.97.1".to_owned(), detail: "repository pinned".to_owned() }, ReadoutRow { label: "Pinned spec".to_owned(), value: "ERC-8350".to_owned(), detail: "v1-pinned-vector-2026-09-18".to_owned() }, ReadoutRow { label: "Dioxus".to_owned(), value: "0.8.0-alpha.1".to_owned(), detail: "WASM frontend".to_owned() }, ReadoutRow { label: "Published head".to_owned(), value: data.v2.head.sequence.to_string(), detail: "local replay bundle".to_owned() } } }
             }
             section { class: "section-wrap content-panel", div { class: "panel-kicker", "DATA TYPES" }, div { class: "data-type-grid", div { strong { "ON CHAIN" }, span { "sequence" }, span { "prevStateRoot" }, span { "commitments" }, span { "transitionId" } }, div { strong { "OFF CHAIN" }, span { "raw memory" }, span { "private documents" }, span { "locator contents" }, span { "agent context" } }, div { strong { "EVIDENCE" }, span { "head observation" }, span { "authority history" }, span { "replay result" }, span { "mutation outcome" } } } }
@@ -845,7 +861,7 @@ pub fn ReproducePage(data: UiData) -> Element {
     rsx! {
         div { class: "page workspace-page",
             PageHeader { kicker: "REPRODUCE / CLEAN CHECKOUT".to_owned(), title: "Can another developer reproduce these claims?".to_owned(), description: "The commands below are the repository's current verification surfaces. They are evidence of reproducibility work, not a security audit.".to_owned(), source: "REPOSITORY COMMANDS".to_owned() }
-            section { class: "section-wrap reproduce-hero content-panel", div { class: "panel-kicker", "PRIMARY GATE" }, h2 { "cargo xtask verify" }, p { "Runs the repository's current Rust verification, conformance, local execution, evidence replay, WASM, and package-boundary checks." }, code { class: "command-block command-block-large", "cargo xtask verify" }, div { class: "action-row", a { class: "button button-primary", href: "/verify", "Verify evidence in the browser" }, a { class: "button button-secondary", href: "/evidence", "Inspect published outputs" } } }
+            section { class: "section-wrap reproduce-hero content-panel", div { class: "panel-kicker", "PRIMARY GATE" }, h2 { "cargo xtask verify" }, p { "Runs the repository's current Rust verification, conformance, local execution, evidence replay, WASM, and package-boundary checks." }, code { class: "command-block command-block-large", "cargo xtask verify" }, div { class: "action-row", Link { class: "button button-primary", to: AppRoute::Verify {}, "Verify evidence in the browser" }, Link { class: "button button-secondary", to: AppRoute::Evidence {}, "Inspect published outputs" } } }
             section { class: "section-wrap reproduce-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "LOCAL COMMANDS" }, CommandRow { command: "cargo xtask verify".to_owned(), note: "complete deterministic verification gate".to_owned() }, CommandRow { command: "cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json".to_owned(), note: "independent Demo Space V2 evidence replay".to_owned() }, CommandRow { command: "cargo run -q -p ml-cli -- demo silent-rollback".to_owned(), note: "SQLite → Rust/revm Silent Rollback incident".to_owned() }, CommandRow { command: "cargo xtask build-web".to_owned(), note: "static Rust/WASM website build".to_owned() } }
                 div { class: "content-panel", div { class: "panel-kicker", "CURRENT FINGERPRINT" }, dl { class: "readout-list", ReadoutRow { label: "Rust".to_owned(), value: "1.97.1".to_owned(), detail: "rust-toolchain.toml".to_owned() }, ReadoutRow { label: "Published vectors".to_owned(), value: "MATCH".to_owned(), detail: "ERC-8350 pinned corpus".to_owned() }, ReadoutRow { label: "Silent Rollback".to_owned(), value: "REJECTED".to_owned(), detail: "BAD_PREVIOUS_STATE".to_owned() }, ReadoutRow { label: "External developers".to_owned(), value: "NOT YET DEMONSTRATED".to_owned(), detail: "do not infer human validation".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "no fabricated release identity".to_owned() } } }
@@ -870,7 +886,7 @@ pub fn PriorWorkPage(data: UiData) -> Element {
                 dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "private repository / configured".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "release identity remains pending".to_owned() } }
                 p { class: "small-note", "MemoryLineage does not claim to have invented ERC-8350 or to be the first AI memory lineage system. Its distinction is the independent, authorization-bound audit surface and reproducible evidence around the pinned semantics." }
             }
-            section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", a { href: "/architecture", "Architecture →" }, a { href: "/evidence", "Public evidence →" }, a { href: "/security", "Security boundary →" }, a { href: "/reproduce", "Reproduce →" } } }
+            section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", Link { to: AppRoute::Architecture {}, "Architecture →" }, Link { to: AppRoute::Evidence {}, "Public evidence →" }, Link { to: AppRoute::Security {}, "Security boundary →" }, Link { to: AppRoute::Reproduce {}, "Reproduce →" }, Link { to: AppRoute::PriorWork {}, "Prior work →" } } }
         }
     }
 }

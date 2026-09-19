@@ -21,17 +21,28 @@ history of a persistent AI-agent memory space. They need to inspect a public
 registry, reproduce a tampering attempt, and verify an exported evidence bundle
 without receiving the raw private memory.
 
+## Problem
+
+The operator may control the agent's off-chain memory database. Restoring an
+older backup can move that local snapshot behind states already committed to a
+registry. A reviewer needs to distinguish a valid continuation from an update
+built on that stale snapshot, without seeing private memory contents.
+
 ## Product Purpose
 
 MemoryLineage Inspector makes committed private-agent-memory history readable
-and falsifiable. Its success condition is a first-time visitor completing
-Inspect → Silent Rollback → Export → Verify without a verbal briefing.
+and falsifiable. It checks whether a proposed transition extends the registry's
+canonical head under the configured sequence and authorization rules. Its
+success condition is a first-time visitor understanding why a stale snapshot
+is rejected, then completing Inspect → Silent Rollback → Export → Verify
+without a verbal briefing.
 
 ## Positioning
 
 MemoryLineage audits continuity and authorization of committed memory history.
-It is not a semantic memory-safety detector, an AI reasoning evaluator, or a
-general agent wallet guard.
+It does not prevent local restores, assess the semantic safety or truth of
+memory, explain agent reasoning, or prove that an external action was caused by
+a particular memory state.
 
 ## Operating Context
 
