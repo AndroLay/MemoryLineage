@@ -44,6 +44,26 @@ success condition is a first-time visitor understanding the restore mismatch,
 its evidence source, and the exact limit of the result without a verbal
 briefing.
 
+## Judge path
+
+The first review should fit one short incident rather than a tour of every
+technical surface:
+
+```text
+Restore snapshot 1 locally
+  -> compare it with the committed state-3 head
+  -> receive BAD_PREVIOUS_STATE
+  -> tamper one portable commitment
+  -> receive TRANSITION_ID_MISMATCH
+  -> restore the bundle and receive VERIFIED
+```
+
+Home introduces this path, Inspect identifies the evidence head, History shows
+the authority-bound succession, Tampering Lab executes the negative path, and
+Verify lets a reviewer replay the same bundle independently. The automated
+`cargo xtask reproduce` command covers the repository path; external human
+reproduction remains a separately recorded evidence item.
+
 ## Positioning
 
 MemoryLineage audits continuity of committed memory history and describes

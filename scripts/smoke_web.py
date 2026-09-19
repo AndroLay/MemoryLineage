@@ -392,8 +392,12 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         f"Transition {attempted_sequence}",
         "stale predecessor root",
         expected_reason,
-        "Raw memory is not required on-chain",
+        "without publishing the private memory itself",
         "existing Sepolia deployment is a separate observation",
+        "Load an older private snapshot locally.",
+        "Check it against the committed head.",
+        "See the exact Solidity reason.",
+        "A judge can understand the failure before reading the cryptography",
         *[snapshot["visibleLabel"] for snapshot in manifest["snapshots"]],
     ]
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
@@ -511,6 +515,21 @@ def verify_transition_detail(cdp: CdpSocket) -> None:
     if missing:
         raise RuntimeError(f"transition detail did not expose the signed authority proof: {missing!r}")
     print("PASS transition detail / active authority proof and EIP-712 fields")
+
+
+def verify_reproduce_path(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    required = (
+        "cargo xtask reproduce",
+        "JUDGE IN 90 SECONDS",
+        "One incident, four checks",
+        "EXTERNAL REPRODUCTION / HUMAN REPORT",
+        "NOT YET DEMONSTRATED",
+    )
+    missing = [marker for marker in required if marker not in body]
+    if missing:
+        raise RuntimeError(f"reproduce path is incomplete; missing={missing!r}")
+    print("PASS reproduce path / automated gate, judge flow, and human-report boundary")
 
 
 def verify_restore_preflight(cdp: CdpSocket) -> None:
@@ -681,6 +700,8 @@ def main() -> int:
                 verify_history_ledger(cdp)
             if path == "/history/3":
                 verify_transition_detail(cdp)
+            if path == "/reproduce":
+                verify_reproduce_path(cdp)
 
         wait_for_url(base, "/lab/silent-rollback", "Run Silent Rollback", cdp)
         click_and_wait_for_rollback(cdp)

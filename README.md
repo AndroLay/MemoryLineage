@@ -151,6 +151,26 @@ supporting pages are reached through contextual links.
 | `/reproduce` | Can another developer reproduce these claims? |
 | `/prior-work` | What existed before the hackathon, and what was built here? |
 
+### Judge in 90 seconds
+
+The shortest useful review does not begin with the contract or the research
+folder:
+
+1. Open the Inspector home and read the incident: an older private snapshot is
+   restored after the committed head has moved forward.
+2. Open `Tampering Lab → Silent Rollback` and run the local Demo Space V2
+   rehearsal. The published Solidity bytecode rejects the stale root with the
+   exact reason `BAD_PREVIOUS_STATE`.
+3. Open `Verify`, load the bundled evidence, change the tested commitment, and
+   observe `TRANSITION_ID_MISMATCH`.
+4. Restore the original bundle and obtain `VERIFIED` in the browser, then run
+   the independent Rust verifier from the repository.
+
+The same incident is used by Home, Inspect, History, Lab, Verify, and the CLI.
+The website labels local evidence, Sepolia observations, and unavailable
+external validation separately; it never presents a hosted surface or a human
+reproduction result that does not exist.
+
 ### The Silent Rollback
 
 The unified local Demo Space V2 contains three synthetic SQLite snapshots that
@@ -387,6 +407,17 @@ Chromium route/interaction smoke, and tracked-file package boundary check:
 cargo xtask release
 cargo xtask release-manifest /tmp/memorylineage-release-manifest.json
 ~~~
+
+For a reviewer-oriented one-command path, use:
+
+~~~bash
+cargo xtask reproduce
+~~~
+
+This runs the local environment check, the complete automated release path, and
+prints an explicit note that external human reproduction still requires a real
+second developer. The runbook and report template are in
+[`docs/reproduction/`](docs/reproduction/).
 
 This prepares artifacts without deploying hosting, staging, or recording the
 demo video.

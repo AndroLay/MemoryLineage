@@ -541,19 +541,25 @@ fn doctor() -> Result<(), String> {
     }
 
     let mut ready = true;
-    for (label, program, args) in [
-        ("Rust compiler", "rustc", ["--version"].as_slice()),
-        ("Cargo", "cargo", ["--version"].as_slice()),
-        ("Dioxus CLI", "dx", ["--version"].as_slice()),
-        ("Solidity compiler", "solc", ["--version"].as_slice()),
+    for (label, program, args, required) in [
+        ("Rust compiler", "rustc", ["--version"].as_slice(), true),
+        ("Cargo", "cargo", ["--version"].as_slice(), true),
+        ("Dioxus CLI", "dx", ["--version"].as_slice(), true),
+        ("Solidity compiler", "solc", ["--version"].as_slice(), false),
     ] {
         let available = command_available(program, args);
         println!(
             "{}  {}",
             label,
-            if available { "PASS" } else { "NOT FOUND" }
+            if available {
+                "PASS"
+            } else if required {
+                "NOT FOUND"
+            } else {
+                "OPTIONAL / NOT FOUND"
+            }
         );
-        if matches!(label, "Rust compiler" | "Cargo" | "Dioxus CLI") && !available {
+        if required && !available {
             ready = false;
         }
     }
@@ -709,6 +715,14 @@ fn release_prep() -> Result<(), String> {
     Ok(())
 }
 
+fn reproduce() -> Result<(), String> {
+    doctor()?;
+    release_prep()?;
+    println!("PASS automated clean-checkout reproduction path");
+    println!("NOTE external human reproduction remains NOT YET DEMONSTRATED");
+    Ok(())
+}
+
 fn release_manifest(output: Option<&str>) -> Result<(), String> {
     let destination = output
         .map(PathBuf::from)
@@ -798,10 +812,11 @@ fn main() {
         "build-web" => build_web(),
         "package-check" => run("bash", &["scripts/check-public-package.sh"]),
         "release" => release_prep(),
+        "reproduce" => reproduce(),
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, smoke-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, smoke-web, or release-manifest"
         )),
     };
 

@@ -95,6 +95,26 @@ Inspect evidence source
   -> export and independently verify the portable bundle
 ```
 
+## Judge path
+
+The first-time review path is intentionally shorter than the full architecture
+description:
+
+```text
+Restore snapshot 1
+  -> compare with the state-3 evidence head
+  -> reject the stale predecessor with BAD_PREVIOUS_STATE
+  -> tamper one evidence commitment
+  -> reject with TRANSITION_ID_MISMATCH
+  -> restore the original bundle
+  -> verify it independently
+```
+
+The browser, CLI, and evidence pages use the same Demo Space V2 bundle for
+this path. The static release and automated `cargo xtask reproduce` command
+make it reviewable without a hosted service; external human reproduction is
+still a separate evidence requirement.
+
 ## Evidence assurance vocabulary
 
 - `VERIFIED` applies only to the named deterministic checks that ran.

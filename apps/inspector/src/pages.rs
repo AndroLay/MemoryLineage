@@ -49,11 +49,28 @@ pub fn HomePage(data: UiData) -> Element {
                     p { class: "eyebrow", "PRIVATE AI MEMORY / STALE RESTORE" }
                     p { class: "home-tagline", "Verify the history, not the memory." }
                     h1 { "Can an old memory backup pass as the agent's current state?" }
-                    p { class: "home-lede", "After a crash or restore, an agent may load a private checkpoint older than the history already recorded by its registry. Restore Preflight classifies a candidate as the demo head, a known earlier checkpoint, diverged, or unverified—without exposing memory text. Raw memory is not required on-chain. This prototype uses synthetic local evidence and does not block a live agent runtime." }
+                    p { class: "home-lede", "An agent restores snapshot 1 after its committed history has reached state 3. MemoryLineage checks whether that candidate is the authorized continuation—without publishing the private memory itself." }
                     div { class: "action-row",
                         Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Run Silent Rollback →" }
                         Link { class: "button button-secondary", to: AppRoute::Verify {}, "Verify Evidence" }
                     }
+                    div { class: "judge-path", aria_label: "Judge path",
+                        div { class: "judge-step",
+                            span { class: "judge-step-number", "01" }
+                            div { strong { "Restore" }, span { "Load an older private snapshot locally." } }
+                        }
+                        div { class: "judge-step-arrow", "→" }
+                        div { class: "judge-step",
+                            span { class: "judge-step-number", "02" }
+                            div { strong { "Compare" }, span { "Check it against the committed head." } }
+                        }
+                        div { class: "judge-step-arrow", "→" }
+                        div { class: "judge-step",
+                            span { class: "judge-step-number judge-step-number-danger", "03" }
+                            div { strong { "Reject" }, span { "See the exact Solidity reason." } }
+                        }
+                    }
+                    p { class: "home-judge-note", "A judge can understand the failure before reading the cryptography: old local state does not become the current canonical predecessor by being restored." }
                 }
                 div { class: "home-hero-trust content-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "DEMO SPACE V2 / LOCAL REVM" } h2 { "Canonical head" } }, StatusBadge { label: "LOCAL EVIDENCE / VERIFIED".to_owned(), tone: "verified".to_owned() } }
@@ -131,6 +148,19 @@ pub fn HomePage(data: UiData) -> Element {
                     span { "Independent replay" }
                 }
                 Link { class: "text-link", to: AppRoute::Architecture {}, "Read the architecture →" }
+            }
+            section { class: "section-wrap judge-next-step content-panel",
+                div { class: "panel-kicker", "NEXT REVIEW STEP" }
+                div { class: "judge-next-layout",
+                    div {
+                        h2 { "Trace the same incident without trusting the homepage." }
+                        p { "Inspect the head, open the transition history, run the stale-root attempt, then export the bundle. Every surface reads the same Demo Space V2 evidence." }
+                    }
+                    div { class: "action-row action-row-tight",
+                        Link { class: "button button-primary", to: AppRoute::Inspect {}, "Start Inspect →" }
+                        Link { class: "button button-quiet", to: AppRoute::Reproduce {}, "Reproduce locally" }
+                    }
+                }
             }
         }
     }
@@ -1236,13 +1266,42 @@ pub fn SecurityPage() -> Element {
 pub fn ReproducePage(data: UiData) -> Element {
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "REPRODUCE / CLEAN CHECKOUT".to_owned(), title: "Can another developer reproduce these claims?".to_owned(), description: "The commands below are the repository's current verification surfaces. They are evidence of reproducibility work, not a security audit.".to_owned(), source: "REPOSITORY COMMANDS".to_owned() }
-            section { class: "section-wrap reproduce-hero content-panel", div { class: "panel-kicker", "PRIMARY GATE" }, h2 { "cargo xtask verify" }, p { "Runs the repository's current Rust verification, conformance, local execution, evidence replay, WASM, and package-boundary checks." }, code { class: "command-block command-block-large", "cargo xtask verify" }, div { class: "action-row", Link { class: "button button-primary", to: AppRoute::Verify {}, "Verify evidence in the browser" }, Link { class: "button button-secondary", to: AppRoute::Evidence {}, "Inspect published outputs" } } }
+            PageHeader { kicker: "REPRODUCE / CLEAN CHECKOUT".to_owned(), title: "Can another developer reproduce these claims?".to_owned(), description: "MemoryLineage gives a reviewer one deterministic path from checkout to evidence. The automated gate is complete; human reproduction remains a separately recorded result.".to_owned(), source: "REPOSITORY COMMANDS".to_owned() }
+            section { class: "section-wrap reproduce-hero content-panel",
+                div { class: "reproduce-hero-heading",
+                    div { class: "panel-kicker", "PRIMARY GATE / AUTOMATED" }
+                    StatusBadge { label: "LOCAL PATH READY".to_owned(), tone: "verified".to_owned() }
+                }
+                h2 { "cargo xtask reproduce" }
+                p { "Runs the concise reviewer path: environment check, Rust verification, static website build, browser smoke, and package boundary. It proves the checkout can reproduce the supplied artifacts; it does not manufacture an external developer report." }
+                code { class: "command-block command-block-large", "cargo xtask reproduce" }
+                div { class: "action-row",
+                    Link { class: "button button-primary", to: AppRoute::Verify {}, "Verify evidence in the browser" }
+                    Link { class: "button button-secondary", to: AppRoute::Evidence {}, "Inspect published outputs" }
+                    Link { class: "button button-quiet button-dark", to: AppRoute::Home {}, "Open the judge path" }
+                }
+            }
+            section { class: "section-wrap reproduce-journey content-panel",
+                div { class: "panel-title-row",
+                    div { p { class: "panel-kicker", "JUDGE IN 90 SECONDS" } h2 { "One incident, four checks" } p { class: "panel-subtitle", "The commands and browser actions below all point to the same local Demo Space V2 bundle." } }
+                    StatusBadge { label: "NO DEPLOYMENT REQUIRED".to_owned(), tone: "observed".to_owned() }
+                }
+                div { class: "reproduce-journey-grid",
+                    div { class: "reproduce-journey-step", span { class: "judge-step-number", "01" }, strong { "Run the gate" }, code { "cargo xtask reproduce" }, span { "Rust, revm, evidence, WASM, and browser checks." } }
+                    div { class: "reproduce-journey-step", span { class: "judge-step-number", "02" }, strong { "Open the Inspector" }, code { "/lab/silent-rollback" }, span { "Restore snapshot 1 against the state-3 head." } }
+                    div { class: "reproduce-journey-step", span { class: "judge-step-number judge-step-number-danger", "03" }, strong { "Falsify the claim" }, code { "BAD_PREVIOUS_STATE" }, span { "The stale predecessor is rejected by Solidity execution." } }
+                    div { class: "reproduce-journey-step", span { class: "judge-step-number", "04" }, strong { "Replay independently" }, code { "ml-verify evidence.json" }, span { "Tamper, fail, restore, and verify the portable bundle." } }
+                }
+            }
             section { class: "section-wrap reproduce-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "LOCAL COMMANDS" }, CommandRow { command: "cargo xtask verify".to_owned(), note: "complete deterministic verification gate".to_owned() }, CommandRow { command: "cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json".to_owned(), note: "independent Demo Space V2 evidence replay".to_owned() }, CommandRow { command: "cargo run -q -p ml-cli -- demo silent-rollback".to_owned(), note: "SQLite → Rust/revm Silent Rollback incident".to_owned() }, CommandRow { command: "cargo xtask build-web".to_owned(), note: "static Rust/WASM website build".to_owned() } }
                 div { class: "content-panel", div { class: "panel-kicker", "CURRENT FINGERPRINT" }, dl { class: "readout-list", ReadoutRow { label: "Rust".to_owned(), value: "1.97.1".to_owned(), detail: "rust-toolchain.toml".to_owned() }, ReadoutRow { label: "Published vectors".to_owned(), value: "MATCH".to_owned(), detail: "ERC-8350 pinned corpus".to_owned() }, ReadoutRow { label: "Silent Rollback".to_owned(), value: "REJECTED".to_owned(), detail: "BAD_PREVIOUS_STATE".to_owned() }, ReadoutRow { label: "External developers".to_owned(), value: "NOT YET DEMONSTRATED".to_owned(), detail: "do not infer human validation".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "no fabricated release identity".to_owned() } } }
             }
-            section { class: "section-wrap content-panel", div { class: "panel-kicker", "WHAT THIS PROVES" }, div { class: "reproduce-proof-grid", div { strong { "Same source" }, span { "A clean checkout can execute the published gates." } }, div { strong { "Same evidence" }, span { "The browser and CLI consume portable JSON." } }, div { strong { "Same boundaries" }, span { "The product does not silently promote unproven claims." } } }, p { class: "small-note", "Current Demo Space bundle: {data.v2.evidence_type}. The separate four-transition protocol corpus remains available on Public Evidence. An independent human clean-checkout result is intentionally not claimed yet." } }
+            section { class: "section-wrap reproduce-grid",
+                div { class: "content-panel", div { class: "panel-kicker", "EXTERNAL REPRODUCTION / HUMAN REPORT" }, h2 { "What a second developer records" }, p { "Give a reviewer the repository URL and the runbook without a personal walkthrough. Store their exact commit, environment, commands, output, and two comprehension answers. Until that happens, the status stays NOT YET DEMONSTRATED." }, div { class: "reproduce-report-fields", ReadoutRow { label: "Report template".to_owned(), value: "external-developer-report.md".to_owned(), detail: "repository reproduction packet".to_owned() }, ReadoutRow { label: "Evidence folder".to_owned(), value: "reproduction reports".to_owned(), detail: "no placeholder reports".to_owned() }, ReadoutRow { label: "Required answers".to_owned(), value: "proves / does not prove".to_owned(), detail: "checks product comprehension".to_owned() } } }
+                div { class: "content-panel", div { class: "panel-kicker", "REVIEWER ACCESS" }, h2 { "No hidden service is required." }, p { "The source repository, synthetic fixture, portable evidence, and static release build are the review surface. A hosted URL and public Sepolia Demo Space are intentionally not claimed in this release-preparation path." }, SourceLine { source: "GITHUB / SOURCE".to_owned(), note: "repository link is configured in the shell".to_owned() }, SourceLine { source: "LOCAL EVIDENCE".to_owned(), note: "synthetic values are public; raw private memory is not exported".to_owned() }, Link { class: "text-link", to: AppRoute::PriorWork {}, "Review provenance and scope →" } }
+            }
+            section { class: "section-wrap content-panel", div { class: "panel-kicker", "WHAT THIS PROVES" }, div { class: "reproduce-proof-grid", div { strong { "Same source" }, span { "A clean checkout can execute the published gates." } }, div { strong { "Same evidence" }, span { "The browser and CLI consume portable JSON." } }, div { strong { "Same boundaries" }, span { "The product does not silently promote unproven claims." } } }, p { class: "small-note", "Current Demo Space bundle: {data.v2.evidence_type}. The separate four-transition protocol corpus remains available on Public Evidence. Automated reproduction is verified locally; an independent human clean-checkout result is intentionally not claimed yet." } }
         }
     }
 }

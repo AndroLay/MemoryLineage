@@ -8,6 +8,17 @@ Rust-first gate:
 cargo xtask verify
 ```
 
+Reviewer-oriented automated path:
+
+```bash
+cargo xtask reproduce
+```
+
+This adds the local toolchain check, static website build, Chromium smoke, and
+release boundary to the Rust verification path. Its success is automated local
+evidence; it does not count as an external human reproduction. The external
+reviewer runbook and report template live in `docs/reproduction/`.
+
 The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
 and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
 regeneration from freshly created SQLite files, snapshot/transition parity,

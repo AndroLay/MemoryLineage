@@ -24,6 +24,7 @@ mutation corpus separate in every explanation.
 | Evidence export and replay | Verified | “The website and independent Rust CLI verify the same portable V2 evidence bundle; changing the tested locator commitment returns `TRANSITION_ID_MISMATCH`.” |
 | Privacy boundary | Verified within the protocol/evidence format | “The registry and portable bundle contain commitments, not raw memory. The public repository does contain synthetic sample SQLite fixtures for deterministic reproduction.” |
 | Static Inspector website | Verified locally | “The release WASM build and Chromium smoke cover all 11 routes, the local rollback flow, evidence tampering/restoration, and page-level overflow at 390px.” |
+| Automated clean-checkout path | Verified locally | “`cargo xtask reproduce` runs the local toolchain check, complete Rust/revm/evidence gates, static website build, browser smoke, and package boundary. It does not count as external human reproduction.” |
 | GitHub Actions browser gate | Configured; remote result pending | “CI is configured to verify Rust, build the Dioxus site, and run Chromium smoke. Report the remote run only after GitHub Actions completes successfully.” |
 | Independent human clean-checkout reproduction | Not yet demonstrated | Do not imply external developers have reproduced the project. |
 | Production HTTPS website or staging | Not in scope for this work | No public deployment or staging environment is claimed. |
