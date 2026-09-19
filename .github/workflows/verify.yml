@@ -2,7 +2,9 @@ name: Verify MemoryLineage
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,6 +32,8 @@ jobs:
         run: cargo xtask smoke-web
       - name: Check tracked release boundary
         run: bash scripts/check-public-package.sh --release
+      - name: Reproduce from transportable reviewer archive
+        run: cargo xtask reviewer-reproduce
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
