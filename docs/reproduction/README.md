@@ -37,6 +37,21 @@ Dioxus build, Chromium route/interaction smoke, and the release package
 boundary. It prints an explicit note that external human reproduction is still
 unproven.
 
+## Reviewer archive
+
+After committing the exact release candidate, create a clean source/evidence
+archive:
+
+```bash
+cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
+```
+
+The command refuses a dirty worktree and checks the resulting archive for
+private design references, generated build output, dependencies, credentials,
+and generated evidence. This archive is a transportable review surface when a
+hosted website is intentionally unavailable; it does not make a private GitHub
+repository public.
+
 ## Human comprehension path
 
 After the automated command passes:

@@ -19,6 +19,16 @@ release boundary to the Rust verification path. Its success is automated local
 evidence; it does not count as an external human reproduction. The external
 reviewer runbook and report template live in `docs/reproduction/`.
 
+After the release commit is clean, the transportable reviewer archive is
+checked with:
+
+```bash
+cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
+```
+
+This command checks the archive contents; it does not change GitHub visibility
+or create a hosted website.
+
 The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
 and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
 regeneration from freshly created SQLite files, snapshot/transition parity,

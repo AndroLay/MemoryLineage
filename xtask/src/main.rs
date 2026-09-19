@@ -723,6 +723,73 @@ fn reproduce() -> Result<(), String> {
     Ok(())
 }
 
+fn reviewer_package(output: Option<&str>) -> Result<(), String> {
+    let status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .map_err(|error| format!("could not inspect worktree status: {error}"))?;
+    if !status.status.success() {
+        return Err("git status --porcelain failed".to_owned());
+    }
+    if !status.stdout.is_empty() {
+        return Err(
+            "reviewer package requires a clean worktree; commit changes before packaging"
+                .to_owned(),
+        );
+    }
+
+    let destination = output
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::env::temp_dir().join("memorylineage-reviewer-package.tar.gz"));
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("could not create package directory: {error}"))?;
+    }
+    let destination_text = destination
+        .to_str()
+        .ok_or_else(|| "reviewer package path is not valid UTF-8".to_owned())?;
+    run(
+        "git",
+        &[
+            "archive",
+            "--format=tar.gz",
+            "--output",
+            destination_text,
+            "HEAD",
+        ],
+    )?;
+
+    let listing = Command::new("tar")
+        .args(["-tzf", destination_text])
+        .output()
+        .map_err(|error| format!("could not inspect reviewer package: {error}"))?;
+    if !listing.status.success() {
+        return Err("tar could not read the generated reviewer package".to_owned());
+    }
+    let listing_text = String::from_utf8_lossy(&listing.stdout);
+    let forbidden = listing_text.lines().find(|entry| {
+        entry.contains("/internal/")
+            || entry.starts_with("internal/")
+            || entry.contains("/target/")
+            || entry.starts_with("target/")
+            || entry.contains("/node_modules/")
+            || entry.starts_with("node_modules/")
+            || entry.contains("/.next/")
+            || entry.starts_with(".next/")
+            || entry.contains("/evidence/generated/")
+            || entry.starts_with("evidence/generated/")
+            || entry.ends_with("/__pycache__/")
+            || entry.contains("/__pycache__/")
+            || entry.ends_with(".pyc")
+    });
+    if let Some(entry) = forbidden {
+        return Err(format!("reviewer package contains forbidden path: {entry}"));
+    }
+    println!("PASS reviewer package boundary");
+    println!("wrote reviewer package to {}", destination.display());
+    Ok(())
+}
+
 fn release_manifest(output: Option<&str>) -> Result<(), String> {
     let destination = output
         .map(PathBuf::from)
@@ -813,10 +880,11 @@ fn main() {
         "package-check" => run("bash", &["scripts/check-public-package.sh"]),
         "release" => release_prep(),
         "reproduce" => reproduce(),
+        "reviewer-package" => reviewer_package(std::env::args().nth(2).as_deref()),
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, smoke-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, reviewer-package, smoke-web, or release-manifest"
         )),
     };
 
