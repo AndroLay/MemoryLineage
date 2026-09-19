@@ -11,9 +11,10 @@ cargo xtask verify
 The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
 and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
 regeneration from freshly created SQLite files, snapshot/transition parity,
-stale-root attack checks, independent evidence replay, the Rust/revm Silent
-Rollback/mutation/ERC-1271/authority lanes, the WASM compile, and the public
-package boundary check.
+stale-root attack checks, Recovery Decision Receipt generation/replay, the
+generic protected-resume adapter, independent evidence replay, the Rust/revm
+Silent Rollback/mutation/ERC-1271/authority lanes, the WASM compile, and the
+public package boundary check.
 
 The static browser acceptance gate is separate and reproducible after the
 release artifact exists:
@@ -29,11 +30,12 @@ cargo xtask release
 Chromium. It serves the static output with an `index.html` fallback, checks all
 11 routes, checks the 390px viewport for page-level overflow on every route,
 then exercises the local Silent Rollback evidence replay, evidence tampering,
-and evidence restore. The rollback smoke waits for the result panel's terminal
-state and checks that its detail contains the exact machine reason, so the
-pre-run expected-reason badge cannot count as a result. It does not deploy or
-contact a staging environment. `cargo xtask release` runs the same smoke after
-building the release artifact and then checks the release package boundary.
+evidence restore, and Recovery Decision Receipt verification, tampering, and
+restore. The rollback smoke waits for the result panel's terminal state and
+checks that its detail contains the exact machine reason, so the pre-run
+expected-reason badge cannot count as a result. It does not deploy or contact a
+staging environment. `cargo xtask release` runs the same smoke after building
+the release artifact and then checks the release package boundary.
 
 The release website artifact is built separately because it invokes the pinned
 Dioxus CLI:
@@ -138,8 +140,55 @@ The same deterministic outputs are kept as public local evidence:
 They contain no raw memory or private keys.
 
 The current browser bundle is projected to `memorylineage-evidence-v2`. It
-contains commitments and observations only; the Dioxus Verify view accepts V2
-and the historical V1 public replay shape.
+contains commitments and observations only except for the Demo Space V2 EOA
+proof set: that bundle carries the typed-data domain, digest, and signature for
+each of its three transitions, and the independent report labels them
+`EOA_SIGNATURES_VERIFIED` and authority timeline `TIMELINE_BOUND`. The historical V1/public protocol-corpus
+projection still reports authority rows `STRUCTURE_ONLY` and transition
+authorization proof `NOT_INCLUDED`; lineage replay does not invent signatures
+that are absent from those bundles.
+
+## Restore Preflight and Recovery Rehearsal
+
+The Inspect preflight uses the public synthetic SQLite fixture manifest and the
+locally bundled Demo Space V2 evidence. It first replays the evidence, then
+classifies a selected fixture snapshot commitment as a match to the evidence
+head, a known earlier checkpoint, unknown/diverged, or unverified. Native tests
+cover these classes and a malformed/tampered history. The interactive browser
+tamper action changes only a candidate string in memory; it does not edit the
+SQLite fixture, evidence file, chain, or an agent runtime.
+
+The Recovery Decision Receipt makes that classification portable:
+
+```bash
+cargo run -q -p ml-cli -- recover preflight \
+  fixtures/silent-rollback-v2/snapshot-1.db \
+  evidence/local/demo_space_v2_evidence.json \
+  /tmp/memorylineage-recovery-receipt.json \
+  DEMO_SPACE_V2_LOCAL
+cargo run -q -p ml-cli -- recover verify \
+  /tmp/memorylineage-recovery-receipt.json \
+  evidence/local/demo_space_v2_evidence.json
+cargo run -q -p ml-cli -- recover enforce \
+  fixtures/silent-rollback-v2/snapshot-3.db \
+  evidence/local/demo_space_v2_evidence.json
+```
+
+The current head is permitted by the reference gate. The historical snapshot
+is deliberately held as `REHEARSE_ONLY`; it must not silently enter a protected
+resume path. The tracked current-head receipt is
+`evidence/local/demo_space_v2_recovery_receipt.json`, and its shape is described
+by `evidence/schemas/recovery-receipt-v1.schema.json`. This gate proves a
+deterministic reference decision over the supplied fixture. The receipt carries
+the `strict-current-head-only-v1` policy and the loader smoke actually reports
+the number of private keys loaded only after the gate permits it; it is not
+evidence that a production agent runtime has already integrated the adapter.
+
+The UI wording is intentionally `MATCHES DEMO EVIDENCE HEAD`, not
+`CANONICAL_HEAD`: the current browser selection is not a live observation of
+the registry and does not gate an external agent. A known historical checkpoint
+is available for isolated rehearsal and is not automatically treated as
+malicious.
 
 ## Public chain evidence
 
@@ -149,8 +198,14 @@ independent endpoint observation; it is not a light-client or consensus proof.
 The current read-only fixture rehearsal is recorded in
 `evidence/sepolia/silent_rollback_fixture_eth_call.json`; it uses the existing
 deployment and broadcasts no transaction. This is a separate Sepolia
-observation, not the local Demo Space V2 history. New public deployment is
-outside this work's scope.
+observation, not the local Demo Space V2 history. The browser probe resolves a
+`finalized` block, falling back to `safe` only when the endpoint cannot provide
+the former; it reads the registry and simulates the stale predecessor at that
+same numbered block and checks the block hash again. It reports the exact
+`BAD_PREVIOUS_STATE` result only when the RPC error carries a decodable
+Solidity `Error(string)` payload with that reason. A single endpoint response
+is still an observation, not consensus proof. New public deployment is outside
+this work's scope.
 
 ## Reproducibility rules
 

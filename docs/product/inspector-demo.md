@@ -72,13 +72,18 @@ broadcast.
 4. Open `/verify`, export the bundle, tamper with `locatorCommitment`, and
    restore the original. Expected results are `TRANSITION_ID_MISMATCH` and
    `VERIFIED`.
-5. Verify the same exported bundle with the independent Rust CLI.
+5. In the Recovery Decision Receipt panel, export the current-head decision,
+   tamper its reason code, and restore it. Expected results are
+   `RECOVERY_DECISION_MISMATCH` and `RECEIPT VERIFIED`.
+6. Verify the same exported bundle and receipt with the independent Rust CLI.
 
 The separate protocol corpus still contains four committed transitions and
 the 20-case mutation lane. It is not presented as the Demo Space V2 incident.
 The result proves ordered committed history, predecessor continuity, the
 configured registry rules, and the integrity of this evidence bundle. It does
-not prove that private memory is truthful or semantically safe.
+not prove that private memory is truthful or semantically safe. The receipt is
+a deterministic local decision artifact; it does not prove a separate agent
+runtime obeyed the reference gate.
 
 ## Existing Sepolia observation
 

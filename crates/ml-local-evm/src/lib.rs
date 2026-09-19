@@ -11,11 +11,12 @@ use alloy::primitives::{Address, B256, Bytes, U256};
 use alloy::sol;
 use alloy::sol_types::SolCall;
 use k256::ecdsa::SigningKey;
-use ml_core::{commitment, signing_digest, space_id, transition_and_root};
+use ml_core::{commitment, domain_separator, signing_digest, space_id, transition_and_root};
 use ml_spec_types::{
-    AttackObservation, AuthorizationRecord, EVIDENCE_V2, EvidenceBundleV2, EvidenceNetwork,
-    ExperienceDelta, Head as EvidenceHead, PrivacyBoundary, RegistryObservation, SPEC_NAME,
-    SPEC_SNAPSHOT, SpecSnapshot, TransitionRecord, VerificationMetadata,
+    AttackObservation, AuthorizationProof, AuthorizationRecord, EVIDENCE_V2, EvidenceBundleV2,
+    EvidenceNetwork, ExperienceDelta, Head as EvidenceHead, PrivacyBoundary, RegistryObservation,
+    SOURCE_DEMO_SPACE_V2_LOCAL, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, TransitionRecord,
+    VerificationMetadata,
 };
 use revm::context::{BlockEnv, CfgEnv, Context, TxEnv, result::ExecutionResult};
 use revm::database::{CacheDB, EmptyDB};
@@ -723,6 +724,35 @@ fn format_address(value: Address) -> String {
     format!("0x{}", hex::encode(value.as_slice()))
 }
 
+fn eoa_authorization_proof(
+    delta: &ExperienceDelta,
+    config_nonce: u64,
+    transition_id: &str,
+    authorizer: &str,
+    signature: &Bytes,
+    chain_id: u64,
+    verifying_contract: Address,
+) -> Result<AuthorizationProof, LocalEvmError> {
+    let verifying_contract = format_address(verifying_contract);
+    let domain_separator = domain_separator(chain_id, &verifying_contract)
+        .map_err(|error| LocalEvmError::Signing(error.to_string()))?;
+    let signing_digest = signing_digest(transition_id, chain_id, &verifying_contract)
+        .map_err(|error| LocalEvmError::Signing(error.to_string()))?;
+    Ok(AuthorizationProof {
+        sequence: delta.sequence,
+        config_nonce: Some(config_nonce),
+        transition_id: transition_id.to_owned(),
+        authorizer: authorizer.to_owned(),
+        authorization_type: "EOA_EIP712".to_owned(),
+        chain_id: chain_id.to_string(),
+        verifying_contract,
+        struct_hash: transition_id.to_owned(),
+        domain_separator,
+        signing_digest,
+        signature: format!("0x{}", hex::encode(signature.as_ref())),
+    })
+}
+
 fn address_word(value: Address) -> [u8; 32] {
     let mut word = [0u8; 32];
     word[12..].copy_from_slice(value.as_slice());
@@ -794,6 +824,7 @@ pub fn run_demo_space_v2(
     let mut harness = RegistryHarness::new()?;
     let mut previous_root = B256::ZERO;
     let mut transitions = Vec::with_capacity(3);
+    let mut authorization_proofs = Vec::with_capacity(3);
 
     for (index, snapshot_commitment) in snapshot_commitments.iter().take(2).enumerate() {
         let sequence = (index + 1) as u64;
@@ -803,7 +834,17 @@ pub fn run_demo_space_v2(
                 name: "demo transition",
                 value: error.to_string(),
             })?;
-        harness.commit_delta(&delta, harness.signer, Bytes::new(), sequence + 1)?;
+        let signature = harness.sign_transition(&delta, CHAIN_ID, harness.registry)?;
+        harness.commit_delta(&delta, harness.relayer, signature.clone(), sequence + 1)?;
+        authorization_proofs.push(eoa_authorization_proof(
+            &delta,
+            0,
+            &transition_id,
+            &format_address(harness.signer),
+            &signature,
+            CHAIN_ID,
+            harness.registry,
+        )?);
         transitions.push(TransitionRecord {
             delta,
             transition_id: transition_id.clone(),
@@ -825,7 +866,16 @@ pub fn run_demo_space_v2(
             value: error.to_string(),
         })?;
     let signature = harness.sign_transition_with_relayer(&delta)?;
-    harness.commit_delta(&delta, harness.relayer, signature, 3)?;
+    harness.commit_delta(&delta, harness.relayer, signature.clone(), 3)?;
+    authorization_proofs.push(eoa_authorization_proof(
+        &delta,
+        1,
+        &transition_id,
+        &format_address(harness.relayer),
+        &signature,
+        CHAIN_ID,
+        harness.registry,
+    )?);
     transitions.push(TransitionRecord {
         delta,
         transition_id,
@@ -861,6 +911,7 @@ pub fn run_demo_space_v2(
     Ok(EvidenceBundleV2 {
         schema_version: EVIDENCE_V2.to_owned(),
         evidence_type: "memorylineage_evidence_v2".to_owned(),
+        source_class: SOURCE_DEMO_SPACE_V2_LOCAL.to_owned(),
         network: EvidenceNetwork {
             name: "local-revm-demo-space-v2".to_owned(),
             chain_id: CHAIN_ID.to_string(),
@@ -881,17 +932,20 @@ pub fn run_demo_space_v2(
             sequence: head.delta.sequence,
         },
         transitions,
+        authorization_proofs,
         authorization_history: vec![
             AuthorizationRecord {
                 controller: initial_authority.clone(),
                 authorizer: initial_authority,
                 config_nonce: 0,
+                effective_from_sequence: Some(1),
                 label: Some("initial authority".to_owned()),
             },
             AuthorizationRecord {
                 controller: rotated_authority.clone(),
                 authorizer: rotated_authority,
                 config_nonce: 1,
+                effective_from_sequence: Some(3),
                 label: Some("rotated authority".to_owned()),
             },
         ],

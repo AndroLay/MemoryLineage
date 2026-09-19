@@ -5,38 +5,44 @@
 ## The problem
 
 Persistent AI-agent memory can live in private storage controlled by its
-operator. If the operator restores an older backup, the local snapshot can move
-back while a registry still records later committed states. A reviewer cannot
-establish from that restored snapshot alone whether the next update continues
-from the current history or is built on a stale state.
+operator. After a crash or restore, the operator may load a snapshot older than
+the state already recorded by an independent controller or auditor. The key
+recovery question is not whether that old snapshot is malicious; it is whether
+it is the current checkpoint, a known earlier checkpoint, divergent, or
+unverifiable—and what evidence supports that decision.
 
-MemoryLineage gives the reviewer a shared reference point: it checks whether a
-new committed transition uses the next sequence, the registry's current state
-root, and the configured authorization. In the published local Demo Space V2,
-the registry has states 1–3; transition 4 uses the actual root from state 1 and
-the Rust/revm run executes the Solidity bytecode, which rejects it with
-`BAD_PREVIOUS_STATE`.
+MemoryLineage makes that decision inspectable. In the local Demo Space V2,
+three synthetic SQLite snapshots produce three committed transitions. Restoring
+snapshot 1 does not move the recorded head at state 3. A transition 4 attempt
+using state 1's actual root is executed against the published Solidity bytecode
+in Rust/revm and rejected with `BAD_PREVIOUS_STATE`.
 
-The local restore itself is still possible. MemoryLineage does not inspect the
-meaning of the private memory or stop an operator from changing local storage;
-it rejects a stale-root transition when that transition is submitted to the
-registry. The demo uses a public synthetic SQLite fixture, while portable
-evidence contains commitments rather than its sample values.
+The local restore itself remains possible. The current Restore Preflight is a
+fixture-scoped assessment against replayed local evidence; it does not gate an
+external agent runtime, inspect memory meaning, or read the live chain. The
+optional Sepolia probe is a separate read-only observation. The public synthetic
+fixture contains sample values, while portable evidence contains commitments
+rather than those values.
 
 ## What MemoryLineage does
 
-MemoryLineage is an independent auditor for private AI-agent memory history.
-It verifies whether committed memory states form a continuous, authorized
-canonical history without requiring raw memory to be published on-chain.
+MemoryLineage is an independent auditor for private AI-agent memory history. It
+checks whether committed states form a continuous history and makes the
+evidence for restore decisions reviewable without requiring raw memory to be
+published on-chain. Demo Space V2 carries EIP-712 EOA signatures for each of
+its three transitions and the independent verifier recovers those signers.
+The separate protocol-corpus projection remains `STRUCTURE_ONLY` with
+transition authorization proof `NOT_INCLUDED`; ERC-1271 remains an execution
+observation rather than a historical offline proof.
 
 ~~~text
 Private memory → Commitment → Canonical registry → Portable evidence → Independent replay
 ~~~
 
-The product answers one narrow question:
+The product's central question is:
 
-> **Is this committed state the authorized continuation of the previously
-> committed history?**
+> **Before an agent resumes, does this snapshot match the recorded head, a
+> known earlier checkpoint, a divergent state, or insufficient evidence?**
 
 MemoryLineage is not a semantic memory-safety detector, an AI reasoning
 evaluator, a causal action proof, or a general agent-wallet guard. It verifies
@@ -53,11 +59,12 @@ the history that was committed, not whether the underlying memory is true.
 | Area | Decision |
 | --- | --- |
 | Product | Evidence workspace for auditing private AI-agent memory lineage |
-| Hero scenario | The Silent Rollback: a restored stale snapshot is rejected by the registry |
+| User decision | Restore Preflight: classify a candidate against a named, replayed evidence history |
+| Hero scenario | The Silent Rollback: a restored snapshot's actual earlier root is rejected as the next predecessor |
 | Browser | Rust/WASM Dioxus Inspector with Inspect, History, Tampering Lab, and Verify surfaces |
 | Trust anchor | Solidity registry on Ethereum Sepolia with EIP-712 and ERC-1271 authorization paths |
 | Private domain | SQLite snapshots, raw memory, documents, prompts, and locator contents remain off-chain |
-| Evidence | Unified local Demo Space V2 (three SQLite-derived transitions, one authority rotation, and a stale-root rejection), a separate four-transition protocol corpus, 20 Rust/revm mutation cases, and existing Sepolia deployment/readback |
+| Evidence | Unified local Demo Space V2 (three SQLite-derived transitions, one authority rotation, a stale-root rejection, and a replayable Recovery Decision Receipt), a separate four-transition protocol corpus, 20 Rust/revm mutation cases, and existing Sepolia deployment/readback |
 | Independent path | Separate Rust verifier; historical Python and JavaScript lanes remain compatibility oracles |
 | Repository license | MIT; see the single root [LICENSE](LICENSE) file |
 
@@ -76,7 +83,11 @@ stack:
   crates;
 - a Dioxus Web Inspector with 11 routes, evidence-backed data, clearly labeled
   local-demo and separate Sepolia observations, browser evidence export/import,
-  and Rust/WASM-side tamper verification;
+  Rust/WASM-side tamper verification, fixture-scoped Restore Preflight, and a
+  Recovery Decision Receipt workbench;
+- a Rust `ml-recovery-gate` adapter and CLI recovery gate that verify a receipt
+  before invoking a protected loader for a current head, while holding
+  historical and unverified candidates for rehearsal/review;
 - published local reports for conformance, mutation rejection, ERC-1271
   acceptance/rejection, and authority rotation;
 - an Ethereum Sepolia deployment at
@@ -172,6 +183,15 @@ canonical committed state under the registry rules. It does not mean that all
 forms of rollback, malicious behavior, or semantic memory poisoning are
 prevented.
 
+The Inspect Preflight classifies the selected public synthetic checkpoint as a
+match to the Demo Space V2 evidence head, a known historical checkpoint, or an
+unknown/diverged candidate. The result is derived from the fixture manifest and
+independent local evidence replay. It is not a production snapshot commitment,
+a live Sepolia head assessment, or proof that an external agent runtime obeyed
+the decision. The companion Recovery Decision Receipt and Rust CLI gate make the
+decision portable and hold a known older checkpoint as `REHEARSE_ONLY`. A known
+older checkpoint is a valid rehearsal input, not automatically an attack.
+
 ## Architecture
 
 MemoryLineage keeps the private memory domain separate from the public
@@ -192,6 +212,7 @@ flowchart TB
     R --> B[Portable evidence bundle]
     B --> V[Independent Rust verifier]
     B --> L[Rust CLI]
+    B --> G[Protected resume adapter]
 
     J[Legacy JavaScript/EthereumJS and Python lanes] -. compatibility oracles .-> R
 ~~~
@@ -249,6 +270,7 @@ moving draft must not be described as final standard compliance.
 | `crates/ml-ethereum/` | Alloy ABI/data layer and host-side Sepolia reads |
 | `crates/ml-local-evm/` | Rust/revm execution slice for the curated Solidity artifact |
 | `crates/ml-memory-store/` | Deterministic SQLite tooling for synthetic private-memory-shaped fixtures |
+| `crates/ml-recovery-gate/` | Generic protected-resume adapter that holds non-current decisions before loader invocation |
 | `crates/ml-verifier-independent/` | Independent Rust evidence replay |
 | `crates/ml-cli/` | Developer and auditor command surface |
 | `apps/inspector/` | Primary Dioxus Web/WASM product surface |
@@ -277,9 +299,18 @@ These rules are product invariants:
 - Raw memory is not required to be published on-chain.
 - The browser and CLI fail closed for malformed, unsupported, or tampered
   evidence bundles.
+- Demo Space V2 carries the typed-data domain, digest, and EOA signature for
+  each transition, binds each proof to its active `configNonce` and effective
+  sequence, and the independent Rust verifier recovers the declared authorizer
+  before reporting `EOA_SIGNATURES_VERIFIED` / `TIMELINE_BOUND`.
 - ERC-1271 on-chain acceptance is distinct from full historical offline
   signer-contract reexecution unless the latter is explicitly implemented.
-- A valid lineage proves continuity and configured authorization. It does not
+- The registry enforces configured authorization when a transition is
+  submitted. The Demo Space V2 verifier reports `EOA_SIGNATURES_VERIFIED` for
+  its published EOA proof set; the separate protocol-corpus projection stays
+  `STRUCTURE_ONLY` / `NOT_INCLUDED`, and ERC-1271 remains
+  `ON-CHAIN ACCEPTANCE OBSERVED` without historical signer-contract replay.
+- A valid lineage does not
   prove semantic truth, semantic memory safety, AI reasoning correctness,
   inference correctness, agent behavioral safety, off-chain availability, or
   a causal link from memory to an action.
@@ -373,6 +404,17 @@ cargo run -q -p ml-cli -- evidence export-v2 \
   evidence/local/memory_lineage_evm_evidence.json \
   /tmp/memorylineage-evidence-v2.json
 cargo run -q -p ml-cli -- verify /tmp/memorylineage-evidence-v2.json
+cargo run -q -p ml-cli -- recover preflight \
+  fixtures/silent-rollback-v2/snapshot-1.db \
+  evidence/local/demo_space_v2_evidence.json \
+  /tmp/memorylineage-recovery-receipt.json \
+  DEMO_SPACE_V2_LOCAL
+cargo run -q -p ml-cli -- recover verify \
+  /tmp/memorylineage-recovery-receipt.json \
+  evidence/local/demo_space_v2_evidence.json
+cargo run -q -p ml-cli -- recover enforce \
+  fixtures/silent-rollback-v2/snapshot-3.db \
+  evidence/local/demo_space_v2_evidence.json
 ~~~
 
 The live commands are read-only observations or `eth_call` simulations. They
@@ -404,9 +446,9 @@ gates for a release candidate:
 
 | Evidence | Proves | Does not prove |
 | --- | --- | --- |
-| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, both fixture manifests, reproducible Demo Space V2 evidence, stale-root/authority/privacy invariants, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
+| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, both fixture manifests, reproducible Demo Space V2 evidence, recovery receipt and protected-resume invariants, stale-root/authority/privacy invariants, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
 | `cargo xtask build-web` | The pinned Dioxus application produces a static release artifact | A deployment platform serves every deep link correctly |
-| `cargo xtask smoke-web` | Chromium checks the static SPA fallback, 11 routes, Silent Rollback, tamper rejection, and evidence restore | Production hosting, staging, or assistive-technology acceptance |
+| `cargo xtask smoke-web` | Chromium checks the static SPA fallback, 11 routes, Silent Rollback, evidence tamper/restore, and Recovery Decision Receipt tamper/restore | Production hosting, staging, or assistive-technology acceptance |
 | Rust/revm reports | The curated Solidity artifact agrees with the Rust lane for the published Silent Rollback, mutation, ERC-1271, and authority-rotation cases | Formal verification or all possible EVM/runtime behavior |
 | `npm run verify` | Preserved EVM, Python, fixture, Next.js typecheck/build, boundary, and package checks | Rust website visual quality or external user validation |
 | Sepolia deployment/readback | Recorded code, receipts, head, and second-endpoint observations match the published bundle | Light-client, consensus, or multi-provider consensus proof |

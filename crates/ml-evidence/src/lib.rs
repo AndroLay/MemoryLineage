@@ -2,7 +2,8 @@
 
 use ml_spec_types::{
     EVIDENCE_V2, EvidenceBundleV2, EvidenceNetwork, Head, PrivacyBoundary, PublicReplayBundle,
-    RegistryObservation, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
+    RegistryObservation, SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot,
+    VerificationMetadata,
 };
 use std::path::Path;
 use thiserror::Error;
@@ -47,6 +48,7 @@ pub fn public_replay_to_v2(bundle: &PublicReplayBundle) -> EvidenceBundleV2 {
     EvidenceBundleV2 {
         schema_version: EVIDENCE_V2.to_owned(),
         evidence_type: "memorylineage_evidence_v2".to_owned(),
+        source_class: SOURCE_PROTOCOL_CORPUS_LOCAL.to_owned(),
         network: EvidenceNetwork {
             name: "published-local-evidence".to_owned(),
             chain_id: bundle.chain_id.clone(),
@@ -67,6 +69,7 @@ pub fn public_replay_to_v2(bundle: &PublicReplayBundle) -> EvidenceBundleV2 {
             sequence: last.delta.sequence,
         },
         transitions: bundle.valid_history.clone(),
+        authorization_proofs: Vec::new(),
         authorization_history: bundle.authority_history.clone(),
         observations: Vec::new(),
         attack: None,

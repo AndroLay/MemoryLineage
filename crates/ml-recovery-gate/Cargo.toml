@@ -1,0 +1,15 @@
+[package]
+name = "ml-recovery-gate"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Protected snapshot resume adapter for MemoryLineage recovery decisions"
+
+[dependencies]
+ml-memory-store = { path = "../ml-memory-store" }
+ml-spec-types = { path = "../ml-spec-types" }
+ml-verifier-independent = { path = "../ml-verifier-independent" }
+thiserror = "2.0.20"
+
+[dev-dependencies]
+serde_json = "1.0.151"

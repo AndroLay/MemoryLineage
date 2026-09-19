@@ -10,7 +10,7 @@ submission product.
 ```text
 contracts/       protocol inputs and shared vectors
 evm/             preserved JavaScript/EthereumJS compatibility lane
-crates/          primary Rust protocol, evidence, RPC, EVM, CLI, and verifier lanes
+crates/          primary Rust protocol, evidence, RPC, EVM, recovery, CLI, and verifier lanes
 verifier/python/ historical independent replay oracle
 evidence/        reproducible outputs and public chain observations
 apps/inspector/  Dioxus Web inspect, tampering, and portable-verification surface

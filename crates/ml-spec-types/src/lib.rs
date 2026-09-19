@@ -6,6 +6,28 @@ pub const SPEC_NAME: &str = "ERC-8350";
 pub const SPEC_SNAPSHOT: &str = "v1-pinned-vector-2026-09-18";
 pub const EVIDENCE_V1: &str = "memorylineage-evidence-v1";
 pub const EVIDENCE_V2: &str = "memorylineage-evidence-v2";
+pub const RECOVERY_RECEIPT_V1: &str = "memorylineage-recovery-receipt-v1";
+pub const SNAPSHOT_PROFILE_V1: &str = "memorylineage/private-snapshot/v1";
+pub const RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1: &str = "strict-current-head-only-v1";
+
+pub const SOURCE_DEMO_SPACE_V2_LOCAL: &str = "DEMO_SPACE_V2_LOCAL";
+pub const SOURCE_PROTOCOL_CORPUS_LOCAL: &str = "PROTOCOL_CORPUS_LOCAL";
+pub const SOURCE_SEPOLIA_REFERENCE_OBSERVATION: &str = "SEPOLIA_REFERENCE_OBSERVATION";
+pub const SOURCE_LEGACY_UNDECLARED: &str = "LEGACY_UNDECLARED";
+
+fn default_source_class() -> String {
+    SOURCE_LEGACY_UNDECLARED.to_owned()
+}
+
+pub const RECOVERY_CURRENT_HEAD: &str = "CURRENT_HEAD";
+pub const RECOVERY_HISTORICAL_CHECKPOINT: &str = "KNOWN_HISTORICAL_CHECKPOINT";
+pub const RECOVERY_UNKNOWN_OR_DIVERGED: &str = "UNKNOWN_OR_DIVERGED";
+pub const RECOVERY_UNVERIFIED: &str = "UNVERIFIED";
+
+pub const RECOVERY_RESUME_ALLOWED: &str = "RESUME_ALLOWED";
+pub const RECOVERY_REHEARSE_ONLY: &str = "REHEARSE_ONLY";
+pub const RECOVERY_HOLD_FOR_REVIEW: &str = "HOLD_FOR_REVIEW";
+pub const RECOVERY_BLOCK_UNVERIFIED: &str = "BLOCK_UNVERIFIED";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -53,6 +75,12 @@ pub struct AuthorizationRecord {
     pub authorizer: String,
     #[serde(rename = "configNonce")]
     pub config_nonce: u64,
+    #[serde(
+        rename = "effectiveFromSequence",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub effective_from_sequence: Option<u64>,
     #[serde(default)]
     pub label: Option<String>,
 }
@@ -256,11 +284,19 @@ pub struct EvidenceBundleV2 {
     pub schema_version: String,
     #[serde(rename = "evidenceType")]
     pub evidence_type: String,
+    #[serde(rename = "sourceClass", default = "default_source_class")]
+    pub source_class: String,
     pub network: EvidenceNetwork,
     pub registry: RegistryObservation,
     pub spec: SpecSnapshot,
     pub head: Head,
     pub transitions: Vec<TransitionRecord>,
+    #[serde(
+        rename = "authorizationProofs",
+        default,
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub authorization_proofs: Vec<AuthorizationProof>,
     #[serde(rename = "authorizationHistory")]
     pub authorization_history: Vec<AuthorizationRecord>,
     pub observations: Vec<NetworkObservation>,
@@ -280,4 +316,108 @@ pub struct NetworkObservation {
     pub block_number: u64,
     #[serde(rename = "observedHead")]
     pub observed_head: Head,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AuthorizationProof {
+    pub sequence: u64,
+    #[serde(rename = "configNonce", default)]
+    pub config_nonce: Option<u64>,
+    #[serde(rename = "transitionId")]
+    pub transition_id: String,
+    pub authorizer: String,
+    #[serde(rename = "authorizationType")]
+    pub authorization_type: String,
+    #[serde(rename = "chainId")]
+    pub chain_id: String,
+    #[serde(rename = "verifyingContract")]
+    pub verifying_contract: String,
+    #[serde(rename = "structHash")]
+    pub struct_hash: String,
+    #[serde(rename = "domainSeparator")]
+    pub domain_separator: String,
+    #[serde(rename = "signingDigest")]
+    pub signing_digest: String,
+    pub signature: String,
+}
+
+/// A pinned chain context is optional for local evidence and required only
+/// when a receipt claims that a public RPC observation was used.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryBlockContext {
+    pub tag: String,
+    pub number: u64,
+    pub hash: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryCandidate {
+    #[serde(rename = "snapshotProfile")]
+    pub snapshot_profile: String,
+    #[serde(rename = "candidateCommitment")]
+    pub candidate_commitment: String,
+    #[serde(rename = "snapshotSequence")]
+    pub snapshot_sequence: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryEvidence {
+    #[serde(rename = "sourceClass")]
+    pub source_class: String,
+    #[serde(rename = "bundleHash")]
+    pub bundle_hash: String,
+    #[serde(rename = "specSnapshot")]
+    pub spec_snapshot: String,
+    #[serde(rename = "registryAddress")]
+    pub registry_address: String,
+    #[serde(rename = "spaceId")]
+    pub space_id: String,
+    pub head: Head,
+    #[serde(rename = "blockContext", default)]
+    pub block_context: Option<RecoveryBlockContext>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryDecision {
+    pub classification: String,
+    #[serde(rename = "reasonCode")]
+    pub reason_code: String,
+    #[serde(rename = "recommendedAction")]
+    pub recommended_action: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryAssurance {
+    #[serde(rename = "lineageReplay")]
+    pub lineage_replay: String,
+    #[serde(rename = "authorityHistory")]
+    pub authority_history: String,
+    #[serde(rename = "transitionAuthorization")]
+    pub transition_authorization: String,
+    pub source: String,
+}
+
+/// A portable decision about whether a private snapshot may enter a protected
+/// recovery path. It contains commitments and evidence references only; it
+/// deliberately never contains raw memory or private locator contents.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecoveryDecisionReceipt {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: String,
+    #[serde(rename = "decisionId")]
+    pub decision_id: String,
+    #[serde(rename = "policyId")]
+    pub policy_id: String,
+    pub candidate: RecoveryCandidate,
+    pub evidence: RecoveryEvidence,
+    pub decision: RecoveryDecision,
+    pub assurance: RecoveryAssurance,
+    pub limitations: Vec<String>,
 }

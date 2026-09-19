@@ -504,6 +504,65 @@ def verify_history_ledger(cdp: CdpSocket) -> None:
     print("PASS history ledger / 3 commits + stale-root rejection / evidence sources")
 
 
+def verify_transition_detail(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    required = ("AUTHORIZATION PROOF", "configNonce", "domainSeparator", "EOA_SIGNATURES_VERIFIED")
+    missing = [marker for marker in required if marker not in body]
+    if missing:
+        raise RuntimeError(f"transition detail did not expose the signed authority proof: {missing!r}")
+    print("PASS transition detail / active authority proof and EIP-712 fields")
+
+
+def verify_restore_preflight(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    if "MATCHES DEMO EVIDENCE HEAD" not in body:
+        raise RuntimeError("Restore Preflight did not classify the current fixture head")
+    click_and_wait(cdp, "STATE 1", "KNOWN HISTORICAL CHECKPOINT")
+    click_and_wait(cdp, "Tamper candidate", "UNKNOWN / DIVERGED")
+    click_and_wait(cdp, "Restore original", "KNOWN HISTORICAL CHECKPOINT")
+    click_and_wait(cdp, "STATE 3", "MATCHES DEMO EVIDENCE HEAD")
+    print("PASS Restore Preflight / current, historical, tampered, and restored candidate")
+
+
+def verify_recovery_receipt(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    required = (
+        "RECOVERY DECISION RECEIPT",
+        "RECEIPT VERIFIED",
+        "CURRENT_HEAD",
+        "RESUME_ALLOWED",
+        "STRICT-CURRENT-HEAD-ONLY-V1",
+        "EOA_SIGNATURES_VERIFIED",
+        "TIMELINE_BOUND",
+        "PUBLISHED RECOVERY RECEIPT",
+    )
+    missing = [marker for marker in required if marker not in body]
+    if missing:
+        raise RuntimeError(
+            "published recovery receipt is not visible as a verified browser decision; "
+            f"missing={missing!r}; body={' '.join(body.split())[-1200:]!r}"
+        )
+    click_and_wait(cdp, "Tamper decision", "RECOVERY_DECISION_MISMATCH")
+    expression = """(() => {
+      const button = Array.from(document.querySelectorAll('.recovery-receipt-actions button')).find(
+        element => element.textContent && element.textContent.trim() === 'Restore'
+      );
+      if (!button) return false;
+      button.click();
+      return true;
+    })()"""
+    if cdp.evaluate(expression) is not True:
+        raise RuntimeError("recovery receipt restore button not found")
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        if "RECEIPT VERIFIED" in body and "PUBLISHED RECOVERY RECEIPT" in body:
+            print("PASS Recovery Decision Receipt / verify + tamper + restore")
+            return
+        time.sleep(0.25)
+    raise RuntimeError("recovery receipt did not return to VERIFIED after restore")
+
+
 def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
     destination_text = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
     if not destination_text:
@@ -615,16 +674,20 @@ def main() -> int:
         wait_for_url(base, "/", ROUTES["/"], cdp)
         verify_home_problem_story(cdp)
         navigate_via_internal_link(cdp, "/inspect", ROUTES["/inspect"])
+        verify_restore_preflight(cdp)
         for path, expected in ROUTES.items():
             wait_for_url(base, path, expected, cdp)
             if path == "/history":
                 verify_history_ledger(cdp)
+            if path == "/history/3":
+                verify_transition_detail(cdp)
 
         wait_for_url(base, "/lab/silent-rollback", "Run Silent Rollback", cdp)
         click_and_wait_for_rollback(cdp)
         wait_for_url(base, "/verify", "VERIFIED", cdp)
         click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
         click_and_wait(cdp, "Restore original", "VERIFIED")
+        verify_recovery_receipt(cdp)
         screenshot_root = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
         mobile_directory = Path(screenshot_root) / "mobile" if screenshot_root else None
         if mobile_directory:

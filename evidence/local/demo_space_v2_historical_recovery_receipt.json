@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "memorylineage-recovery-receipt-v1",
+  "decisionId": "0xad4acb6dccd057571f57f5c43a79bc7afd48776a9b9094aa1f9f52f403390b8f",
+  "policyId": "strict-current-head-only-v1",
+  "candidate": {
+    "snapshotProfile": "memorylineage/private-snapshot/v1",
+    "candidateCommitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
+    "snapshotSequence": 1
+  },
+  "evidence": {
+    "sourceClass": "DEMO_SPACE_V2_LOCAL",
+    "bundleHash": "0xd818fea3f5545489861ac5cba64101112034fd455d6bc9e59c5b6f54b0200521",
+    "specSnapshot": "v1-pinned-vector-2026-09-18",
+    "registryAddress": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+    "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+    "head": {
+      "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "stateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809",
+      "sequence": 3
+    },
+    "blockContext": null
+  },
+  "decision": {
+    "classification": "KNOWN_HISTORICAL_CHECKPOINT",
+    "reasonCode": "CANDIDATE_IS_BEHIND_CANONICAL_HEAD",
+    "recommendedAction": "REHEARSE_ONLY"
+  },
+  "assurance": {
+    "lineageReplay": "VERIFIED",
+    "authorityHistory": "TIMELINE_BOUND",
+    "transitionAuthorization": "EOA_SIGNATURES_VERIFIED",
+    "source": "DEMO_SPACE_V2_LOCAL"
+  },
+  "limitations": [
+    "does_not_assess_semantic_truth",
+    "does_not_prove_off_chain_availability",
+    "does_not_claim_runtime_enforcement"
+  ]
+}

@@ -1,6 +1,7 @@
 {
   "schemaVersion": "memorylineage-evidence-v2",
   "evidenceType": "memorylineage_evidence_v2",
+  "sourceClass": "DEMO_SPACE_V2_LOCAL",
   "network": {
     "name": "local-revm-demo-space-v2",
     "chainId": "31337"
@@ -55,17 +56,60 @@
       "nextStateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809"
     }
   ],
+  "authorizationProofs": [
+    {
+      "sequence": 1,
+      "configNonce": 0,
+      "transitionId": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
+      "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+      "authorizationType": "EOA_EIP712",
+      "chainId": "31337",
+      "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+      "structHash": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
+      "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+      "signingDigest": "0x0a4b0d81f615646e5ac59ced904c192f9c457280bea0a1e5cf669fb479839389",
+      "signature": "0x3b72e06ff362faa8bbb6d67d060168c427d1dffb6381477ff004a0832f3e4945663b499d38c7283191855713fd2e3679d0dca22cec4792363536d2b32d00d1041c"
+    },
+    {
+      "sequence": 2,
+      "configNonce": 0,
+      "transitionId": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
+      "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+      "authorizationType": "EOA_EIP712",
+      "chainId": "31337",
+      "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+      "structHash": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
+      "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+      "signingDigest": "0xd8116e9c1ee941183e62ddbbfaa0d9dd28ef41ac3a400a912b838582bc06ebaf",
+      "signature": "0xc96923c94aae66909639ada5632e82f3679340c423ca6efb0e44335560f1bcdf7507871c83a7c998499f3492cdf083d96f1947f5d8f859082e46d244ce9acb911b"
+    },
+    {
+      "sequence": 3,
+      "configNonce": 1,
+      "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+      "authorizationType": "EOA_EIP712",
+      "chainId": "31337",
+      "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+      "structHash": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+      "signingDigest": "0x45d35e970282db5c7ff9e6baa184da5007e7949998e21425b51d0512d48143b5",
+      "signature": "0x07c970323bf9e5b603ee6c268f15edab7c22f48c314d63c83c73929a2030a66474791d20181bae9bf1898f7bddc3943ae98f591402e5abdf0c99da5404d08d891b"
+    }
+  ],
   "authorizationHistory": [
     {
       "controller": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
       "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
       "configNonce": 0,
+      "effectiveFromSequence": 1,
       "label": "initial authority"
     },
     {
       "controller": "0x1563915e194d8cfba1943570603f7606a3115508",
       "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
       "configNonce": 1,
+      "effectiveFromSequence": 3,
       "label": "rotated authority"
     }
   ],

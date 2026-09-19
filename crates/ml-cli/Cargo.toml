@@ -11,6 +11,7 @@ ml-evidence = { path = "../ml-evidence" }
 ml-ethereum = { path = "../ml-ethereum" }
 ml-local-evm = { path = "../ml-local-evm" }
 ml-memory-store = { path = "../ml-memory-store" }
+ml-recovery-gate = { path = "../ml-recovery-gate" }
 ml-spec-types = { path = "../ml-spec-types" }
 ml-verifier-independent = { path = "../ml-verifier-independent" }
 serde_json = "1.0.151"

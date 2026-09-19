@@ -44,6 +44,7 @@ contracts/solidity ─────────> evm compiler/harness and crates/
 
 fixtures/silent-rollback{,-v2} ──> crates/ml-memory-store and ml-cli
 evidence/local,sepolia ────> crates/ml-evidence, ml-cli, and apps/inspector
+crates/ml-recovery-gate ────> protected snapshot preflight and loader boundary
 crates/ml-spec-types ──────> passive formats only
 crates/ml-core ────────────> Rust reference algorithms
 crates/ml-verifier-independent ──> separate replay algorithms

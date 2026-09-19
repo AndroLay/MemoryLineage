@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memorylineage.local/schema/recovery-receipt-v1.json",
+  "title": "MemoryLineage Recovery Decision Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "policyId",
+    "candidate",
+    "evidence",
+    "decision",
+    "assurance",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "memorylineage-recovery-receipt-v1"
+    },
+    "decisionId": {
+      "$ref": "#/$defs/bytes32"
+    },
+    "policyId": {
+      "const": "strict-current-head-only-v1"
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshotProfile", "candidateCommitment", "snapshotSequence"],
+      "properties": {
+        "snapshotProfile": {
+          "const": "memorylineage/private-snapshot/v1"
+        },
+        "candidateCommitment": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "snapshotSequence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceClass",
+        "bundleHash",
+        "specSnapshot",
+        "registryAddress",
+        "spaceId",
+        "head",
+        "blockContext"
+      ],
+      "properties": {
+        "sourceClass": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bundleHash": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "specSnapshot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "registryAddress": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spaceId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "head": {
+          "$ref": "#/$defs/head"
+        },
+        "blockContext": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tag", "number", "hash"],
+              "properties": {
+                "tag": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "number": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "hash": {
+                  "$ref": "#/$defs/bytes32"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "reasonCode", "recommendedAction"],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reasonCode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recommendedAction": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "assurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lineageReplay",
+        "authorityHistory",
+        "transitionAuthorization",
+        "source"
+      ],
+      "properties": {
+        "lineageReplay": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authorityHistory": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transitionAuthorization": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "bytes32": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$"
+    },
+    "head": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transitionId", "stateRoot", "sequence"],
+      "properties": {
+        "transitionId": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "stateRoot": {
+          "$ref": "#/$defs/bytes32"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

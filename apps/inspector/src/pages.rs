@@ -1,9 +1,14 @@
 #![forbid(unsafe_code)]
 
 use crate::AppRoute;
-use crate::browser::{LiveRollbackOutcome, download_json, live_silent_rollback};
+use crate::browser::{
+    LiveRollbackOutcome, SEPOLIA_PROVIDER_LABEL, download_json, live_silent_rollback,
+};
 use crate::components::*;
-use crate::data::{Scenario, UiData, short_hash, verify_evidence_json};
+use crate::data::{
+    RestoreAssessment, Scenario, UiData, classify_restore_candidate, short_hash, tamper_commitment,
+    verify_evidence_json, verify_recovery_receipt_json,
+};
 use dioxus::prelude::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,8 +48,8 @@ pub fn HomePage(data: UiData) -> Element {
                 div { class: "home-hero-copy",
                     p { class: "eyebrow", "PRIVATE AI MEMORY / STALE RESTORE" }
                     p { class: "home-tagline", "Verify the history, not the memory." }
-                    h1 { "Can an old memory backup continue the agent's committed history?" }
-                    p { class: "home-lede", "AI operators control their agents' local memory databases. After a restore from an older snapshot, a third party needs an independent reference to tell whether the next transition extends the accepted history or reuses an obsolete root. MemoryLineage anchors sequence, predecessor, and authority in a registry reviewers can inspect. Raw memory is not required on-chain." }
+                    h1 { "Can an old memory backup pass as the agent's current state?" }
+                    p { class: "home-lede", "After a crash or restore, an agent may load a private checkpoint older than the history already recorded by its registry. Restore Preflight classifies a candidate as the demo head, a known earlier checkpoint, diverged, or unverified—without exposing memory text. Raw memory is not required on-chain. This prototype uses synthetic local evidence and does not block a live agent runtime." }
                     div { class: "action-row",
                         Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Run Silent Rollback →" }
                         Link { class: "button button-secondary", to: AppRoute::Verify {}, "Verify Evidence" }
@@ -98,11 +103,11 @@ pub fn HomePage(data: UiData) -> Element {
             section { class: "section-wrap home-columns",
                 div { class: "content-panel scope-panel-positive",
                     div { class: "panel-kicker", "WHAT MEMORYLINEAGE VERIFIES" }
-                    h2 { "Continuity, authority, commitments." }
+                    h2 { "Continuity, rules, commitments." }
                     ul { class: "scope-list scope-list-positive",
                         li { strong { "Ordered history" }, span { "Each accepted update uses the next sequence; gaps are rejected." } }
                         li { strong { "Predecessor binding" }, span { "A new update must extend the current root, not an older backup." } }
-                        li { strong { "Authorization" }, span { "The transition must match the configured authority." } }
+                        li { strong { "Registry authorization rule" }, span { "At commit time, the Solidity registry checks the configured authorizer. Demo Space V2 also carries and independently recovers an EIP-712 EOA signature for each transition; the separate protocol corpus remains structural-only." } }
                         li { strong { "Portable evidence" }, span { "A separate Rust verifier can replay the commitments and head." } }
                     }
                 }
@@ -113,6 +118,7 @@ pub fn HomePage(data: UiData) -> Element {
                         li { strong { "Not memory truth" }, span { "The verifier checks commitments, not the meaning or accuracy of private text." } }
                         li { strong { "Not AI reasoning" }, span { "The protocol does not explain why an agent made a decision." } }
                         li { strong { "Not total safety" }, span { "An authorized transition can still contain unsafe content." } }
+                        li { strong { "Not a runtime gate" }, span { "This fixture assessment does not block an external agent from loading a snapshot." } }
                     }
                 }
             }
@@ -131,10 +137,85 @@ pub fn HomePage(data: UiData) -> Element {
 }
 
 #[component]
+fn PreflightSnapshotButton(
+    sequence: u64,
+    label: String,
+    selected: bool,
+    on_select: EventHandler<u64>,
+) -> Element {
+    rsx! {
+        button {
+            r#type: "button",
+            class: if selected { "preflight-snapshot preflight-snapshot-selected" } else { "preflight-snapshot" },
+            aria_pressed: selected,
+            onclick: move |_| on_select.call(sequence),
+            span { class: "preflight-sequence", "STATE {sequence}" }
+            strong { "{label}" }
+        }
+    }
+}
+
+#[component]
 pub fn InspectPage(data: UiData) -> Element {
     let head = data.head();
     let first = data.v2.transitions.first().expect("history is non-empty");
     let history_count = data.v2.authorization_history.len().saturating_sub(1);
+    let mut selected_snapshot = use_signal(|| data.canonical_snapshot().sequence);
+    let mut candidate_tampered = use_signal(|| false);
+    let selected_sequence = selected_snapshot();
+    let candidate_tampered_now = candidate_tampered();
+    let selected_snapshot_record = data
+        .fixture
+        .snapshots
+        .iter()
+        .find(|snapshot| snapshot.sequence == selected_sequence);
+    let candidate_commitment = selected_snapshot_record.map(|snapshot| {
+        if candidate_tampered_now {
+            tamper_commitment(&snapshot.snapshot_commitment)
+                .unwrap_or_else(|| snapshot.snapshot_commitment.clone())
+        } else {
+            snapshot.snapshot_commitment.clone()
+        }
+    });
+    let assessment = if candidate_tampered_now {
+        candidate_commitment
+            .as_deref()
+            .map(|commitment| classify_restore_candidate(commitment, &data.v2))
+            .unwrap_or_else(|| data.assess_snapshot(selected_sequence))
+    } else {
+        data.assess_snapshot(selected_sequence)
+    };
+    let recovery_receipt = candidate_commitment.as_deref().and_then(|commitment| {
+        data.recovery_receipt_for_candidate(selected_sequence, commitment)
+            .ok()
+    });
+    let recovery_receipt_json = recovery_receipt.as_ref().map(|receipt| {
+        serde_json::to_string_pretty(receipt).expect("recovery receipt must serialize")
+    });
+    let receipt_download = recovery_receipt_json.clone();
+    let receipt_available = receipt_download.is_some();
+    let (assessment_label, assessment_tone, assessment_detail) = match &assessment {
+        RestoreAssessment::EvidenceHeadMatch { sequence } => (
+            "MATCHES DEMO EVIDENCE HEAD",
+            "verified",
+            format!("Snapshot #{sequence} matches the head of the independently replayed local Demo Space V2 bundle. This is not a live RPC observation or runtime approval."),
+        ),
+        RestoreAssessment::KnownHistoricalCheckpoint { sequence, head_sequence } => (
+            "KNOWN HISTORICAL CHECKPOINT",
+            "warning",
+            format!("Snapshot #{sequence} is present in the verified history, whose current evidence head is #{head_sequence}. Use this older state for isolated rehearsal; it is not the current continuation."),
+        ),
+        RestoreAssessment::UnknownOrDiverged => (
+            "UNKNOWN / DIVERGED",
+            "danger",
+            "This snapshot commitment does not match a checkpoint in the replayed Demo Space V2 history.".to_owned(),
+        ),
+        RestoreAssessment::Unverified { reason } => (
+            "UNVERIFIED",
+            "warning",
+            format!("The candidate or its evidence could not be verified ({reason}). This result cannot be treated as a current head."),
+        ),
+    };
     rsx! {
         div { class: "page workspace-page",
             PageHeader {
@@ -159,7 +240,7 @@ pub fn InspectPage(data: UiData) -> Element {
                             ReadoutRow { label: "State root".to_owned(), value: short_hash(&head.next_state_root, 14, 8), detail: "deterministically derived".to_owned() }
                             ReadoutRow { label: "Transition ID".to_owned(), value: short_hash(&head.transition_id, 14, 8), detail: "commitment-bound".to_owned() }
                             ReadoutRow { label: "First committed space".to_owned(), value: short_hash(&first.delta.space_id, 14, 8), detail: "Demo Space V2".to_owned() }
-                            ReadoutRow { label: "Authority changes".to_owned(), value: history_count.to_string(), detail: "configNonce trace available".to_owned() }
+                            ReadoutRow { label: "Authority changes".to_owned(), value: history_count.to_string(), detail: "configNonce records; Demo EOA proofs are separately verified".to_owned() }
                         }
                     }
                     div { class: "action-row action-row-tight",
@@ -182,6 +263,76 @@ pub fn InspectPage(data: UiData) -> Element {
                         div { strong { "PRIVATE" } span { "raw memory" } span { "documents" } span { "locator contents" } }
                     }
                 }
+            }
+            section { class: "section-wrap content-panel restore-preflight",
+                div { class: "panel-title-row",
+                    div { p { class: "panel-kicker", "BEFORE RESUME / RESTORE PREFLIGHT" } h2 { "Does this snapshot match the recorded history?" } }
+                    StatusBadge { label: assessment_label.to_owned(), tone: assessment_tone.to_owned() }
+                }
+                div { class: "preflight-grid",
+                    div { class: "preflight-candidates",
+                        p { class: "preflight-label", "SYNTHETIC SQLITE CHECKPOINTS" }
+                        div { class: "preflight-snapshot-list", role: "group", aria_label: "Select a demo snapshot for restore preflight",
+                            for snapshot in data.fixture.snapshots.iter() {
+                                PreflightSnapshotButton {
+                                    sequence: snapshot.sequence,
+                                    label: snapshot.visible_label.clone().unwrap_or_else(|| "Label unavailable".to_owned()),
+                                    selected: snapshot.sequence == selected_sequence,
+                                    on_select: move |sequence| {
+                                        selected_snapshot.set(sequence);
+                                        candidate_tampered.set(false);
+                                    },
+                                }
+                            }
+                        }
+                    }
+                    div { class: "preflight-assessment", aria_live: "polite".to_owned(),
+                        p { class: "preflight-label", "CANDIDATE COMMITMENT" }
+                        if let Some(commitment) = candidate_commitment.as_deref() {
+                            CopyValue { label: format!("snapshot {selected_sequence} commitment"), value: commitment.to_owned(), compact: true }
+                        } else {
+                            code { "NOT AVAILABLE IN FIXTURE" }
+                        }
+                        p { class: "preflight-detail", "{assessment_detail}" }
+                        if let Some(receipt) = recovery_receipt.as_ref() {
+                            div { class: "preflight-receipt",
+                                div { class: "panel-kicker", "RECOVERY DECISION RECEIPT" }
+                                div { class: "preflight-receipt-grid",
+                                    ReadoutRow { label: "Classification".to_owned(), value: receipt.decision.classification.clone(), detail: receipt.decision.reason_code.clone() }
+                                    ReadoutRow { label: "Protected action".to_owned(), value: receipt.decision.recommended_action.clone(), detail: "decision is portable; runtime enforcement is not claimed".to_owned() }
+                                    ReadoutRow { label: "Decision policy".to_owned(), value: receipt.policy_id.clone(), detail: "strict current-head policy is part of the receipt digest".to_owned() }
+                                }
+                                CopyValue { label: "recovery decision ID".to_owned(), value: receipt.decision_id.clone(), compact: true }
+                                SourceLine { source: receipt.evidence.source_class.clone(), note: "receipt binds this candidate to the verified evidence bundle".to_owned() }
+                            }
+                        }
+                        div { class: "action-row action-row-tight",
+                            button {
+                                class: "button button-secondary",
+                                r#type: "button",
+                                aria_label: if candidate_tampered_now { "Restore original snapshot commitment" } else { "Tamper snapshot commitment in browser copy" },
+                                onclick: move |_| candidate_tampered.set(!candidate_tampered_now),
+                                if candidate_tampered_now { "Restore original" } else { "Tamper candidate" }
+                            }
+                            if !candidate_tampered_now && matches!(assessment, RestoreAssessment::KnownHistoricalCheckpoint { sequence: 1, .. }) {
+                            Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Open State 1 Recovery Rehearsal" }
+                            }
+                            button {
+                                class: "button button-quiet",
+                                r#type: "button",
+                                disabled: !receipt_available,
+                                onclick: move |_| {
+                                    if let Some(json) = receipt_download.clone() {
+                                        let _ = download_json("memorylineage-recovery-receipt-v1.json", &json);
+                                    }
+                                },
+                                "Download decision receipt"
+                            }
+                        }
+                        if candidate_tampered_now { p { class: "preflight-boundary", "Only the browser candidate copy changed. No SQLite file, evidence artifact, or chain state was modified." } }
+                    }
+                }
+                p { class: "preflight-boundary", "Source: synthetic fixture + local replayed evidence. This prototype does not read the live chain, inspect memory meaning, or gate an external agent runtime." }
             }
             section { class: "section-wrap compact-section",
                 div { class: "panel-title-row", div { p { class: "panel-kicker", "CANONICAL CUE RAIL" } h2 { "Committed succession" } }, StatusBadge { label: format!("{} / {} VERIFIED", data.v2.transitions.len(), data.v2.transitions.len()), tone: "verified".to_owned() } }
@@ -251,7 +402,7 @@ pub fn HistoryPage(data: UiData) -> Element {
                         for authority in data.v2.authorization_history.iter() {
                             div { class: "authority-row", key: "{authority.config_nonce}-{authority.authorizer}", span { class: "authority-index", "{authority.config_nonce}" }, div { strong { "{authority.label.as_deref().unwrap_or(\"authority\")}" }, code { "{short_hash(&authority.authorizer, 10, 6)}" } } }
                         }
-                        p { class: "small-note", "Authority rotation is represented by configNonce and is part of this Demo Space V2 incident. Transition 3 uses the rotated authorizer." }
+                        p { class: "small-note", "Authority rotation is represented by configNonce in this Demo Space V2 evidence. Transition 3 uses the rotated authorizer in the Rust/revm execution, and all three Demo Space V2 transitions include independently recoverable EIP-712 EOA proof material." }
                     }
                 }
             }
@@ -280,6 +431,23 @@ pub fn HistoryPage(data: UiData) -> Element {
 pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
     let transition = data.transition(sequence);
     let report = data.report.as_ref();
+    let authorization_proof = data
+        .v2
+        .authorization_proofs
+        .iter()
+        .find(|proof| proof.sequence == transition.delta.sequence);
+    let active_authority = data
+        .v2
+        .authorization_history
+        .iter()
+        .filter_map(|authority| {
+            authority
+                .effective_from_sequence
+                .filter(|effective| *effective <= transition.delta.sequence)
+                .map(|effective| (effective, authority))
+        })
+        .max_by_key(|(effective, _)| *effective)
+        .map(|(_, authority)| authority);
     let transition_check = if report.is_some() {
         "MATCH"
     } else {
@@ -328,8 +496,23 @@ pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
                         ReadoutRow { label: "Space ID".to_owned(), value: short_hash(&transition.delta.space_id, 14, 8), detail: "public identifier".to_owned() }
                         ReadoutRow { label: "Sequence".to_owned(), value: transition.delta.sequence.to_string(), detail: "uint64 / canonical order".to_owned() }
                         ReadoutRow { label: "Block / transaction".to_owned(), value: "NOT AVAILABLE IN THIS BUNDLE".to_owned(), detail: "local revm has no public block receipt".to_owned() }
-                        ReadoutRow { label: "Authority".to_owned(), value: "SEE AUTHORITY HISTORY".to_owned(), detail: "transition-level signature not exported".to_owned() }
+                        ReadoutRow { label: "Authority".to_owned(), value: active_authority.map(|authority| short_hash(&authority.authorizer, 14, 8)).unwrap_or_else(|| "NOT AVAILABLE IN THIS BUNDLE".to_owned()), detail: active_authority.and_then(|authority| authority.effective_from_sequence).map(|effective| format!("configNonce window from sequence {effective}")).unwrap_or_else(|| "effective authority window unavailable".to_owned()) }
+                        ReadoutRow { label: "Authorization".to_owned(), value: if authorization_proof.is_some() { "EOA_SIGNATURES_VERIFIED".to_owned() } else { "NOT_INCLUDED".to_owned() }, detail: "independent proof status for this sequence".to_owned() }
                     }
+                }
+            }
+            section { class: "section-wrap content-panel",
+                div { class: "panel-kicker", "AUTHORIZATION PROOF" }
+                if let Some(proof) = authorization_proof {
+                    div { class: "commitment-table",
+                        CommitmentRow { label: "configNonce".to_owned(), value: proof.config_nonce.map(|nonce| nonce.to_string()).unwrap_or_else(|| "NOT INCLUDED".to_owned()) }
+                        CommitmentRow { label: "domainSeparator".to_owned(), value: proof.domain_separator.clone() }
+                        CommitmentRow { label: "signingDigest".to_owned(), value: proof.signing_digest.clone() }
+                        CommitmentRow { label: "signature".to_owned(), value: proof.signature.clone() }
+                    }
+                    p { class: "small-note", "The Rust independent verifier recomputes the EIP-712 domain and digest, recovers the signer, and checks it against the effective authority window. This proof is scoped to the local Demo Space V2 bundle." }
+                } else {
+                    p { class: "small-note", "NOT AVAILABLE IN THIS BUNDLE. The protocol-corpus projection carries authority records without transition-level signatures." }
                 }
             }
             section { class: "section-wrap detail-footer-row", Link { class: "button button-secondary", to: AppRoute::History {}, "← Back to History" }, Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Test a stale predecessor →" } }
@@ -424,19 +607,27 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     LiveRollbackOutcome::Rejected {
                         sequence,
                         canonical_root,
+                        block_tag,
+                        block_number,
+                        block_hash,
                     } => {
                         detail.set(format!(
-                            "SEPOLIA LIVE RPC / BAD_PREVIOUS_STATE / attempted sequence {sequence} / observed head {}",
-                            short_hash(&canonical_root, 10, 8)
+                            "SEPOLIA / {SEPOLIA_PROVIDER_LABEL} / {} BLOCK {block_number} / {} / BAD_PREVIOUS_STATE / attempted sequence {sequence} / observed head {}",
+                            block_tag.to_uppercase(),
+                            short_hash(&block_hash, 10, 8),
+                            short_hash(&canonical_root, 10, 8),
                         ));
-                        source.set("SEPOLIA / LIVE RPC — SEPARATE OBSERVATION".to_owned());
+                        source.set(format!(
+                            "SEPOLIA / {SEPOLIA_PROVIDER_LABEL} / LIVE / {} BLOCK",
+                            block_tag.to_uppercase()
+                        ));
                         state.set(RollbackUiState::LiveRejected);
                     }
                     LiveRollbackOutcome::Unavailable { reason } => {
                         detail.set(format!(
                             "SEPARATE SEPOLIA PROBE / UNAVAILABLE / {reason} / local Demo Space V2 evidence remains unchanged"
                         ));
-                        source.set("SEPOLIA / LIVE RPC UNAVAILABLE".to_owned());
+                        source.set(format!("SEPOLIA / {SEPOLIA_PROVIDER_LABEL} UNAVAILABLE"));
                         state.set(RollbackUiState::LiveUnavailable);
                     }
                     LiveRollbackOutcome::Unexpected { reason } => {
@@ -585,16 +776,31 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
 pub fn VerifyPage(data: UiData) -> Element {
     let default_json = data.evidence_json();
     let tampered_json = data.tampered_json();
+    let default_receipt_json = data.recovery_receipt_json();
+    let tampered_receipt_json = data.tampered_recovery_receipt_json();
     let report = use_signal(|| data.report.clone());
     let error = use_signal(|| None::<String>);
     let source = use_signal(|| "PUBLISHED V2 EVIDENCE".to_owned());
     let imported_name = use_signal(|| None::<String>);
     let announcement =
         use_signal(|| "Published evidence is loaded in the Rust/WASM verifier.".to_owned());
+    let receipt_report = use_signal(|| data.verify_recovery_receipt().ok());
+    let receipt_error = use_signal(|| None::<String>);
+    let receipt_source = use_signal(|| "PUBLISHED RECOVERY RECEIPT".to_owned());
+    let receipt_file = use_signal(|| None::<String>);
+    let receipt_announcement = use_signal(|| {
+        "The current snapshot decision is bound to the published V2 bundle.".to_owned()
+    });
     let current_report = report();
     let current_error = error();
     let current_source = source();
     let current_file = imported_name();
+    let current_receipt_report = receipt_report();
+    let current_receipt_error = receipt_error();
+    let current_receipt_source = receipt_source();
+    let current_receipt_file = receipt_file();
+    let current_receipt_verified =
+        current_receipt_error.is_none() && current_receipt_report.is_some();
     let is_verified = current_error.is_none() && current_report.is_some();
     let verification_summary = if let Some(reason) = current_error.as_deref() {
         format!("Independent Rust verification rejected the bundle: {reason}.")
@@ -606,6 +812,18 @@ pub fn VerifyPage(data: UiData) -> Element {
         )
     } else {
         "No verification result is available.".to_owned()
+    };
+    let receipt_summary = if let Some(reason) = current_receipt_error.as_deref() {
+        format!("Independent Rust receipt verification rejected the decision: {reason}.")
+    } else if let Some(receipt_report) = current_receipt_report.as_ref() {
+        format!(
+            "{} / {} / decision {}.",
+            receipt_report.classification,
+            receipt_report.recommended_action,
+            short_hash(&receipt_report.decision_id, 14, 8)
+        )
+    } else {
+        "No recovery decision result is available.".to_owned()
     };
     let export_action = {
         let export_json = default_json.clone();
@@ -699,6 +917,117 @@ pub fn VerifyPage(data: UiData) -> Element {
             }
         }
     };
+    let export_receipt_action = {
+        let receipt_json = default_receipt_json.clone();
+        let mut receipt_report = receipt_report;
+        let mut receipt_error = receipt_error;
+        let mut receipt_source = receipt_source;
+        let mut receipt_file = receipt_file;
+        let mut receipt_announcement = receipt_announcement;
+        let evidence_json = default_json.clone();
+        move |_| {
+            let result = download_json("memorylineage-recovery-receipt-v1.json", &receipt_json);
+            match verify_recovery_receipt_json(&receipt_json, &evidence_json) {
+                Ok(value) => {
+                    receipt_report.set(Some(value));
+                    receipt_error.set(None);
+                    receipt_source.set("EXPORTED RECOVERY RECEIPT".to_owned());
+                    receipt_file.set(None);
+                    receipt_announcement.set(match result {
+                        Ok(()) => "Recovery decision receipt exported and verified in Rust/WASM."
+                            .to_owned(),
+                        Err(reason) => {
+                            format!("Receipt is ready; browser download unavailable: {reason}.")
+                        }
+                    });
+                }
+                Err(reason) => {
+                    receipt_report.set(None);
+                    receipt_error.set(Some(reason.clone()));
+                    receipt_announcement.set(format!("Receipt verification failed: {reason}"));
+                }
+            }
+        }
+    };
+    let tamper_receipt_action = {
+        let receipt_json = tampered_receipt_json.clone();
+        let evidence_json = default_json.clone();
+        let mut receipt_report = receipt_report;
+        let mut receipt_error = receipt_error;
+        let mut receipt_source = receipt_source;
+        let mut receipt_file = receipt_file;
+        let mut receipt_announcement = receipt_announcement;
+        move |_| match verify_recovery_receipt_json(&receipt_json, &evidence_json) {
+            Ok(value) => {
+                receipt_report.set(Some(value));
+                receipt_error.set(None);
+                receipt_source.set("TAMPERED RECEIPT / UNEXPECTED PASS".to_owned());
+                receipt_file.set(None);
+                receipt_announcement.set("Tampered receipt unexpectedly passed.".to_owned());
+            }
+            Err(reason) => {
+                receipt_report.set(None);
+                receipt_error.set(Some(reason.clone()));
+                receipt_source.set("TAMPERED RECEIPT".to_owned());
+                receipt_file.set(None);
+                receipt_announcement.set(format!("Receipt tamper check: REJECTED / {reason}"));
+            }
+        }
+    };
+    let restore_receipt_action = {
+        let original_report = data.verify_recovery_receipt().ok();
+        let mut receipt_report = receipt_report;
+        let mut receipt_error = receipt_error;
+        let mut receipt_source = receipt_source;
+        let mut receipt_file = receipt_file;
+        let mut receipt_announcement = receipt_announcement;
+        move |_| {
+            receipt_report.set(original_report.clone());
+            receipt_error.set(None);
+            receipt_source.set("PUBLISHED RECOVERY RECEIPT".to_owned());
+            receipt_file.set(None);
+            receipt_announcement.set("Original recovery receipt restored and verified.".to_owned());
+        }
+    };
+    let import_receipt_action = {
+        let evidence_json = default_json.clone();
+        let mut receipt_report = receipt_report;
+        let mut receipt_error = receipt_error;
+        let mut receipt_source = receipt_source;
+        let mut receipt_file = receipt_file;
+        let mut receipt_announcement = receipt_announcement;
+        move |event: FormEvent| {
+            if let Some(file) = event.files().into_iter().next() {
+                let name = file.name();
+                receipt_file.set(Some(name.clone()));
+                let evidence_json = evidence_json.clone();
+                spawn(async move {
+                    match file.read_string().await {
+                        Ok(json) => match verify_recovery_receipt_json(&json, &evidence_json) {
+                            Ok(value) => {
+                                receipt_report.set(Some(value));
+                                receipt_error.set(None);
+                                receipt_source.set("IMPORTED RECOVERY RECEIPT".to_owned());
+                                receipt_announcement.set(format!("Imported {name}: VERIFIED."));
+                            }
+                            Err(reason) => {
+                                receipt_report.set(None);
+                                receipt_error.set(Some(reason.clone()));
+                                receipt_source.set("IMPORTED RECOVERY RECEIPT".to_owned());
+                                receipt_announcement
+                                    .set(format!("Imported {name}: REJECTED / {reason}"));
+                            }
+                        },
+                        Err(_) => {
+                            receipt_report.set(None);
+                            receipt_error.set(Some("FILE_READ_FAILED".to_owned()));
+                            receipt_announcement.set(format!("Imported {name}: file read failed."));
+                        }
+                    }
+                });
+            }
+        }
+    };
     rsx! {
         div { class: "page workspace-page",
             PageHeader { kicker: "VERIFY / PORTABLE EVIDENCE".to_owned(), title: "Can I verify this without trusting the website?".to_owned(), description: "Load, export, tamper, and restore a public evidence bundle. The browser uses the independent Rust verifier compiled to WASM.".to_owned(), source: current_source.clone() }
@@ -723,7 +1052,8 @@ pub fn VerifyPage(data: UiData) -> Element {
                             CheckRow { label: "State roots".to_owned(), value: current_report.state_roots.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Sequence continuity".to_owned(), value: current_report.sequence_continuity.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Predecessor continuity".to_owned(), value: current_report.predecessor_continuity.clone(), tone: "verified".to_owned() }
-                            CheckRow { label: "Authority history".to_owned(), value: current_report.authority_history.clone(), tone: "verified".to_owned() }
+                            CheckRow { label: "Authority timeline".to_owned(), value: current_report.authority_history.clone(), tone: if current_report.authority_history == "TIMELINE_BOUND" { "verified".to_owned() } else { "observed".to_owned() } }
+                            CheckRow { label: "Transition authorization proof".to_owned(), value: current_report.authorization_proof.clone(), tone: if current_report.authorization_proof == "EOA_SIGNATURES_VERIFIED" { "verified".to_owned() } else { "warning".to_owned() } }
                             CheckRow { label: "Privacy boundary".to_owned(), value: current_report.privacy_boundary.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Attack evidence".to_owned(), value: current_report.attack_evidence.clone(), tone: if current_report.attack_evidence == "PASS" { "verified".to_owned() } else { "neutral".to_owned() } }
                         } else { CheckRow { label: "Imported bundle".to_owned(), value: current_error.clone().unwrap_or_else(|| "NO RESULT".to_owned()), tone: "danger".to_owned() } }
@@ -736,6 +1066,46 @@ pub fn VerifyPage(data: UiData) -> Element {
                 div { class: "tamper-grid", div { class: "tamper-value", span { "ORIGINAL" }, code { "locatorCommitment / {short_hash(&data.v2.transitions[0].delta.locator_commitment, 14, 8)}" } }, div { class: "tamper-arrow", "→" }, div { class: "tamper-value tamper-value-danger", span { "TAMPERED COPY" }, code { "locatorCommitment / 0xffff…ffff" } } }
                 div { class: "action-row", button { class: "button button-danger", onclick: tamper_action, "Tamper one field" }, button { class: "button button-secondary", onclick: restore_action, "Restore original" } }
                 p { class: "announcement", "{announcement}" }
+            }
+            section { class: "section-wrap recovery-receipt-workbench",
+                div { class: "panel-title-row",
+                    div { p { class: "panel-kicker", "RECOVERY DECISION RECEIPT" }, h2 { "Can another process verify the resume decision?" } }
+                    StatusBadge { label: if current_receipt_verified { "VERIFIED".to_owned() } else { "REJECTED".to_owned() }, tone: if current_receipt_verified { "verified".to_owned() } else { "danger".to_owned() } }
+                }
+                p { "A Recovery Decision Receipt binds one private snapshot commitment to the replayed canonical head and records the safe action. It contains no raw memory and does not claim to enforce a production runtime." }
+                div { class: "recovery-receipt-grid",
+                    div { class: "content-panel recovery-receipt-summary",
+                        div { class: "panel-kicker", "DECISION READOUT" }
+                        div { class: if current_receipt_verified { "verification-banner verification-banner-pass" } else { "verification-banner verification-banner-fail" }, aria_live: "polite", span { class: "verification-icon", if current_receipt_verified { "✓" } else { "×" } }, div { strong { if current_receipt_verified { "RECEIPT VERIFIED" } else { "RECEIPT REJECTED" } }, p { "{receipt_summary}" } } }
+                        if let Some(receipt_report) = current_receipt_report.as_ref() {
+                            div { class: "check-table",
+                                CheckRow { label: "Receipt integrity".to_owned(), value: receipt_report.receipt_integrity.clone(), tone: "verified".to_owned() }
+                                CheckRow { label: "Evidence bundle".to_owned(), value: receipt_report.evidence_bundle.clone(), tone: "verified".to_owned() }
+                                CheckRow { label: "Decision policy".to_owned(), value: receipt_report.policy_id.clone(), tone: "observed".to_owned() }
+                                CheckRow { label: "Source class".to_owned(), value: receipt_report.source_class.clone(), tone: "observed".to_owned() }
+                                CheckRow { label: "Authority timeline".to_owned(), value: receipt_report.authority_history.clone(), tone: if receipt_report.authority_history == "TIMELINE_BOUND" { "verified".to_owned() } else { "observed".to_owned() } }
+                                CheckRow { label: "Transition authorization".to_owned(), value: receipt_report.transition_authorization.clone(), tone: if receipt_report.transition_authorization == "EOA_SIGNATURES_VERIFIED" { "verified".to_owned() } else { "warning".to_owned() } }
+                                CheckRow { label: "Protected action".to_owned(), value: receipt_report.recommended_action.clone(), tone: if receipt_report.recommended_action == "RESUME_ALLOWED" { "verified".to_owned() } else { "warning".to_owned() } }
+                            }
+                            CopyValue { label: "decision ID".to_owned(), value: receipt_report.decision_id.clone(), compact: true }
+                        } else if let Some(reason) = current_receipt_error.as_deref() {
+                            CheckRow { label: "Failure".to_owned(), value: reason.to_owned(), tone: "danger".to_owned() }
+                        }
+                    }
+                    aside { class: "content-panel recovery-receipt-actions",
+                        div { class: "panel-kicker", "PORTABLE ARTIFACT" }
+                        h3 { "Export the decision, then falsify it." }
+                        p { "The Rust CLI can verify the same receipt outside the browser against the same V2 bundle." }
+                        div { class: "action-row action-row-tight",
+                            button { class: "button button-primary", onclick: export_receipt_action, "Export receipt" }
+                            button { class: "button button-danger", onclick: tamper_receipt_action, "Tamper decision" }
+                            button { class: "button button-secondary", onclick: restore_receipt_action, "Restore" }
+                        }
+                        label { class: "file-drop", strong { "Import recovery receipt" }, span { "Must match the loaded Demo Space V2 bundle" }, input { r#type: "file", accept: "application/json,.json", onchange: import_receipt_action } }
+                        div { class: "source-line source-line-vertical", span { class: "source-dot source-dot-blue" }, strong { "{current_receipt_source}" }, if let Some(name) = current_receipt_file.as_deref() { span { "{name}" } } }
+                        p { class: "announcement", "{receipt_announcement}" }
+                    }
+                }
             }
             section { class: "section-wrap verify-bottom-grid",
                 div { class: "content-panel", div { class: "panel-kicker", "SECONDARY AUDITOR" }, h3 { "Rust CLI" }, p { "The same evidence can be checked outside the browser with the independent Rust verifier." }, code { class: "command-block", "cargo run -q -p ml-cli -- verify evidence.json" } }
@@ -772,6 +1142,9 @@ pub fn EvidencePage(data: UiData) -> Element {
                     EvidenceTableRow { label: "Rust/revm mutation lane".to_owned(), value: data.conformance.revm_core_mutations.clone(), note: "core mutation matrix".to_owned() }
                     EvidenceTableRow { label: "ERC-1271".to_owned(), value: data.conformance.revm_erc1271.clone(), note: "acceptance then invalid signature".to_owned() }
                     EvidenceTableRow { label: "Authority rotation".to_owned(), value: data.conformance.revm_authority_rotation.clone(), note: "configNonce and old/new authorizer".to_owned() }
+                    EvidenceTableRow { label: "Demo source class".to_owned(), value: data.v2.source_class.clone(), note: "receipt and evidence policy binding".to_owned() }
+                    EvidenceTableRow { label: "Demo EOA authorization".to_owned(), value: if data.v2.authorization_proofs.len() == data.v2.transitions.len() { "EOA_SIGNATURES_VERIFIED".to_owned() } else { "NOT_INCLUDED".to_owned() }, note: "independent signer recovery for each Demo Space V2 transition".to_owned() }
+                    EvidenceTableRow { label: "Recovery Decision Receipt".to_owned(), value: "VERIFIED".to_owned(), note: "policy-bound receipt for the named Demo Space V2 bundle".to_owned() }
                 }
             }
             section { class: "section-wrap evidence-lower-grid",
@@ -783,6 +1156,8 @@ pub fn EvidencePage(data: UiData) -> Element {
                 div { class: "panel-kicker", "AVAILABLE ARTIFACTS" }
                 div { class: "artifact-row", span { "evidence/local/rust_revm_conformance.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/demo_space_v2_evidence.json" }, StatusBadge { label: "DEMO V2".to_owned(), tone: "verified".to_owned() } }
+                div { class: "artifact-row", span { "evidence/local/demo_space_v2_recovery_receipt.json" }, StatusBadge { label: "RECEIPT".to_owned(), tone: "verified".to_owned() } }
+                div { class: "artifact-row", span { "evidence/local/demo_space_v2_historical_recovery_receipt.json" }, StatusBadge { label: "HOLD RECEIPT".to_owned(), tone: "warning".to_owned() } }
                 div { class: "artifact-row", span { "fixtures/silent-rollback-v2/manifest.json" }, StatusBadge { label: "FIXTURE".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/rust_revm_mutation_matrix.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/sepolia/sepolia_reread.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
@@ -823,8 +1198,8 @@ pub fn SecurityPage() -> Element {
         "committed ordering",
         "sequence continuity",
         "predecessor continuity",
-        "configured authorization",
-        "authority rotation history",
+        "configured-authorizer checks in tested contract executions",
+        "authority rotation behavior in the Rust/revm evidence",
         "commitment integrity",
         "deterministic state derivation",
         "replayable evidence",
@@ -839,6 +1214,7 @@ pub fn SecurityPage() -> Element {
         "off-chain data availability",
         "causal action proof",
         "complete protection from all memory poisoning",
+        "historical transition signatures for bundles that do not carry signed proof material",
     ];
     rsx! {
         div { class: "page workspace-page",

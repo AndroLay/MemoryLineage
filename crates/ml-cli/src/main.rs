@@ -8,8 +8,9 @@ use ml_memory_store::{
     inspect_demo_space_v2_fixture, inspect_silent_rollback_fixture, restore_snapshot,
     snapshot_observations,
 };
+use ml_recovery_gate::{ProtectedResumeError, protected_resume};
 use ml_spec_types::EvidenceBundleV2;
-use ml_verifier_independent::verify_file;
+use ml_verifier_independent::{build_recovery_receipt, verify_file, verify_recovery_receipt};
 use std::path::{Path, PathBuf};
 
 fn repository_root() -> PathBuf {
@@ -42,6 +43,10 @@ fn usage() {
   cargo run -p ml-cli -- revm demo-space-v2 [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- evidence export-v2 [SOURCE] [DESTINATION]\n  \
   cargo run -p ml-cli -- evidence demo-v2 [FIXTURE_ROOT] [DESTINATION]\n  \
+  cargo run -p ml-cli -- recover preflight <SNAPSHOT> [EVIDENCE] [RECEIPT] [SOURCE]\n  \
+  cargo run -p ml-cli -- recover verify <RECEIPT> [EVIDENCE]\n  \
+  cargo run -p ml-cli -- recover enforce <SNAPSHOT> [EVIDENCE]\n  \
+  cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- demo legacy-silent-rollback [ROOT]\n  \
   cargo run -p ml-cli -- live inspect\n  \
@@ -275,6 +280,115 @@ fn evidence_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+fn default_demo_evidence_path() -> PathBuf {
+    repository_root().join("evidence/local/demo_space_v2_evidence.json")
+}
+
+fn load_v2_evidence(
+    path: impl AsRef<Path>,
+) -> Result<EvidenceBundleV2, Box<dyn std::error::Error>> {
+    let bytes = std::fs::read(path)?;
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
+fn recovery_preflight(
+    args: &[String],
+) -> Result<ml_spec_types::RecoveryDecisionReceipt, Box<dyn std::error::Error>> {
+    let snapshot_path = args
+        .first()
+        .ok_or("recover preflight requires a SQLite snapshot path")?;
+    let evidence_path = args
+        .get(1)
+        .map(PathBuf::from)
+        .unwrap_or_else(default_demo_evidence_path);
+    let source_class = args
+        .get(3)
+        .map(String::as_str)
+        .unwrap_or("DEMO_SPACE_V2_LOCAL");
+    let snapshot = ml_memory_store::read_snapshot(snapshot_path)?;
+    let evidence = load_v2_evidence(evidence_path)?;
+    Ok(build_recovery_receipt(
+        &evidence,
+        &ml_memory_store::snapshot_commitment(&snapshot),
+        snapshot.sequence,
+        source_class,
+        None,
+    )?)
+}
+
+fn recover_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let action = args.first().map(String::as_str).unwrap_or("");
+    match action {
+        "preflight" => {
+            let receipt = recovery_preflight(&args[1..])?;
+            if let Some(destination) = args.get(3) {
+                std::fs::write(
+                    destination,
+                    format!("{}\n", serde_json::to_string_pretty(&receipt)?),
+                )?;
+                eprintln!("wrote recovery receipt to {destination}");
+            }
+            println!("{}", serde_json::to_string_pretty(&receipt)?);
+            Ok(())
+        }
+        "verify" => {
+            let receipt_path = args
+                .get(1)
+                .ok_or("recover verify requires a receipt JSON path")?;
+            let evidence_path = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_evidence_path);
+            let receipt: ml_spec_types::RecoveryDecisionReceipt =
+                serde_json::from_slice(&std::fs::read(receipt_path)?)?;
+            let evidence = load_v2_evidence(evidence_path)?;
+            let report = verify_recovery_receipt(&receipt, &evidence)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
+        "enforce" => {
+            let snapshot_path = args
+                .get(1)
+                .ok_or("recover enforce requires a SQLite snapshot path")?;
+            let evidence_path = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_evidence_path);
+            let evidence = load_v2_evidence(evidence_path)?;
+            let source_class = args
+                .get(4)
+                .map(String::as_str)
+                .unwrap_or("DEMO_SPACE_V2_LOCAL");
+            match protected_resume(snapshot_path, &evidence, source_class, |snapshot| {
+                Ok::<String, String>(format!(
+                    "snapshot_sequence={},private_keys={}",
+                    snapshot.sequence,
+                    snapshot.values.len()
+                ))
+            }) {
+                Ok(resumed) => {
+                    println!("{}", serde_json::to_string_pretty(&resumed.receipt)?);
+                    println!("receipt verification: VERIFIED / PASS");
+                    println!("protected loader: LOADED / {}", resumed.loaded);
+                    println!("protected resume permitted for the named evidence profile");
+                    Ok(())
+                }
+                Err(ProtectedResumeError::ResumeHeld {
+                    classification,
+                    action,
+                    receipt,
+                }) => {
+                    println!("{}", serde_json::to_string_pretty(receipt.as_ref())?);
+                    println!("receipt verification: VERIFIED / PASS");
+                    Err(format!("protected resume held: {classification} / {action}").into())
+                }
+                Err(error) => Err(error.into()),
+            }
+        }
+        _ => Err("recover requires preflight, verify, or enforce".into()),
+    }
+}
+
 fn legacy_silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let snapshots = inspect_silent_rollback_fixture(root)?;
     let canonical = snapshots.last().ok_or("fixture has no snapshots")?;
@@ -397,6 +511,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("conformance") => conformance_command(),
         Some("revm") => revm_command(&args.collect::<Vec<_>>()),
         Some("evidence") => evidence_command(&args.collect::<Vec<_>>()),
+        Some("recover") => recover_command(&args.collect::<Vec<_>>()),
         Some("demo") => match args.next().as_deref() {
             Some("silent-rollback") => {
                 let root = args

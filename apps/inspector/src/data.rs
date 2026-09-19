@@ -1,8 +1,13 @@
 #![forbid(unsafe_code)]
 
 use ml_evidence::public_replay_to_v2;
-use ml_spec_types::{EvidenceBundleV2, PublicReplayBundle, TransitionRecord};
-use ml_verifier_independent::{VerificationReport, verify_v2_bundle};
+use ml_spec_types::{
+    EvidenceBundleV2, PublicReplayBundle, RecoveryDecisionReceipt, TransitionRecord,
+};
+use ml_verifier_independent::{
+    RecoveryVerificationReport, VerificationReport, build_recovery_receipt,
+    verify_recovery_receipt, verify_v2_bundle,
+};
 use serde::Deserialize;
 
 pub const LOCAL_EVIDENCE: &str =
@@ -10,6 +15,8 @@ pub const LOCAL_EVIDENCE: &str =
 pub const DEMO_EVIDENCE: &str = include_str!("../../../evidence/local/demo_space_v2_evidence.json");
 pub const SILENT_ROLLBACK_MANIFEST: &str =
     include_str!("../../../fixtures/silent-rollback-v2/manifest.json");
+pub const DEMO_RECOVERY_RECEIPT: &str =
+    include_str!("../../../evidence/local/demo_space_v2_recovery_receipt.json");
 const SEPOLIA_DEPLOYMENT: &str = include_str!("../../../evidence/sepolia/sepolia_deployment.json");
 const SEPOLIA_REREAD: &str = include_str!("../../../evidence/sepolia/sepolia_reread.json");
 const CONFORMANCE_REPORT: &str = include_str!("../../../evidence/local/rust_revm_conformance.json");
@@ -62,7 +69,7 @@ impl Scenario {
 
     pub fn evidence_kind(self) -> &'static str {
         match self {
-            Self::SilentRollback => "LIVE",
+            Self::SilentRollback => "LOCAL EVIDENCE",
             Self::SemanticPoisoning => "SCOPE",
             _ => "CORPUS",
         }
@@ -275,6 +282,7 @@ pub struct UiData {
     pub v2: EvidenceBundleV2,
     pub fixture: PrivateFixtureManifest,
     pub report: Option<VerificationReport>,
+    pub recovery_receipt: RecoveryDecisionReceipt,
     pub deployment: DeploymentRecord,
     pub reread: SepoliaReread,
     pub conformance: ConformanceEvidence,
@@ -292,6 +300,89 @@ pub struct HistoryLedgerEvent {
     pub status: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RestoreAssessment {
+    EvidenceHeadMatch { sequence: u64 },
+    KnownHistoricalCheckpoint { sequence: u64, head_sequence: u64 },
+    UnknownOrDiverged,
+    Unverified { reason: String },
+}
+
+/// Change one nibble in a bytes32 commitment for the Inspector's local
+/// preflight demonstration. This does not modify the SQLite fixture or chain.
+pub fn tamper_commitment(commitment: &str) -> Option<String> {
+    let encoded = commitment.strip_prefix("0x")?;
+    if encoded.len() != 64 || !encoded.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return None;
+    }
+    let mut altered = encoded.as_bytes().to_vec();
+    altered[0] = if altered[0].eq_ignore_ascii_case(&b'0') {
+        b'1'
+    } else {
+        b'0'
+    };
+    String::from_utf8(altered)
+        .ok()
+        .map(|encoded| format!("0x{encoded}"))
+}
+
+/// Classify a candidate snapshot against a replay-verified evidence bundle.
+/// This is an evidence-workspace assessment, not a live-chain observation or
+/// an agent-runtime resume gate.
+pub fn classify_restore_candidate(
+    candidate_commitment: &str,
+    bundle: &EvidenceBundleV2,
+) -> RestoreAssessment {
+    let Some(encoded) = candidate_commitment.strip_prefix("0x") else {
+        return RestoreAssessment::Unverified {
+            reason: "SNAPSHOT_COMMITMENT_INVALID".to_owned(),
+        };
+    };
+    if encoded.len() != 64 || !encoded.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return RestoreAssessment::Unverified {
+            reason: "SNAPSHOT_COMMITMENT_INVALID".to_owned(),
+        };
+    }
+    if let Err(error) = verify_v2_bundle(bundle) {
+        return RestoreAssessment::Unverified {
+            reason: error.to_string(),
+        };
+    }
+
+    let Some(last) = bundle.transitions.last() else {
+        return RestoreAssessment::Unverified {
+            reason: "EMPTY_TRANSITION_HISTORY".to_owned(),
+        };
+    };
+    let matching_sequence = bundle
+        .transitions
+        .iter()
+        .filter(|transition| {
+            transition
+                .delta
+                .delta_commitment
+                .eq_ignore_ascii_case(candidate_commitment)
+        })
+        .map(|transition| transition.delta.sequence)
+        .max();
+
+    match matching_sequence {
+        Some(sequence) if sequence == last.delta.sequence => {
+            RestoreAssessment::EvidenceHeadMatch { sequence }
+        }
+        Some(sequence) if sequence < last.delta.sequence => {
+            RestoreAssessment::KnownHistoricalCheckpoint {
+                sequence,
+                head_sequence: last.delta.sequence,
+            }
+        }
+        Some(_) => RestoreAssessment::Unverified {
+            reason: "SNAPSHOT_SEQUENCE_AHEAD_OF_EVIDENCE_HEAD".to_owned(),
+        },
+        None => RestoreAssessment::UnknownOrDiverged,
+    }
+}
+
 impl UiData {
     pub fn load() -> Self {
         let bundle: PublicReplayBundle =
@@ -302,6 +393,10 @@ impl UiData {
         let fixture: PrivateFixtureManifest = serde_json::from_str(SILENT_ROLLBACK_MANIFEST)
             .expect("private fixture manifest must remain valid");
         let report = verify_v2_bundle(&v2).ok();
+        let recovery_receipt: RecoveryDecisionReceipt = serde_json::from_str(DEMO_RECOVERY_RECEIPT)
+            .expect("published recovery receipt must remain valid");
+        verify_recovery_receipt(&recovery_receipt, &v2)
+            .expect("published recovery receipt must verify against Demo Space V2");
         let deployment =
             serde_json::from_str(SEPOLIA_DEPLOYMENT).expect("Sepolia deployment evidence valid");
         let reread = serde_json::from_str(SEPOLIA_REREAD).expect("Sepolia reread evidence valid");
@@ -325,6 +420,7 @@ impl UiData {
             v2,
             fixture,
             report,
+            recovery_receipt,
             deployment,
             reread,
             conformance,
@@ -335,6 +431,36 @@ impl UiData {
 
     pub fn evidence_json(&self) -> String {
         serde_json::to_string_pretty(&self.v2).expect("evidence v2 must serialize")
+    }
+
+    pub fn recovery_receipt_for_candidate(
+        &self,
+        sequence: u64,
+        candidate_commitment: &str,
+    ) -> Result<RecoveryDecisionReceipt, String> {
+        build_recovery_receipt(
+            &self.v2,
+            candidate_commitment,
+            sequence,
+            "DEMO_SPACE_V2_LOCAL",
+            None,
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    pub fn recovery_receipt_json(&self) -> String {
+        serde_json::to_string_pretty(&self.recovery_receipt)
+            .expect("recovery receipt must serialize")
+    }
+
+    pub fn tampered_recovery_receipt_json(&self) -> String {
+        let mut receipt = self.recovery_receipt.clone();
+        receipt.decision.reason_code = "TAMPERED_REASON_CODE".to_owned();
+        serde_json::to_string_pretty(&receipt).expect("tampered recovery receipt must serialize")
+    }
+
+    pub fn verify_recovery_receipt(&self) -> Result<RecoveryVerificationReport, String> {
+        verify_recovery_receipt(&self.recovery_receipt, &self.v2).map_err(|error| error.to_string())
     }
 
     pub fn tampered_json(&self) -> String {
@@ -383,6 +509,20 @@ impl UiData {
 
     pub fn canonical_snapshot(&self) -> &PrivateSnapshotRecord {
         self.fixture.snapshots.last().expect("fixture is non-empty")
+    }
+
+    pub fn assess_snapshot(&self, sequence: u64) -> RestoreAssessment {
+        let Some(snapshot) = self
+            .fixture
+            .snapshots
+            .iter()
+            .find(|snapshot| snapshot.sequence == sequence)
+        else {
+            return RestoreAssessment::Unverified {
+                reason: "SNAPSHOT_NOT_AVAILABLE_IN_FIXTURE".to_owned(),
+            };
+        };
+        classify_restore_candidate(&snapshot.snapshot_commitment, &self.v2)
     }
 
     pub fn history_ledger(&self) -> Vec<HistoryLedgerEvent> {
@@ -439,6 +579,17 @@ pub fn verify_evidence_json(json: &str) -> Result<VerificationReport, String> {
     }
 }
 
+pub fn verify_recovery_receipt_json(
+    receipt_json: &str,
+    evidence_json: &str,
+) -> Result<RecoveryVerificationReport, String> {
+    let receipt: RecoveryDecisionReceipt = serde_json::from_str(receipt_json)
+        .map_err(|_| "RECOVERY_RECEIPT_SCHEMA_INVALID".to_owned())?;
+    let evidence: EvidenceBundleV2 =
+        serde_json::from_str(evidence_json).map_err(|_| "EVIDENCE_V2_SCHEMA_INVALID".to_owned())?;
+    verify_recovery_receipt(&receipt, &evidence).map_err(|error| error.to_string())
+}
+
 pub fn short_hash(value: &str, head: usize, tail: usize) -> String {
     if value.len() <= head + tail + 1 {
         return value.to_owned();
@@ -448,7 +599,10 @@ pub fn short_hash(value: &str, head: usize, tail: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{Scenario, UiData};
+    use super::{
+        RestoreAssessment, Scenario, UiData, classify_restore_candidate,
+        verify_recovery_receipt_json,
+    };
 
     #[test]
     fn scenario_routes_resolve_to_known_tampering_cases() {
@@ -484,6 +638,87 @@ mod tests {
             Some("Raw-memory privacy boundary recorded")
         );
         assert_eq!(data.snapshot_label(4), None);
+    }
+
+    #[test]
+    fn restore_preflight_distinguishes_head_from_historical_checkpoint() {
+        let data = UiData::load();
+
+        assert_eq!(
+            data.assess_snapshot(3),
+            RestoreAssessment::EvidenceHeadMatch { sequence: 3 }
+        );
+        assert_eq!(
+            data.assess_snapshot(1),
+            RestoreAssessment::KnownHistoricalCheckpoint {
+                sequence: 1,
+                head_sequence: 3,
+            }
+        );
+    }
+
+    #[test]
+    fn restore_preflight_marks_unknown_commitment_as_diverged() {
+        let data = UiData::load();
+        let unknown = format!("0x{}", "ab".repeat(32));
+
+        assert_eq!(
+            classify_restore_candidate(&unknown, &data.v2),
+            RestoreAssessment::UnknownOrDiverged
+        );
+    }
+
+    #[test]
+    fn tampered_snapshot_commitment_is_classified_as_diverged() {
+        let data = UiData::load();
+        let original = data.fixture.snapshots[2].snapshot_commitment.as_str();
+        let tampered = super::tamper_commitment(original).expect("fixture commitment is bytes32");
+
+        assert_ne!(tampered, original);
+        assert_eq!(
+            classify_restore_candidate(&tampered, &data.v2),
+            RestoreAssessment::UnknownOrDiverged
+        );
+    }
+
+    #[test]
+    fn restore_preflight_fails_closed_when_history_does_not_replay() {
+        let data = UiData::load();
+        let candidate = data.fixture.snapshots[2].snapshot_commitment.clone();
+        let mut invalid = data.v2.clone();
+        invalid.transitions[0].transition_id = "0x00".to_owned();
+
+        assert!(matches!(
+            classify_restore_candidate(&candidate, &invalid),
+            RestoreAssessment::Unverified { .. }
+        ));
+    }
+
+    #[test]
+    fn browser_receipt_path_verifies_current_head_and_rejects_tampering() {
+        let data = UiData::load();
+        let current = data
+            .verify_recovery_receipt()
+            .expect("published receipt should verify");
+        assert_eq!(current.verdict, "VERIFIED");
+        assert_eq!(current.classification, "CURRENT_HEAD");
+        assert_eq!(current.recommended_action, "RESUME_ALLOWED");
+
+        let historical = data
+            .recovery_receipt_for_candidate(1, &data.fixture.snapshots[0].snapshot_commitment)
+            .expect("historical candidate should produce a receipt");
+        assert_eq!(
+            historical.decision.classification,
+            "KNOWN_HISTORICAL_CHECKPOINT"
+        );
+        assert_eq!(historical.decision.recommended_action, "REHEARSE_ONLY");
+
+        let error = verify_recovery_receipt_json(
+            &data.tampered_recovery_receipt_json(),
+            &data.evidence_json(),
+        )
+        .expect_err("tampered decision must fail closed");
+        assert_eq!(error, "RECOVERY_DECISION_MISMATCH");
     }
 
     #[test]

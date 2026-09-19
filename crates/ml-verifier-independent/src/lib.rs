@@ -1,7 +1,15 @@
 #![forbid(unsafe_code)]
 
+use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use ml_spec_types::{
-    EVIDENCE_V2, EvidenceBundleV2, PublicReplayBundle, SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
+    AuthorizationProof, EVIDENCE_V2, EvidenceBundleV2, PublicReplayBundle,
+    RECOVERY_BLOCK_UNVERIFIED, RECOVERY_CURRENT_HEAD, RECOVERY_HISTORICAL_CHECKPOINT,
+    RECOVERY_HOLD_FOR_REVIEW, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1, RECOVERY_RECEIPT_V1,
+    RECOVERY_REHEARSE_ONLY, RECOVERY_RESUME_ALLOWED, RECOVERY_UNKNOWN_OR_DIVERGED,
+    RECOVERY_UNVERIFIED, RecoveryAssurance, RecoveryBlockContext, RecoveryCandidate,
+    RecoveryDecision, RecoveryDecisionReceipt, RecoveryEvidence, SNAPSHOT_PROFILE_V1,
+    SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_LEGACY_UNDECLARED, SOURCE_PROTOCOL_CORPUS_LOCAL,
+    SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
 };
 use serde::Serialize;
 use std::path::Path;
@@ -19,6 +27,10 @@ const MEMORY_STATE_TYPEHASH: &str =
     "0xf3148762556cbf851baf4b9a205e18ff4e6b366a58a3a1ef58e8626ba41beadb";
 const MEMORY_SPACE_TYPEHASH: &str =
     "0x9ae5478f084ad3b841da58a9cb2354d153cddec59ee64d0cb741fa9d08884531";
+const EIP712_DOMAIN_TYPE: &str =
+    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+const EIP712_NAME: &str = "AgentMemoryState";
+const EIP712_VERSION: &str = "1";
 
 #[derive(Debug, Error)]
 pub enum VerificationError {
@@ -43,6 +55,7 @@ pub struct VerificationReport {
     pub sequence_continuity: String,
     pub predecessor_continuity: String,
     pub authority_history: String,
+    pub authorization_proof: String,
     pub head_reconstruction: String,
     pub privacy_boundary: String,
     pub attack_evidence: String,
@@ -51,8 +64,56 @@ pub struct VerificationReport {
     pub final_root: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct RecoveryVerificationReport {
+    pub verdict: String,
+    pub receipt_integrity: String,
+    pub evidence_bundle: String,
+    pub policy_id: String,
+    pub source_class: String,
+    pub authority_history: String,
+    pub transition_authorization: String,
+    pub classification: String,
+    pub recommended_action: String,
+    pub candidate_commitment: String,
+    pub decision_id: String,
+}
+
+#[derive(Serialize)]
+struct RecoveryReceiptDigestInput<'a> {
+    #[serde(rename = "schemaVersion")]
+    schema_version: &'a str,
+    #[serde(rename = "policyId")]
+    policy_id: &'a str,
+    candidate: &'a RecoveryCandidate,
+    evidence: &'a RecoveryEvidence,
+    decision: &'a RecoveryDecision,
+    assurance: &'a RecoveryAssurance,
+    limitations: &'a [String],
+}
+
+const RECOVERY_LIMITATIONS: [&str; 3] = [
+    "does_not_assess_semantic_truth",
+    "does_not_prove_off_chain_availability",
+    "does_not_claim_runtime_enforcement",
+];
+
 fn reject(message: impl Into<String>) -> VerificationError {
     VerificationError::Rejected(message.into())
+}
+
+fn validate_source_class(source_class: &str) -> Result<(), VerificationError> {
+    if matches!(
+        source_class,
+        SOURCE_DEMO_SPACE_V2_LOCAL
+            | SOURCE_PROTOCOL_CORPUS_LOCAL
+            | SOURCE_SEPOLIA_REFERENCE_OBSERVATION
+            | SOURCE_LEGACY_UNDECLARED
+    ) {
+        Ok(())
+    } else {
+        Err(reject("RECOVERY_SOURCE_CLASS_UNSUPPORTED"))
+    }
 }
 
 fn parse_hex(value: &str) -> Result<Vec<u8>, VerificationError> {
@@ -136,6 +197,162 @@ fn state_root(previous_root: &str, transition_id: &str) -> Result<String, Verifi
         bytes32(transition_id)?,
     ];
     Ok(hex_value(&keccak256(&abi_words(&words))))
+}
+
+fn eip712_domain_separator(
+    chain_id: &str,
+    verifying_contract: &str,
+) -> Result<String, VerificationError> {
+    let chain_id = chain_id
+        .parse::<u64>()
+        .map_err(|_| reject("AUTHORIZATION_CHAIN_ID_INVALID"))?;
+    let words = [
+        bytes32(&type_hash(EIP712_DOMAIN_TYPE))?,
+        keccak256(EIP712_NAME.as_bytes()),
+        keccak256(EIP712_VERSION.as_bytes()),
+        uint_word(chain_id),
+        address_word(verifying_contract)?,
+    ];
+    Ok(hex_value(&keccak256(&abi_words(&words))))
+}
+
+fn eip712_signing_digest(
+    struct_hash: &str,
+    chain_id: &str,
+    verifying_contract: &str,
+) -> Result<String, VerificationError> {
+    let domain = bytes32(&eip712_domain_separator(chain_id, verifying_contract)?)?;
+    let structure = bytes32(struct_hash)?;
+    let mut encoded = Vec::with_capacity(66);
+    encoded.extend_from_slice(&[0x19, 0x01]);
+    encoded.extend_from_slice(&domain);
+    encoded.extend_from_slice(&structure);
+    Ok(hex_value(&keccak256(&encoded)))
+}
+
+fn recovered_address(digest: &str, signature: &str) -> Result<String, VerificationError> {
+    let signature = parse_hex(signature)?;
+    if signature.len() != 65 {
+        return Err(reject("AUTHORIZATION_SIGNATURE_INVALID"));
+    }
+    let recovery_byte = match signature[64] {
+        27 | 28 => signature[64] - 27,
+        _ => return Err(reject("AUTHORIZATION_SIGNATURE_INVALID")),
+    };
+    let signature = Signature::from_slice(&signature[..64])
+        .map_err(|_| reject("AUTHORIZATION_SIGNATURE_INVALID"))?;
+    let recovery_id = RecoveryId::try_from(recovery_byte)
+        .map_err(|_| reject("AUTHORIZATION_SIGNATURE_INVALID"))?;
+    let verifying_key =
+        VerifyingKey::recover_from_prehash(&bytes32(digest)?, &signature, recovery_id)
+            .map_err(|_| reject("AUTHORIZATION_SIGNATURE_INVALID"))?;
+    let public_key = verifying_key.to_encoded_point(false);
+    let digest = keccak256(&public_key.as_bytes()[1..]);
+    Ok(hex_value(&digest[12..]))
+}
+
+fn verify_authorization_proofs(
+    bundle: &EvidenceBundleV2,
+) -> Result<&'static str, VerificationError> {
+    if bundle.authorization_proofs.is_empty() {
+        return Ok("NOT_INCLUDED");
+    }
+    if bundle.authorization_proofs.len() != bundle.transitions.len() {
+        return Err(reject("AUTHORIZATION_PROOF_INCOMPLETE"));
+    }
+
+    let mut seen_sequences = Vec::with_capacity(bundle.authorization_proofs.len());
+    for proof in &bundle.authorization_proofs {
+        verify_authorization_proof(proof, bundle)?;
+        if seen_sequences.contains(&proof.sequence) {
+            return Err(reject("AUTHORIZATION_PROOF_DUPLICATE_SEQUENCE"));
+        }
+        seen_sequences.push(proof.sequence);
+    }
+    for transition in &bundle.transitions {
+        if !seen_sequences.contains(&transition.delta.sequence) {
+            return Err(reject("AUTHORIZATION_PROOF_SEQUENCE_MISSING"));
+        }
+    }
+    Ok("EOA_SIGNATURES_VERIFIED")
+}
+
+fn verify_authorization_proof(
+    proof: &AuthorizationProof,
+    bundle: &EvidenceBundleV2,
+) -> Result<(), VerificationError> {
+    if proof.authorization_type != "EOA_EIP712" {
+        return Err(reject("AUTHORIZATION_PROOF_TYPE_UNSUPPORTED"));
+    }
+    let transition = bundle
+        .transitions
+        .iter()
+        .find(|transition| transition.delta.sequence == proof.sequence)
+        .ok_or_else(|| reject("AUTHORIZATION_PROOF_SEQUENCE_UNKNOWN"))?;
+    if transition.transition_id != proof.transition_id
+        || proof.struct_hash != transition.transition_id
+    {
+        return Err(reject("AUTHORIZATION_PROOF_TRANSITION_MISMATCH"));
+    }
+    let config_nonce = proof
+        .config_nonce
+        .ok_or_else(|| reject("AUTHORIZATION_CONFIG_NONCE_MISSING"))?;
+    let active_authority = bundle
+        .authorization_history
+        .iter()
+        .filter_map(|authority| {
+            authority
+                .effective_from_sequence
+                .filter(|effective| *effective <= proof.sequence)
+                .map(|effective| (effective, authority))
+        })
+        .max_by_key(|(effective, _)| *effective)
+        .map(|(_, authority)| authority)
+        .ok_or_else(|| reject("AUTHORIZATION_ACTIVE_AUTHORITY_MISSING"))?;
+    if active_authority.config_nonce != config_nonce
+        || !active_authority
+            .authorizer
+            .eq_ignore_ascii_case(&proof.authorizer)
+    {
+        return Err(reject("AUTHORIZATION_ACTIVE_SIGNER_MISMATCH"));
+    }
+    if proof.chain_id != bundle.network.chain_id
+        || !proof
+            .verifying_contract
+            .eq_ignore_ascii_case(&bundle.registry.address)
+    {
+        return Err(reject("AUTHORIZATION_PROOF_DOMAIN_CONTEXT_MISMATCH"));
+    }
+    let expected_domain = eip712_domain_separator(&proof.chain_id, &proof.verifying_contract)?;
+    if proof.domain_separator != expected_domain {
+        return Err(reject("AUTHORIZATION_DOMAIN_SEPARATOR_MISMATCH"));
+    }
+    let expected_digest = eip712_signing_digest(
+        &proof.struct_hash,
+        &proof.chain_id,
+        &proof.verifying_contract,
+    )?;
+    if proof.signing_digest != expected_digest {
+        return Err(reject("AUTHORIZATION_SIGNING_DIGEST_MISMATCH"));
+    }
+    let recovered = recovered_address(&expected_digest, &proof.signature)?;
+    if !recovered.eq_ignore_ascii_case(&proof.authorizer) {
+        return Err(reject("AUTHORIZATION_SIGNER_MISMATCH"));
+    }
+    Ok(())
+}
+
+fn authority_history_status(bundle: &EvidenceBundleV2) -> &'static str {
+    if !bundle.authorization_proofs.is_empty()
+        && bundle
+            .authorization_history
+            .iter()
+            .all(|authority| authority.effective_from_sequence.is_some())
+    {
+        "TIMELINE_BOUND"
+    } else {
+        "STRUCTURE_ONLY"
+    }
 }
 
 fn verify_transition(
@@ -364,7 +581,8 @@ pub fn verify_bundle(bundle: &PublicReplayBundle) -> Result<VerificationReport, 
         state_roots: "PASS".to_owned(),
         sequence_continuity: "PASS".to_owned(),
         predecessor_continuity: "PASS".to_owned(),
-        authority_history: "PASS".to_owned(),
+        authority_history: "STRUCTURE_ONLY".to_owned(),
+        authorization_proof: "NOT_INCLUDED".to_owned(),
         head_reconstruction: "MATCH".to_owned(),
         privacy_boundary: "PASS".to_owned(),
         attack_evidence: "NOT PRESENT".to_owned(),
@@ -383,6 +601,7 @@ pub fn verify_v2_bundle(
     if bundle.spec.name != SPEC_NAME || bundle.spec.snapshot != SPEC_SNAPSHOT {
         return Err(reject("SPEC_SNAPSHOT_MISMATCH"));
     }
+    validate_source_class(&bundle.source_class)?;
     if bundle.privacy.raw_memory_on_chain {
         return Err(reject("PRIVACY_BOUNDARY_VIOLATION"));
     }
@@ -423,6 +642,7 @@ pub fn verify_v2_bundle(
         return Err(reject("AUTHORITY_HISTORY_EMPTY"));
     }
     let mut previous_nonce = None;
+    let mut previous_effective_sequence = None;
     for authority in &bundle.authorization_history {
         if parse_hex(&authority.controller)?.len() != 20
             || parse_hex(&authority.authorizer)?.len() != 20
@@ -434,8 +654,21 @@ pub fn verify_v2_bundle(
         {
             return Err(reject("AUTHORITY_NONCE_REORDERED"));
         }
+        if let Some(effective) = authority.effective_from_sequence {
+            if effective == 0 {
+                return Err(reject("AUTHORITY_EFFECTIVE_SEQUENCE_INVALID"));
+            }
+            if let Some(previous) = previous_effective_sequence
+                && effective <= previous
+            {
+                return Err(reject("AUTHORITY_EFFECTIVE_SEQUENCE_REORDERED"));
+            }
+            previous_effective_sequence = Some(effective);
+        }
         previous_nonce = Some(authority.config_nonce);
     }
+    let authorization_proof = verify_authorization_proofs(bundle)?;
+    let authority_history = authority_history_status(bundle);
     for observation in &bundle.observations {
         if observation.observed_head.sequence > bundle.head.sequence {
             return Err(reject("OBSERVATION_AHEAD_OF_BUNDLE"));
@@ -452,13 +685,227 @@ pub fn verify_v2_bundle(
         state_roots: "PASS".to_owned(),
         sequence_continuity: "PASS".to_owned(),
         predecessor_continuity: "PASS".to_owned(),
-        authority_history: "PASS".to_owned(),
+        authority_history: authority_history.to_owned(),
+        authorization_proof: authorization_proof.to_owned(),
         head_reconstruction: "MATCH".to_owned(),
         privacy_boundary: "PASS".to_owned(),
         attack_evidence,
         transition_count: bundle.transitions.len(),
         rejected_mutation_count: 0,
         final_root: previous_root,
+    })
+}
+
+pub fn evidence_bundle_hash(bundle: &EvidenceBundleV2) -> Result<String, VerificationError> {
+    let encoded = serde_json::to_vec(bundle)?;
+    Ok(hex_value(&keccak256(&encoded)))
+}
+
+fn recovery_decision_for_candidate(
+    candidate: &RecoveryCandidate,
+    bundle: &EvidenceBundleV2,
+) -> Result<RecoveryDecision, VerificationError> {
+    if candidate.snapshot_profile != SNAPSHOT_PROFILE_V1 {
+        return Ok(RecoveryDecision {
+            classification: RECOVERY_UNVERIFIED.to_owned(),
+            reason_code: "SNAPSHOT_PROFILE_UNSUPPORTED".to_owned(),
+            recommended_action: RECOVERY_BLOCK_UNVERIFIED.to_owned(),
+        });
+    }
+
+    let _ = bytes32(&candidate.candidate_commitment)?;
+    let matching_sequence = bundle
+        .transitions
+        .iter()
+        .filter(|transition| {
+            transition
+                .delta
+                .delta_commitment
+                .eq_ignore_ascii_case(&candidate.candidate_commitment)
+        })
+        .map(|transition| transition.delta.sequence)
+        .max();
+
+    let Some(sequence) = matching_sequence else {
+        return Ok(RecoveryDecision {
+            classification: RECOVERY_UNKNOWN_OR_DIVERGED.to_owned(),
+            reason_code: "CANDIDATE_NOT_IN_CANONICAL_HISTORY".to_owned(),
+            recommended_action: RECOVERY_HOLD_FOR_REVIEW.to_owned(),
+        });
+    };
+
+    if sequence != candidate.snapshot_sequence {
+        return Ok(RecoveryDecision {
+            classification: RECOVERY_UNVERIFIED.to_owned(),
+            reason_code: "CANDIDATE_SEQUENCE_MISMATCH".to_owned(),
+            recommended_action: RECOVERY_BLOCK_UNVERIFIED.to_owned(),
+        });
+    }
+
+    if sequence == bundle.head.sequence {
+        return Ok(RecoveryDecision {
+            classification: RECOVERY_CURRENT_HEAD.to_owned(),
+            reason_code: "CANDIDATE_MATCHES_EVIDENCE_HEAD".to_owned(),
+            recommended_action: RECOVERY_RESUME_ALLOWED.to_owned(),
+        });
+    }
+
+    if sequence < bundle.head.sequence {
+        return Ok(RecoveryDecision {
+            classification: RECOVERY_HISTORICAL_CHECKPOINT.to_owned(),
+            reason_code: "CANDIDATE_IS_BEHIND_CANONICAL_HEAD".to_owned(),
+            recommended_action: RECOVERY_REHEARSE_ONLY.to_owned(),
+        });
+    }
+
+    Ok(RecoveryDecision {
+        classification: RECOVERY_UNVERIFIED.to_owned(),
+        reason_code: "CANDIDATE_AHEAD_OF_EVIDENCE_HEAD".to_owned(),
+        recommended_action: RECOVERY_BLOCK_UNVERIFIED.to_owned(),
+    })
+}
+
+fn recovery_assurance(
+    source_class: &str,
+    authority_history: &str,
+    authorization_proof: &str,
+) -> RecoveryAssurance {
+    RecoveryAssurance {
+        lineage_replay: "VERIFIED".to_owned(),
+        authority_history: authority_history.to_owned(),
+        transition_authorization: authorization_proof.to_owned(),
+        source: source_class.to_owned(),
+    }
+}
+
+fn recovery_digest(receipt: &RecoveryDecisionReceipt) -> Result<String, VerificationError> {
+    let input = RecoveryReceiptDigestInput {
+        schema_version: &receipt.schema_version,
+        policy_id: &receipt.policy_id,
+        candidate: &receipt.candidate,
+        evidence: &receipt.evidence,
+        decision: &receipt.decision,
+        assurance: &receipt.assurance,
+        limitations: &receipt.limitations,
+    };
+    let encoded = serde_json::to_vec(&input)?;
+    Ok(hex_value(&keccak256(&encoded)))
+}
+
+pub fn build_recovery_receipt(
+    bundle: &EvidenceBundleV2,
+    candidate_commitment: &str,
+    snapshot_sequence: u64,
+    source_class: &str,
+    block_context: Option<RecoveryBlockContext>,
+) -> Result<RecoveryDecisionReceipt, VerificationError> {
+    verify_v2_bundle(bundle)?;
+    validate_source_class(source_class)?;
+    if bundle.source_class == SOURCE_LEGACY_UNDECLARED || bundle.source_class != source_class {
+        return Err(reject("RECOVERY_SOURCE_CLASS_MISMATCH"));
+    }
+
+    let verification = verify_v2_bundle(bundle)?;
+    let authorization_proof = verification.authorization_proof.clone();
+    let authority_history = verification.authority_history.clone();
+    let candidate = RecoveryCandidate {
+        snapshot_profile: SNAPSHOT_PROFILE_V1.to_owned(),
+        candidate_commitment: candidate_commitment.to_owned(),
+        snapshot_sequence,
+    };
+    let decision = recovery_decision_for_candidate(&candidate, bundle)?;
+    let receipt = RecoveryDecisionReceipt {
+        schema_version: RECOVERY_RECEIPT_V1.to_owned(),
+        decision_id: String::new(),
+        policy_id: RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1.to_owned(),
+        candidate,
+        evidence: RecoveryEvidence {
+            source_class: source_class.to_owned(),
+            bundle_hash: evidence_bundle_hash(bundle)?,
+            spec_snapshot: bundle.spec.snapshot.clone(),
+            registry_address: bundle.registry.address.clone(),
+            space_id: bundle.registry.space_id.clone(),
+            head: bundle.head.clone(),
+            block_context,
+        },
+        decision,
+        assurance: recovery_assurance(source_class, &authority_history, &authorization_proof),
+        limitations: RECOVERY_LIMITATIONS
+            .iter()
+            .map(|limitation| (*limitation).to_owned())
+            .collect(),
+    };
+    let decision_id = recovery_digest(&receipt)?;
+    Ok(RecoveryDecisionReceipt {
+        decision_id,
+        ..receipt
+    })
+}
+
+pub fn verify_recovery_receipt(
+    receipt: &RecoveryDecisionReceipt,
+    bundle: &EvidenceBundleV2,
+) -> Result<RecoveryVerificationReport, VerificationError> {
+    if receipt.schema_version != RECOVERY_RECEIPT_V1 {
+        return Err(reject("RECOVERY_RECEIPT_SCHEMA_MISMATCH"));
+    }
+    verify_v2_bundle(bundle)?;
+    if receipt.policy_id != RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1 {
+        return Err(reject("RECOVERY_POLICY_MISMATCH"));
+    }
+    validate_source_class(&receipt.evidence.source_class)?;
+    if receipt.evidence.source_class != bundle.source_class {
+        return Err(reject("RECOVERY_SOURCE_CLASS_MISMATCH"));
+    }
+    if receipt.evidence.bundle_hash != evidence_bundle_hash(bundle)? {
+        return Err(reject("RECOVERY_EVIDENCE_HASH_MISMATCH"));
+    }
+    if receipt.evidence.spec_snapshot != bundle.spec.snapshot
+        || receipt.evidence.registry_address != bundle.registry.address
+        || receipt.evidence.space_id != bundle.registry.space_id
+        || receipt.evidence.head != bundle.head
+    {
+        return Err(reject("RECOVERY_EVIDENCE_CONTEXT_MISMATCH"));
+    }
+    if receipt.candidate.snapshot_profile != SNAPSHOT_PROFILE_V1 {
+        return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
+    }
+    let expected_decision = recovery_decision_for_candidate(&receipt.candidate, bundle)?;
+    if receipt.decision != expected_decision {
+        return Err(reject("RECOVERY_DECISION_MISMATCH"));
+    }
+    let verification = verify_v2_bundle(bundle)?;
+    let expected_assurance = recovery_assurance(
+        &receipt.evidence.source_class,
+        &verification.authority_history,
+        &verification.authorization_proof,
+    );
+    if receipt.assurance != expected_assurance {
+        return Err(reject("RECOVERY_ASSURANCE_MISMATCH"));
+    }
+    let expected_limitations = RECOVERY_LIMITATIONS
+        .iter()
+        .map(|limitation| (*limitation).to_owned())
+        .collect::<Vec<_>>();
+    if receipt.limitations != expected_limitations {
+        return Err(reject("RECOVERY_LIMITATIONS_MISMATCH"));
+    }
+    if receipt.decision_id != recovery_digest(receipt)? {
+        return Err(reject("RECOVERY_DECISION_ID_MISMATCH"));
+    }
+
+    Ok(RecoveryVerificationReport {
+        verdict: "VERIFIED".to_owned(),
+        receipt_integrity: "PASS".to_owned(),
+        evidence_bundle: "PASS".to_owned(),
+        policy_id: receipt.policy_id.clone(),
+        source_class: receipt.evidence.source_class.clone(),
+        authority_history: verification.authority_history,
+        transition_authorization: verification.authorization_proof,
+        classification: receipt.decision.classification.clone(),
+        recommended_action: receipt.decision.recommended_action.clone(),
+        candidate_commitment: receipt.candidate.candidate_commitment.clone(),
+        decision_id: receipt.decision_id.clone(),
     })
 }
 
@@ -495,7 +942,8 @@ mod tests {
     use super::*;
     use ml_spec_types::{
         AttackObservation, EVIDENCE_V2, EvidenceNetwork, Head, PrivacyBoundary,
-        RegistryObservation, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
+        RegistryObservation, SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME,
+        SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
     };
 
     fn current_bundle() -> PublicReplayBundle {
@@ -513,6 +961,7 @@ mod tests {
         EvidenceBundleV2 {
             schema_version: EVIDENCE_V2.to_owned(),
             evidence_type: "memorylineage_evidence_v2".to_owned(),
+            source_class: SOURCE_PROTOCOL_CORPUS_LOCAL.to_owned(),
             network: EvidenceNetwork {
                 name: "published-local-evidence".to_owned(),
                 chain_id: bundle.chain_id,
@@ -533,6 +982,7 @@ mod tests {
                 sequence: last.delta.sequence,
             },
             transitions: bundle.valid_history,
+            authorization_proofs: Vec::new(),
             authorization_history: bundle.authority_history,
             observations: Vec::new(),
             attack: None,
@@ -553,6 +1003,8 @@ mod tests {
         assert_eq!(report.verdict, "VERIFIED");
         assert_eq!(report.transition_count, 4);
         assert_eq!(report.rejected_mutation_count, 20);
+        assert_eq!(report.authority_history, "STRUCTURE_ONLY");
+        assert_eq!(report.authorization_proof, "NOT_INCLUDED");
     }
 
     #[test]
@@ -573,6 +1025,215 @@ mod tests {
         assert_eq!(report.transition_count, 4);
         assert_eq!(report.rejected_mutation_count, 0);
         assert_eq!(report.attack_evidence, "NOT PRESENT");
+        assert_eq!(report.authority_history, "STRUCTURE_ONLY");
+        assert_eq!(report.authorization_proof, "NOT_INCLUDED");
+    }
+
+    #[test]
+    fn demo_space_v2_recovers_each_eoa_authorizer_from_the_published_signature() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/demo_space_v2_evidence.json"
+        );
+        let bytes = std::fs::read(path).expect("Demo Space V2 evidence exists");
+        let bundle: EvidenceBundleV2 = serde_json::from_slice(&bytes)
+            .expect("Demo Space V2 evidence with EOA proofs is typed");
+        let report = verify_v2_bundle(&bundle).expect("Demo Space V2 proofs should verify");
+        assert_eq!(report.authority_history, "TIMELINE_BOUND");
+        assert_eq!(report.authorization_proof, "EOA_SIGNATURES_VERIFIED");
+        assert_eq!(bundle.authorization_proofs.len(), bundle.transitions.len());
+    }
+
+    #[test]
+    fn demo_space_v2_signature_tampering_fails_closed() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/demo_space_v2_evidence.json"
+        );
+        let bytes = std::fs::read(path).expect("Demo Space V2 evidence exists");
+        let mut bundle: EvidenceBundleV2 = serde_json::from_slice(&bytes)
+            .expect("Demo Space V2 evidence with EOA proofs is typed");
+        bundle.authorization_proofs[0].signature = format!("0x{}", "00".repeat(65));
+        let error = verify_v2_bundle(&bundle).expect_err("tampered signature must fail");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "AUTHORIZATION_SIGNATURE_INVALID"
+        ));
+    }
+
+    #[test]
+    fn demo_space_v2_rejects_a_valid_history_signer_at_the_wrong_sequence() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/demo_space_v2_evidence.json"
+        );
+        let bytes = std::fs::read(path).expect("Demo Space V2 evidence exists");
+        let mut bundle: EvidenceBundleV2 = serde_json::from_slice(&bytes)
+            .expect("Demo Space V2 evidence with EOA proofs is typed");
+        bundle.authorization_proofs[0].authorizer =
+            bundle.authorization_proofs[2].authorizer.clone();
+        bundle.authorization_proofs[0].config_nonce = Some(1);
+        let error = verify_v2_bundle(&bundle)
+            .expect_err("a rotated signer must not authorize an earlier sequence");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "AUTHORIZATION_ACTIVE_SIGNER_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn recovery_receipt_classifies_current_historical_and_unknown_candidates() {
+        let bundle = current_v2_bundle();
+        let current_commitment = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+        let current = build_recovery_receipt(
+            &bundle,
+            &current_commitment,
+            4,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+        )
+        .expect("current candidate should produce a receipt");
+        assert_eq!(current.decision.classification, RECOVERY_CURRENT_HEAD);
+        assert_eq!(current.decision.recommended_action, RECOVERY_RESUME_ALLOWED);
+        assert_eq!(
+            verify_recovery_receipt(&current, &bundle)
+                .expect("current receipt should verify")
+                .verdict,
+            "VERIFIED"
+        );
+
+        let historical_commitment = bundle.transitions[0].delta.delta_commitment.clone();
+        let historical = build_recovery_receipt(
+            &bundle,
+            &historical_commitment,
+            1,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+        )
+        .expect("historical candidate should produce a receipt");
+        assert_eq!(
+            historical.decision.classification,
+            RECOVERY_HISTORICAL_CHECKPOINT
+        );
+        assert_eq!(
+            historical.decision.recommended_action,
+            RECOVERY_REHEARSE_ONLY
+        );
+
+        let unknown = build_recovery_receipt(
+            &bundle,
+            &format!("0x{}", "11".repeat(32)),
+            99,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+        )
+        .expect("unknown candidate should produce a held receipt");
+        assert_eq!(
+            unknown.decision.classification,
+            RECOVERY_UNKNOWN_OR_DIVERGED
+        );
+        assert_eq!(
+            unknown.decision.recommended_action,
+            RECOVERY_HOLD_FOR_REVIEW
+        );
+    }
+
+    #[test]
+    fn recovery_receipt_rejects_tampered_decision() {
+        let bundle = current_v2_bundle();
+        let candidate = bundle.transitions[0].delta.delta_commitment.clone();
+        let mut receipt = build_recovery_receipt(
+            &bundle,
+            &candidate,
+            1,
+            "PROTOCOL_CORPUS_LOCAL",
+            Some(RecoveryBlockContext {
+                tag: "finalized".to_owned(),
+                number: 123,
+                hash: format!("0x{}", "22".repeat(32)),
+            }),
+        )
+        .expect("receipt should build");
+        receipt.decision.recommended_action = RECOVERY_RESUME_ALLOWED.to_owned();
+        let error = verify_recovery_receipt(&receipt, &bundle)
+            .expect_err("a changed recovery action must fail closed");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "RECOVERY_DECISION_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn recovery_receipt_rejects_tampered_candidate_commitment() {
+        let bundle = current_v2_bundle();
+        let candidate = bundle.transitions[0].delta.delta_commitment.clone();
+        let mut receipt =
+            build_recovery_receipt(&bundle, &candidate, 1, "PROTOCOL_CORPUS_LOCAL", None)
+                .expect("receipt should build");
+        receipt.candidate.candidate_commitment = format!("0x{}", "33".repeat(32));
+        let error = verify_recovery_receipt(&receipt, &bundle)
+            .expect_err("a changed candidate must fail closed");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "RECOVERY_DECISION_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn recovery_receipt_binds_the_named_policy() {
+        let bundle = current_v2_bundle();
+        let candidate = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+        let mut receipt = build_recovery_receipt(
+            &bundle,
+            &candidate,
+            bundle.head.sequence,
+            SOURCE_PROTOCOL_CORPUS_LOCAL,
+            None,
+        )
+        .expect("receipt should build");
+        receipt.policy_id = "allow-any-restore".to_owned();
+        let error = verify_recovery_receipt(&receipt, &bundle)
+            .expect_err("a changed policy must fail closed");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "RECOVERY_POLICY_MISMATCH"
+        ));
+    }
+
+    #[test]
+    fn recovery_receipt_cannot_relabel_a_bundle_source() {
+        let bundle = current_v2_bundle();
+        let candidate = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+        let error = build_recovery_receipt(
+            &bundle,
+            &candidate,
+            bundle.head.sequence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            None,
+        )
+        .expect_err("a protocol corpus cannot be relabeled as the demo source");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "RECOVERY_SOURCE_CLASS_MISMATCH"
+        ));
     }
 
     #[test]

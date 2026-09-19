@@ -168,6 +168,15 @@ fn verify_demo_space_v2() -> Result<(), String> {
         {
             return Err("Demo Space V2 must identify its public fixture as synthetic".to_owned());
         }
+        if evidence
+            .get("sourceClass")
+            .and_then(serde_json::Value::as_str)
+            != Some("DEMO_SPACE_V2_LOCAL")
+        {
+            return Err(
+                "Demo Space V2 evidence must carry DEMO_SPACE_V2_LOCAL source identity".to_owned(),
+            );
+        }
         let transitions = evidence
             .get("transitions")
             .and_then(serde_json::Value::as_array)
@@ -205,9 +214,43 @@ fn verify_demo_space_v2() -> Result<(), String> {
                 .get("configNonce")
                 .and_then(serde_json::Value::as_u64)
                 != Some(1)
+            || authorities[0]
+                .get("effectiveFromSequence")
+                .and_then(serde_json::Value::as_u64)
+                != Some(1)
+            || authorities[1]
+                .get("effectiveFromSequence")
+                .and_then(serde_json::Value::as_u64)
+                != Some(3)
             || authorities[0].get("authorizer") == authorities[1].get("authorizer")
         {
             return Err("Demo Space V2 authority rotation evidence is inconsistent".to_owned());
+        }
+        let authorization_proofs = evidence
+            .get("authorizationProofs")
+            .and_then(serde_json::Value::as_array)
+            .ok_or_else(|| "Demo Space V2 has no EOA authorization proofs".to_owned())?;
+        if authorization_proofs.len() != transitions.len() {
+            return Err("Demo Space V2 EOA authorization proof coverage is incomplete".to_owned());
+        }
+        for (index, (proof, transition)) in authorization_proofs.iter().zip(transitions).enumerate()
+        {
+            let expected_sequence = (index + 1) as u64;
+            let expected_nonce = if expected_sequence < 3 { 0 } else { 1 };
+            if proof
+                .get("authorizationType")
+                .and_then(serde_json::Value::as_str)
+                != Some("EOA_EIP712")
+                || proof.get("sequence").and_then(serde_json::Value::as_u64)
+                    != Some(expected_sequence)
+                || proof.get("configNonce").and_then(serde_json::Value::as_u64)
+                    != Some(expected_nonce)
+                || proof.get("transitionId") != transition.get("transitionId")
+            {
+                return Err(format!(
+                    "Demo Space V2 authority proof is not bound to active timeline at sequence {expected_sequence}"
+                ));
+            }
         }
         let attack = evidence
             .get("attack")
@@ -282,6 +325,208 @@ fn verify_demo_space_v2() -> Result<(), String> {
     })();
     let _ = fs::remove_dir_all(&temp_root);
     result.map(|_| println!("PASS Demo Space V2 evidence"))
+}
+
+fn verify_recovery_preflight() -> Result<(), String> {
+    let temp_root = std::env::temp_dir().join(format!(
+        "memorylineage-recovery-receipt-{}",
+        std::process::id()
+    ));
+    fs::create_dir_all(&temp_root)
+        .map_err(|error| format!("could not create recovery receipt directory: {error}"))?;
+    let current_receipt = temp_root.join("current.json");
+    let historical_receipt = temp_root.join("historical.json");
+    let current_receipt_text = current_receipt
+        .to_str()
+        .ok_or_else(|| "temporary current receipt path is not valid UTF-8".to_owned())?;
+    let historical_receipt_text = historical_receipt
+        .to_str()
+        .ok_or_else(|| "temporary historical receipt path is not valid UTF-8".to_owned())?;
+    let result = (|| {
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "preflight",
+                "fixtures/silent-rollback-v2/snapshot-3.db",
+                "evidence/local/demo_space_v2_evidence.json",
+                current_receipt_text,
+                "DEMO_SPACE_V2_LOCAL",
+            ],
+        )?;
+        let generated = fs::read(&current_receipt)
+            .map_err(|error| format!("could not read generated recovery receipt: {error}"))?;
+        let published = fs::read("evidence/local/demo_space_v2_recovery_receipt.json")
+            .map_err(|error| format!("could not read published recovery receipt: {error}"))?;
+        if generated != published {
+            return Err("published recovery receipt is not reproducibly generated".to_owned());
+        }
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "preflight",
+                "fixtures/silent-rollback-v2/snapshot-1.db",
+                "evidence/local/demo_space_v2_evidence.json",
+                historical_receipt_text,
+                "DEMO_SPACE_V2_LOCAL",
+            ],
+        )?;
+        let historical_generated = fs::read(&historical_receipt)
+            .map_err(|error| format!("could not read generated historical receipt: {error}"))?;
+        let historical_published =
+            fs::read("evidence/local/demo_space_v2_historical_recovery_receipt.json")
+                .map_err(|error| format!("could not read published historical receipt: {error}"))?;
+        if historical_generated != historical_published {
+            return Err(
+                "published historical recovery receipt is not reproducibly generated".to_owned(),
+            );
+        }
+        let receipt_text = String::from_utf8_lossy(&published);
+        let receipt: serde_json::Value = serde_json::from_slice(&published)
+            .map_err(|error| format!("published recovery receipt is invalid JSON: {error}"))?;
+        if receipt.get("policyId").and_then(serde_json::Value::as_str)
+            != Some("strict-current-head-only-v1")
+            || receipt
+                .pointer("/evidence/sourceClass")
+                .and_then(serde_json::Value::as_str)
+                != Some("DEMO_SPACE_V2_LOCAL")
+            || receipt
+                .pointer("/assurance/authorityHistory")
+                .and_then(serde_json::Value::as_str)
+                != Some("TIMELINE_BOUND")
+            || receipt
+                .pointer("/assurance/transitionAuthorization")
+                .and_then(serde_json::Value::as_str)
+                != Some("EOA_SIGNATURES_VERIFIED")
+        {
+            return Err("recovery receipt policy or source identity is not pinned".to_owned());
+        }
+        for raw_sample_value in ["Indonesian", "evidence-backed", "raw-memory-private"] {
+            if receipt_text.contains(raw_sample_value) {
+                return Err(format!(
+                    "published recovery receipt contains a synthetic raw-memory value: {raw_sample_value}"
+                ));
+            }
+        }
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "verify",
+                current_receipt_text,
+                "evidence/local/demo_space_v2_evidence.json",
+            ],
+        )?;
+        let historical_receipt_value: serde_json::Value =
+            serde_json::from_slice(&historical_published)
+                .map_err(|error| format!("historical recovery receipt is invalid JSON: {error}"))?;
+        if historical_receipt_value
+            .pointer("/decision/classification")
+            .and_then(serde_json::Value::as_str)
+            != Some("KNOWN_HISTORICAL_CHECKPOINT")
+            || historical_receipt_value
+                .pointer("/decision/recommendedAction")
+                .and_then(serde_json::Value::as_str)
+                != Some("REHEARSE_ONLY")
+        {
+            return Err("historical recovery receipt did not record REHEARSE_ONLY".to_owned());
+        }
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "verify",
+                "evidence/local/demo_space_v2_historical_recovery_receipt.json",
+                "evidence/local/demo_space_v2_evidence.json",
+            ],
+        )?;
+        run(
+            "cargo",
+            &[
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "verify",
+                "evidence/local/demo_space_v2_recovery_receipt.json",
+                "evidence/local/demo_space_v2_evidence.json",
+            ],
+        )?;
+        let current = Command::new("cargo")
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "enforce",
+                "fixtures/silent-rollback-v2/snapshot-3.db",
+                "evidence/local/demo_space_v2_evidence.json",
+            ])
+            .env("CCACHE_DISABLE", "1")
+            .env_remove("RUSTC_WRAPPER")
+            .output()
+            .map_err(|error| format!("could not start current protected resume check: {error}"))?;
+        if !current.status.success()
+            || !String::from_utf8_lossy(&current.stdout).contains("protected loader: LOADED")
+        {
+            return Err(format!(
+                "current snapshot did not reach the protected loader:\n{}{}",
+                String::from_utf8_lossy(&current.stdout),
+                String::from_utf8_lossy(&current.stderr)
+            ));
+        }
+
+        let historical = Command::new("cargo")
+            .args([
+                "run",
+                "-q",
+                "-p",
+                "ml-cli",
+                "--",
+                "recover",
+                "enforce",
+                "fixtures/silent-rollback-v2/snapshot-1.db",
+                "evidence/local/demo_space_v2_evidence.json",
+            ])
+            .env("CCACHE_DISABLE", "1")
+            .env_remove("RUSTC_WRAPPER")
+            .output()
+            .map_err(|error| format!("could not start recovery hold check: {error}"))?;
+        if historical.status.success() {
+            return Err("historical snapshot unexpectedly passed protected resume".to_owned());
+        }
+        if String::from_utf8_lossy(&historical.stdout).contains("protected loader: LOADED") {
+            return Err("historical snapshot reached the protected loader".to_owned());
+        }
+        Ok(())
+    })();
+    let _ = fs::remove_dir_all(&temp_root);
+    result.map(|_| println!("PASS recovery preflight and protected resume gate"))
 }
 
 fn doctor() -> Result<(), String> {
@@ -385,6 +630,7 @@ fn verify() -> Result<(), String> {
     )?;
     verify_fixture_manifest()?;
     verify_demo_space_v2()?;
+    verify_recovery_preflight()?;
     step(
         "pinned conformance",
         "cargo",
@@ -475,10 +721,19 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
         return Err("git rev-parse HEAD failed".to_owned());
     }
     let revision = String::from_utf8_lossy(&revision.stdout).trim().to_owned();
+    let status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .map_err(|error| format!("could not read git worktree status: {error}"))?;
+    if !status.status.success() {
+        return Err("git status --porcelain failed".to_owned());
+    }
+    let working_tree_clean = status.stdout.is_empty();
     let manifest = serde_json::json!({
         "manifestType": "memorylineage-release-preparation",
         "repository": "AndroLay/MemoryLineage",
         "gitRevision": revision,
+        "workingTreeClean": working_tree_clean,
         "rustToolchain": "1.97.1",
         "website": "Rust/WASM Dioxus static artifact",
         "ethereum": {
@@ -492,6 +747,8 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "evidence": "evidence/local/demo_space_v2_evidence.json",
             "headSequence": 3,
             "authorityRecords": 2,
+            "authorityTimeline": "TIMELINE_BOUND",
+            "transitionAuthorization": "EOA_SIGNATURES_VERIFIED",
             "stalePredecessorSource": "transition 1 nextStateRoot",
             "expectedReason": "BAD_PREVIOUS_STATE",
             "transactionBroadcast": false
@@ -499,6 +756,8 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
         "legacyFixture": "fixtures/silent-rollback/manifest.json",
         "evidence": [
             "evidence/local/demo_space_v2_evidence.json",
+            "evidence/local/demo_space_v2_recovery_receipt.json",
+            "evidence/local/demo_space_v2_historical_recovery_receipt.json",
             "evidence/local/memory_lineage_evm_evidence.json",
             "evidence/local/rust_revm_conformance.json",
             "evidence/local/rust_revm_mutation_matrix.json",
