@@ -1,13 +1,12 @@
 [package]
-name = "ml-memory-store"
+name = "ml-portability"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Deterministic private SQLite memory snapshots for MemoryLineage"
+description = "Explicit local portability rehearsals for MemoryLineage execution targets"
 
 [dependencies]
-ml-core = { path = "../ml-core" }
+ml-local-evm = { path = "../ml-local-evm" }
 ml-spec-types = { path = "../ml-spec-types" }
-rusqlite = { version = "=0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 thiserror = "2.0.20"

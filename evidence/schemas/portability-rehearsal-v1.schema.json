@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://memorylineage.example/schemas/portability-rehearsal-v1.json",
+  "title": "MemoryLineage local portability rehearsal v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "reportType",
+    "status",
+    "target",
+    "comparison",
+    "claims",
+    "observations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "memorylineage-portability-v1" },
+    "reportType": { "const": "polkadot_hub_revm_portability_rehearsal" },
+    "status": { "const": "LOCAL_REHEARSAL_PASS" },
+    "target": {
+      "type": "object",
+      "required": [
+        "network",
+        "chainId",
+        "executionBackend",
+        "deployment",
+        "publicRpcObservation"
+      ],
+      "properties": {
+        "network": { "const": "Polkadot Hub TestNet" },
+        "chainId": { "const": "420420417" },
+        "executionBackend": { "const": "REVM / Solidity bytecode" },
+        "deployment": { "const": "NOT_PERFORMED" },
+        "publicRpcObservation": { "const": "NOT_PERFORMED" }
+      },
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "required": [
+        "canonicalTransitions",
+        "stateRoots",
+        "stalePredecessorRejection",
+        "authorityHistory",
+        "eip712Domain",
+        "solidityArtifact"
+      ],
+      "properties": {
+        "canonicalTransitions": { "const": "MATCH" },
+        "stateRoots": { "const": "MATCH" },
+        "stalePredecessorRejection": { "const": "BAD_PREVIOUS_STATE" },
+        "authorityHistory": { "const": "MATCH" },
+        "eip712Domain": { "const": "CHAIN_BOUND_DIFFERENT" },
+        "solidityArtifact": { "const": "SAME_COMMITTED_CREATION_BYTECODE" }
+      },
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["label", "executionBackend", "evidence", "domainSeparator"],
+        "properties": {
+          "label": { "type": "string" },
+          "executionBackend": { "const": "REVM / Solidity bytecode" },
+          "evidence": { "$ref": "evidence-v2.schema.json" },
+          "domainSeparator": { "type": "string", "pattern": "^0x[0-9a-fA-F]{64}$" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

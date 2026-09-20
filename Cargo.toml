@@ -10,6 +10,7 @@ members = [
     "crates/ml-recovery-gate",
     "crates/ml-ethereum",
     "crates/ml-local-evm",
+    "crates/ml-portability",
     "crates/ml-cli",
     "crates/ml-verifier-independent",
     "apps/inspector",

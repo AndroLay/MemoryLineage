@@ -7,7 +7,7 @@ surfaces; they are not evidence and contain no product data.
 
 | Asset | Role | Origin | Release status |
 | --- | --- | --- | --- |
-| `memorylineage-logo.png` | Inspector navbar master | Owner-supplied `/home/andro/Downloads/MemoryLineage.png` | Included |
+| `memorylineage-logo.png` | Inspector navbar master | Owner-supplied source image | Included |
 | `memorylineage-mark.svg` | Light-surface vector mark | Repository-authored from the approved mark | Available |
 | `memorylineage-mark-reversed.svg` | Dark-surface vector mark | Repository-authored from the approved mark | Available |
 | `favicon.svg` | Small browser mark | Repository-authored from the approved mark | Available |

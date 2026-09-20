@@ -33,6 +33,7 @@ not a judge score.
 | Rust/revm ERC-1271 lane | PASS | `cargo run -q -p ml-cli -- revm erc1271` deploys the mock authorizer, accepts its owner signature, then rejects after acceptance is disabled |
 | Rust/revm authority rotation | PASS | `cargo run -q -p ml-cli -- revm authority-rotation` advances `configNonce`, rejects the old authorizer, and accepts the new authorizer |
 | Bounded security assurance | PASS | `cargo run -q -p ml-cli -- security bounded-audit` regenerates `evidence/local/security_assurance_report.json`; formal verification and third-party audit remain unclaimed |
+| Polkadot Hub chain-context rehearsal | PASS | `cargo xtask verify` regenerates the report, independently replays both nested V2 observations, compares roots/authority/rollback behavior, and explicitly records deployment/RPC as `NOT_PERFORMED` |
 
 The exact contract revert reason remains `BAD_PREVIOUS_STATE`. Product copy may
 describe that result as a stale predecessor or predecessor mismatch, but the
@@ -55,3 +56,7 @@ three valid direct-authorized commits, Rust reference root comparison, the
 stale-predecessor rejection, a 20-case core mutation matrix, and the mock
 ERC-1271 accept/reject path. EthereumJS remains the broader complete execution
 oracle until every legacy scenario is compared field by field.
+
+The Polkadot rehearsal is intentionally a separate portability lane. It does
+not turn the local EVM into a Polkadot node, and it must not be described as a
+public Polkadot observation until a real deployment and readback artifact exist.

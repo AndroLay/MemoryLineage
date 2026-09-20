@@ -29,6 +29,7 @@ use std::str::FromStr;
 use thiserror::Error;
 
 const CHAIN_ID: u64 = 31_337;
+pub const POLKADOT_HUB_TESTNET_CHAIN_ID: u64 = 420_420_417;
 const GAS_LIMIT: u64 = 12_000_000;
 const GAS_PRICE: u128 = 10;
 const SIGNER_PRIVATE_KEY: [u8; 32] = [0x33; 32];
@@ -181,6 +182,7 @@ pub enum LocalEvmError {
 
 pub struct RegistryHarness {
     evm: Evm,
+    chain_id: u64,
     pub registry: Address,
     pub signer: Address,
     pub relayer: Address,
@@ -192,6 +194,10 @@ pub struct RegistryHarness {
 
 impl RegistryHarness {
     pub fn new() -> Result<Self, LocalEvmError> {
+        Self::new_with_chain_id(CHAIN_ID)
+    }
+
+    pub fn new_with_chain_id(chain_id: u64) -> Result<Self, LocalEvmError> {
         let signer_key = signing_key(SIGNER_PRIVATE_KEY)?;
         let signer = signer_address(&signer_key);
         let relayer_key = signing_key(WRONG_SIGNER_PRIVATE_KEY)?;
@@ -229,7 +235,7 @@ impl RegistryHarness {
         let context = Context::mainnet()
             .modify_cfg_chained(|cfg: &mut CfgEnv| {
                 cfg.set_spec_and_mainnet_gas_params(SpecId::SHANGHAI);
-                cfg.chain_id = CHAIN_ID;
+                cfg.chain_id = chain_id;
                 cfg.disable_nonce_check = true;
             })
             .with_db(db)
@@ -242,7 +248,7 @@ impl RegistryHarness {
         let mut evm = context.build_mainnet();
         let creation = decode_hex(REGISTRY_CREATION_HEX, "registry creation bytecode")?;
         let deployment = evm
-            .transact_commit(tx_create(signer, 0, creation))
+            .transact_commit(tx_create(signer, 0, creation, chain_id))
             .map_err(|error| LocalEvmError::Transaction(error.to_string()))?;
         let registry = match deployment {
             ExecutionResult::Success { output, .. } => {
@@ -262,6 +268,7 @@ impl RegistryHarness {
 
         let mut harness = Self {
             evm,
+            chain_id,
             registry,
             signer,
             relayer,
@@ -351,7 +358,7 @@ impl RegistryHarness {
     }
 
     fn commit_signed_transition(&mut self, delta: &ExperienceDelta) -> Result<Head, LocalEvmError> {
-        let signature = self.sign_transition(delta, CHAIN_ID, self.registry)?;
+        let signature = self.sign_transition(delta, self.chain_id, self.registry)?;
         let call = MemoryLineageRegistry::commitTransitionCall {
             delta: delta_call(delta)?,
             authorizerSignature: signature,
@@ -373,7 +380,7 @@ impl RegistryHarness {
         &self,
         delta: &ExperienceDelta,
     ) -> Result<Bytes, LocalEvmError> {
-        sign_transition_with_key(&self.relayer_key, delta, CHAIN_ID, self.registry)
+        sign_transition_with_key(&self.relayer_key, delta, self.chain_id, self.registry)
     }
 
     fn sign_authorization(
@@ -389,7 +396,12 @@ impl RegistryHarness {
             nonce,
         )
         .map_err(|error| LocalEvmError::Signing(error.to_string()))?;
-        sign_digest_with_key(&self.signer_key, &authorization, CHAIN_ID, self.registry)
+        sign_digest_with_key(
+            &self.signer_key,
+            &authorization,
+            self.chain_id,
+            self.registry,
+        )
     }
 
     fn read_authorization(&mut self) -> Result<(Address, Address, u64), LocalEvmError> {
@@ -398,7 +410,13 @@ impl RegistryHarness {
         };
         let output = successful_output(
             self.evm
-                .transact(tx_call(self.signer, self.registry, call.abi_encode(), 6))
+                .transact(tx_call(
+                    self.signer,
+                    self.registry,
+                    call.abi_encode(),
+                    6,
+                    self.chain_id,
+                ))
                 .map_err(|error| LocalEvmError::Transaction(error.to_string()))?
                 .result,
         )?;
@@ -443,7 +461,7 @@ impl RegistryHarness {
         creation.extend_from_slice(&address_word(self.signer));
         let deployment = self
             .evm
-            .transact_commit(tx_create(self.signer, 31, creation))
+            .transact_commit(tx_create(self.signer, 31, creation, self.chain_id))
             .map_err(|error| LocalEvmError::Transaction(error.to_string()))?;
         match deployment {
             ExecutionResult::Success { output, .. } => output.address().copied().ok_or_else(|| {
@@ -489,6 +507,7 @@ impl RegistryHarness {
             self.registry,
             call.abi_encode(),
             sequence,
+            self.chain_id,
         ));
         let result = result
             .map_err(|error| LocalEvmError::Transaction(error.to_string()))?
@@ -538,7 +557,13 @@ impl RegistryHarness {
         };
         let result = self
             .evm
-            .transact(tx_call(caller, self.registry, call.abi_encode(), nonce))
+            .transact(tx_call(
+                caller,
+                self.registry,
+                call.abi_encode(),
+                nonce,
+                self.chain_id,
+            ))
             .map_err(|error| LocalEvmError::Transaction(error.to_string()))?
             .result;
         match result {
@@ -552,9 +577,13 @@ impl RegistryHarness {
         let call = MemoryLineageRegistry::headCall {
             spaceId: self.space_id,
         };
-        let result = self
-            .evm
-            .transact(tx_call(self.signer, self.registry, call.abi_encode(), 5));
+        let result = self.evm.transact(tx_call(
+            self.signer,
+            self.registry,
+            call.abi_encode(),
+            5,
+            self.chain_id,
+        ));
         let output = successful_output(
             result
                 .map_err(|error| LocalEvmError::Transaction(error.to_string()))?
@@ -591,7 +620,7 @@ impl RegistryHarness {
     ) -> Result<(), LocalEvmError> {
         let result = self
             .evm
-            .transact_commit(tx_call(caller, to, data, nonce))
+            .transact_commit(tx_call(caller, to, data, nonce, self.chain_id))
             .map_err(|error| LocalEvmError::Transaction(error.to_string()))?;
         match result {
             ExecutionResult::Success { .. } => Ok(()),
@@ -660,7 +689,7 @@ fn delta_call(delta: &ExperienceDelta) -> Result<ExperienceDeltaCall, LocalEvmEr
     })
 }
 
-fn tx_create(caller: Address, nonce: u64, data: Vec<u8>) -> TxEnv {
+fn tx_create(caller: Address, nonce: u64, data: Vec<u8>, chain_id: u64) -> TxEnv {
     TxEnv::builder()
         .caller(caller)
         .create()
@@ -668,12 +697,12 @@ fn tx_create(caller: Address, nonce: u64, data: Vec<u8>) -> TxEnv {
         .gas_limit(GAS_LIMIT)
         .gas_price(GAS_PRICE)
         .nonce(nonce)
-        .chain_id(Some(CHAIN_ID))
+        .chain_id(Some(chain_id))
         .build()
         .expect("fixed deployment transaction must be valid")
 }
 
-fn tx_call(caller: Address, to: Address, data: Vec<u8>, nonce: u64) -> TxEnv {
+fn tx_call(caller: Address, to: Address, data: Vec<u8>, nonce: u64, chain_id: u64) -> TxEnv {
     TxEnv::builder()
         .caller(caller)
         .kind(TxKind::Call(to))
@@ -681,7 +710,7 @@ fn tx_call(caller: Address, to: Address, data: Vec<u8>, nonce: u64) -> TxEnv {
         .gas_limit(GAS_LIMIT)
         .gas_price(GAS_PRICE)
         .nonce(nonce)
-        .chain_id(Some(CHAIN_ID))
+        .chain_id(Some(chain_id))
         .build()
         .expect("fixed contract transaction must be valid")
 }
@@ -842,6 +871,18 @@ pub fn run_silent_rollback() -> Result<ExecutionObservation, LocalEvmError> {
 pub fn run_demo_space_v2(
     snapshot_commitments: &[String],
 ) -> Result<EvidenceBundleV2, LocalEvmError> {
+    run_demo_space_v2_on_chain(CHAIN_ID, snapshot_commitments)
+}
+
+/// Execute the same demo against a caller-selected EVM chain context.
+///
+/// This is a local portability rehearsal. It proves that the Solidity bytecode
+/// and EIP-712 domain logic can be exercised with another chain ID; it does not
+/// prove a public Polkadot deployment or a network observation.
+pub fn run_demo_space_v2_on_chain(
+    chain_id: u64,
+    snapshot_commitments: &[String],
+) -> Result<EvidenceBundleV2, LocalEvmError> {
     if snapshot_commitments.len() != 3 {
         return Err(LocalEvmError::InvalidValue {
             name: "demo snapshot commitments",
@@ -849,7 +890,7 @@ pub fn run_demo_space_v2(
         });
     }
 
-    let mut harness = RegistryHarness::new()?;
+    let mut harness = RegistryHarness::new_with_chain_id(chain_id)?;
     let mut previous_root = B256::ZERO;
     let mut transitions = Vec::with_capacity(3);
     let mut authorization_proofs = Vec::with_capacity(3);
@@ -862,7 +903,7 @@ pub fn run_demo_space_v2(
                 name: "demo transition",
                 value: error.to_string(),
             })?;
-        let signature = harness.sign_transition(&delta, CHAIN_ID, harness.registry)?;
+        let signature = harness.sign_transition(&delta, harness.chain_id, harness.registry)?;
         harness.commit_delta(&delta, harness.relayer, signature.clone(), sequence + 1)?;
         authorization_proofs.push(eoa_authorization_proof(
             &delta,
@@ -870,7 +911,7 @@ pub fn run_demo_space_v2(
             &transition_id,
             &format_address(harness.signer),
             &signature,
-            CHAIN_ID,
+            harness.chain_id,
             harness.registry,
         )?);
         transitions.push(TransitionRecord {
@@ -901,7 +942,7 @@ pub fn run_demo_space_v2(
         &transition_id,
         &format_address(harness.relayer),
         &signature,
-        CHAIN_ID,
+        harness.chain_id,
         harness.registry,
     )?);
     transitions.push(TransitionRecord {
@@ -942,7 +983,7 @@ pub fn run_demo_space_v2(
         source_class: SOURCE_DEMO_SPACE_V2_LOCAL.to_owned(),
         network: EvidenceNetwork {
             name: "local-revm-demo-space-v2".to_owned(),
-            chain_id: CHAIN_ID.to_string(),
+            chain_id: harness.chain_id.to_string(),
         },
         registry: RegistryObservation {
             address: format_address(harness.registry),
@@ -1592,6 +1633,34 @@ mod tests {
         assert_eq!(
             attack.stale_predecessor.as_deref(),
             Some(evidence.transitions[0].next_state_root.as_str())
+        );
+    }
+
+    #[test]
+    fn demo_space_v2_rehearses_the_polkadot_hub_evm_chain_context() {
+        let snapshots = vec![
+            ml_core::keccak_text("snapshot-1"),
+            ml_core::keccak_text("snapshot-2"),
+            ml_core::keccak_text("snapshot-3"),
+        ];
+        let evidence = run_demo_space_v2_on_chain(420_420_417, &snapshots)
+            .expect("the same Solidity bytecode should execute under the target chain context");
+
+        assert_eq!(evidence.network.chain_id, "420420417");
+        assert_eq!(
+            evidence
+                .attack
+                .as_ref()
+                .and_then(|attack| attack.reason.as_deref()),
+            Some("BAD_PREVIOUS_STATE")
+        );
+        assert_eq!(evidence.transitions.len(), 3);
+        assert_ne!(
+            evidence.authorization_proofs[0].signing_digest,
+            run_demo_space_v2(&snapshots)
+                .expect("the Ethereum-local rehearsal should execute")
+                .authorization_proofs[0]
+                .signing_digest
         );
     }
 }

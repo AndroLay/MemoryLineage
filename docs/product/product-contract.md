@@ -160,6 +160,22 @@ The probe accepts `BAD_PREVIOUS_STATE` only when the RPC error includes a
 decodable Solidity `Error(string)` payload with that exact reason. Free-form
 provider text containing the phrase is insufficient.
 
+## Polkadot Hub portability boundary
+
+The repository now contains a local Polkadot Hub TestNet portability rehearsal
+at `evidence/local/polkadot_hub_portability_rehearsal.json`. It executes the
+same checked-in Solidity creation bytecode through the Rust/revm lane with the
+documented Polkadot Hub TestNet chain ID, compares transition roots, authority
+history, and stale-predecessor behavior with the Ethereum-local context, and
+confirms that EIP-712 domains remain chain-bound.
+
+This is deliberately labeled `LOCAL_REHEARSAL_PASS`. It is not a Polkadot
+deployment, public RPC observation, consensus proof, cross-chain identity, or
+claim that one history is canonical on two networks. The official Polkadot
+documentation describes the Hub REVM path as EVM-compatible execution for
+existing Solidity bytecode; the project therefore treats the current result as
+deployment portability preparation, not independent consensus evidence.
+
 ## Claims we make
 
 - The Solidity registry enforces ordered transitions, predecessor continuity,
@@ -177,6 +193,8 @@ provider text containing the phrase is insufficient.
   tracked artifact and independently verified by the Rust/WASM and CLI paths.
 - The reference CLI gate holds the supplied historical fixture as
   `REHEARSE_ONLY` instead of permitting a protected resume.
+- The local Polkadot Hub rehearsal preserves the tested transition, root,
+  authority, and stale-predecessor invariants under a separate chain context.
 
 ## Claims we do not make
 
@@ -190,6 +208,8 @@ provider text containing the phrase is insufficient.
 - Every rollback or memory-poisoning attack is detected.
 - A match against local Demo Space V2 means the current public Sepolia head.
 - A single RPC response proves Ethereum consensus.
+- The local Polkadot Hub rehearsal proves a public Polkadot deployment,
+  network state, cross-chain finality, or cross-chain recovery authorization.
 - The current portable evidence independently proves every historical
   authorization signature.
 - The ERC-8350 draft is final or immutable.

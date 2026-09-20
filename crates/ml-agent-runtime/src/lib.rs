@@ -1,7 +1,10 @@
 #![forbid(unsafe_code)]
 
-use ml_recovery_gate::{ProtectedResumeError, protected_resume};
-use ml_spec_types::{EvidenceBundleV2, RecoveryDecisionReceipt};
+use ml_recovery_gate::{ProtectedResumeError, protected_resume_with_profile};
+use ml_spec_types::{
+    EvidenceBundleV2, RecoveryDecisionReceipt, SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2,
+    SOURCE_DEMO_SPACE_V2_LOCAL,
+};
 use std::path::Path;
 use thiserror::Error;
 
@@ -48,13 +51,34 @@ impl ReferenceAgentRuntime {
         evidence: &EvidenceBundleV2,
         source_class: &str,
     ) -> Result<RuntimeResumeOutcome, RuntimeError> {
+        let profile = if source_class == SOURCE_DEMO_SPACE_V2_LOCAL {
+            SNAPSHOT_PROFILE_V2
+        } else {
+            SNAPSHOT_PROFILE_V1
+        };
+        self.resume_with_profile(snapshot_path, evidence, source_class, profile)
+    }
+
+    pub fn resume_with_profile(
+        &mut self,
+        snapshot_path: impl AsRef<Path>,
+        evidence: &EvidenceBundleV2,
+        source_class: &str,
+        snapshot_profile: &str,
+    ) -> Result<RuntimeResumeOutcome, RuntimeError> {
         self.active = None;
-        let result = protected_resume(snapshot_path, evidence, source_class, |snapshot| {
-            Ok::<AgentMemorySession, String>(AgentMemorySession {
-                sequence: snapshot.sequence,
-                values: snapshot.values.clone(),
-            })
-        });
+        let result = protected_resume_with_profile(
+            snapshot_path,
+            evidence,
+            source_class,
+            snapshot_profile,
+            |snapshot| {
+                Ok::<AgentMemorySession, String>(AgentMemorySession {
+                    sequence: snapshot.sequence,
+                    values: snapshot.values.clone(),
+                })
+            },
+        );
 
         match result {
             Ok(resumed) => {

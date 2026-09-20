@@ -1,0 +1,310 @@
+{
+  "schemaVersion": "memorylineage-portability-v1",
+  "reportType": "polkadot_hub_revm_portability_rehearsal",
+  "status": "LOCAL_REHEARSAL_PASS",
+  "target": {
+    "network": "Polkadot Hub TestNet",
+    "chainId": "420420417",
+    "executionBackend": "REVM / Solidity bytecode",
+    "deployment": "NOT_PERFORMED",
+    "publicRpcObservation": "NOT_PERFORMED"
+  },
+  "comparison": {
+    "canonicalTransitions": "MATCH",
+    "stateRoots": "MATCH",
+    "stalePredecessorRejection": "BAD_PREVIOUS_STATE",
+    "authorityHistory": "MATCH",
+    "eip712Domain": "CHAIN_BOUND_DIFFERENT",
+    "solidityArtifact": "SAME_COMMITTED_CREATION_BYTECODE"
+  },
+  "claims": [
+    "The published Solidity bytecode preserves the tested lineage invariants under the Polkadot Hub TestNet chain context in local revm.",
+    "This report does not claim a Polkadot deployment, public RPC observation, or cross-chain consensus proof."
+  ],
+  "observations": [
+    {
+      "label": "Ethereum-local",
+      "executionBackend": "REVM / Solidity bytecode",
+      "evidence": {
+        "schemaVersion": "memorylineage-evidence-v2",
+        "evidenceType": "memorylineage_evidence_v2",
+        "sourceClass": "DEMO_SPACE_V2_LOCAL",
+        "network": {
+          "name": "local-revm-demo-space-v2",
+          "chainId": "31337"
+        },
+        "registry": {
+          "address": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+          "codeHash": null,
+          "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1"
+        },
+        "spec": {
+          "name": "ERC-8350",
+          "snapshot": "v1-pinned-vector-2026-09-18",
+          "vectorHash": null
+        },
+        "head": {
+          "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+          "stateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+          "sequence": 3
+        },
+        "transitions": [
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 1,
+            "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "deltaCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
+            "provenanceCommitment": "0xf8b7636475923d56b0420cdc0b65a93249d94346b8e87bfa1c3d017528ad5bab",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x1635abee2ee8e7bfb48c179d3a55ab2fa65cdb229b9abb10a45471318edfdb86",
+            "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "nextStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6"
+          },
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 2,
+            "prevStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+            "deltaCommitment": "0x82695d499b0c82310bc9733c1cadca22c421061273efe2a5de6d1c7c402b677f",
+            "provenanceCommitment": "0x0c47a979095247a81958e2e8fb1491c08d3499967a9bb58dc08974e884fb0af9",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x7724146e86759c31ef19f9660cd6e34e695c275305e64e340a4e7e6be9b4211d",
+            "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "nextStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3"
+          },
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 3,
+            "prevStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3",
+            "deltaCommitment": "0x17069cac5b96a074dc1f3efc8aec5c094bb6ac6acdfd73d071388f66b383aef7",
+            "provenanceCommitment": "0xace70477ec842e3af20c1efc5847adfcedfe69a3c83ce5beade9ca1add79900a",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x0982ac53902e0973e6806e9b9fb79bf6e1c735855625d7558c877d5898955ad1",
+            "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "nextStateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0"
+          }
+        ],
+        "authorizationProofs": [
+          {
+            "sequence": 1,
+            "configNonce": 0,
+            "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "31337",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+            "signingDigest": "0x96d447d55a5ca3997a6e31112d93aa766b0985bf0166253ec1f3cbc7c7df82ba",
+            "signature": "0x80a8c46ca553f20083c72450ab8254d97ec1c3020488c6207e684e8cc90b09b03e2b6df2d0236bea263ae58329b8e74358c2bc4627acc424d899c88ba0c384371c"
+          },
+          {
+            "sequence": 2,
+            "configNonce": 0,
+            "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "31337",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+            "signingDigest": "0x935a1ccd6d52229733f13376a172e6daf99c9773f65de42061b623715cf64411",
+            "signature": "0xbff4be2d64857defa8c7c462dbb667c720f2997422a1d97c98bdc43758fb02a35e0396808a9ea3423ff9b657b22763c669a2173e1c133ce545c7ca89a343fb3d1b"
+          },
+          {
+            "sequence": 3,
+            "configNonce": 1,
+            "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "31337",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
+            "signingDigest": "0x7b1b4f3e131607f7a24789a7d8754a54dbe7b9739bd3337f8c52d5c00958d46f",
+            "signature": "0xcbc87469af8edbca7adaeef4f27e8552ea8575227806fc2cd6e46b55bfb8222d27afcb6d8304695e9033da6c812be4fd80fc4042268a5e8980d102be5620233d1c"
+          }
+        ],
+        "authorizationHistory": [
+          {
+            "controller": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "configNonce": 0,
+            "effectiveFromSequence": 1,
+            "label": "initial authority"
+          },
+          {
+            "controller": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "configNonce": 1,
+            "effectiveFromSequence": 3,
+            "label": "rotated authority"
+          }
+        ],
+        "observations": [],
+        "attack": {
+          "name": "silent-rollback",
+          "status": "REJECTED",
+          "reason": "BAD_PREVIOUS_STATE",
+          "restoredSnapshotSequence": 1,
+          "attemptedSequence": 4,
+          "stalePredecessor": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+          "canonicalPredecessor": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+          "executionSource": "Rust/revm against published Solidity bytecode",
+          "transactionBroadcast": false,
+          "fixtureId": "silent-rollback-v2"
+        },
+        "privacy": {
+          "rawMemoryOnChain": false
+        },
+        "verificationMetadata": {
+          "producer": "ml-local-evm::demo-space-v2",
+          "generatedAt": null,
+          "legacySource": null
+        }
+      },
+      "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149"
+    },
+    {
+      "label": "Polkadot Hub TestNet chain context",
+      "executionBackend": "REVM / Solidity bytecode",
+      "evidence": {
+        "schemaVersion": "memorylineage-evidence-v2",
+        "evidenceType": "memorylineage_evidence_v2",
+        "sourceClass": "DEMO_SPACE_V2_LOCAL",
+        "network": {
+          "name": "local-revm-demo-space-v2",
+          "chainId": "420420417"
+        },
+        "registry": {
+          "address": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+          "codeHash": null,
+          "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1"
+        },
+        "spec": {
+          "name": "ERC-8350",
+          "snapshot": "v1-pinned-vector-2026-09-18",
+          "vectorHash": null
+        },
+        "head": {
+          "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+          "stateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+          "sequence": 3
+        },
+        "transitions": [
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 1,
+            "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "deltaCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
+            "provenanceCommitment": "0xf8b7636475923d56b0420cdc0b65a93249d94346b8e87bfa1c3d017528ad5bab",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x1635abee2ee8e7bfb48c179d3a55ab2fa65cdb229b9abb10a45471318edfdb86",
+            "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "nextStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6"
+          },
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 2,
+            "prevStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+            "deltaCommitment": "0x82695d499b0c82310bc9733c1cadca22c421061273efe2a5de6d1c7c402b677f",
+            "provenanceCommitment": "0x0c47a979095247a81958e2e8fb1491c08d3499967a9bb58dc08974e884fb0af9",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x7724146e86759c31ef19f9660cd6e34e695c275305e64e340a4e7e6be9b4211d",
+            "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "nextStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3"
+          },
+          {
+            "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
+            "sequence": 3,
+            "prevStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3",
+            "deltaCommitment": "0x17069cac5b96a074dc1f3efc8aec5c094bb6ac6acdfd73d071388f66b383aef7",
+            "provenanceCommitment": "0xace70477ec842e3af20c1efc5847adfcedfe69a3c83ce5beade9ca1add79900a",
+            "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
+            "locatorCommitment": "0x0982ac53902e0973e6806e9b9fb79bf6e1c735855625d7558c877d5898955ad1",
+            "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "nextStateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0"
+          }
+        ],
+        "authorizationProofs": [
+          {
+            "sequence": 1,
+            "configNonce": 0,
+            "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "420420417",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+            "domainSeparator": "0x32fcafaa7209c20ad805d1a4fa52ef1c206c05d186c57d4a38aa17ac7afa6b99",
+            "signingDigest": "0x0927be006772e1833c9f856989363edfd3125778ec756079b469984a17d87ca8",
+            "signature": "0x797b6af4bb13591cc18b0e05cd51ef3545da29163a78a5b9c116d880d9ad0b584ba9c5db1b917ef38ec065b07c300dbf5b084e8fb2fe9a9a644492ad77a8a13c1c"
+          },
+          {
+            "sequence": 2,
+            "configNonce": 0,
+            "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "420420417",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+            "domainSeparator": "0x32fcafaa7209c20ad805d1a4fa52ef1c206c05d186c57d4a38aa17ac7afa6b99",
+            "signingDigest": "0x9a57626df222e74a64bfa96557c640bbcc324a3480a25e9c34d3058f6099e487",
+            "signature": "0x132b081a4ce0387350c2e12eaaa01255bc745d899eebf0820f561b30c86e01af23580d10f92eb706865b1ee2a5a6d1f51277e7049959f712a72beda7b8220baa1c"
+          },
+          {
+            "sequence": 3,
+            "configNonce": 1,
+            "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "authorizationType": "EOA_EIP712",
+            "chainId": "420420417",
+            "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
+            "structHash": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+            "domainSeparator": "0x32fcafaa7209c20ad805d1a4fa52ef1c206c05d186c57d4a38aa17ac7afa6b99",
+            "signingDigest": "0x0b047d5471cefceb960724055fae90b644d3c039edb411748e7468d0456a44fd",
+            "signature": "0xc026d43576bae2d0d38ab0e5feb18e3b6275d2e2cdbc0b9430121eceffb758e52a2f2d19b3f3cb47f88e8d01eae76fbc9bb560c6ee9926d9a653115e926615b81b"
+          }
+        ],
+        "authorizationHistory": [
+          {
+            "controller": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
+            "configNonce": 0,
+            "effectiveFromSequence": 1,
+            "label": "initial authority"
+          },
+          {
+            "controller": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+            "configNonce": 1,
+            "effectiveFromSequence": 3,
+            "label": "rotated authority"
+          }
+        ],
+        "observations": [],
+        "attack": {
+          "name": "silent-rollback",
+          "status": "REJECTED",
+          "reason": "BAD_PREVIOUS_STATE",
+          "restoredSnapshotSequence": 1,
+          "attemptedSequence": 4,
+          "stalePredecessor": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+          "canonicalPredecessor": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+          "executionSource": "Rust/revm against published Solidity bytecode",
+          "transactionBroadcast": false,
+          "fixtureId": "silent-rollback-v2"
+        },
+        "privacy": {
+          "rawMemoryOnChain": false
+        },
+        "verificationMetadata": {
+          "producer": "ml-local-evm::demo-space-v2",
+          "generatedAt": null,
+          "legacySource": null
+        }
+      },
+      "domainSeparator": "0x32fcafaa7209c20ad805d1a4fa52ef1c206c05d186c57d4a38aa17ac7afa6b99"
+    }
+  ]
+}

@@ -2,10 +2,11 @@
 
 use ml_evidence::public_replay_to_v2;
 use ml_spec_types::{
-    EvidenceBundleV2, PublicReplayBundle, RecoveryDecisionReceipt, TransitionRecord,
+    EvidenceBundleV2, PortabilityRehearsalReport, PublicReplayBundle, RecoveryDecisionReceipt,
+    SNAPSHOT_PROFILE_V2, TransitionRecord,
 };
 use ml_verifier_independent::{
-    RecoveryVerificationReport, VerificationReport, build_recovery_receipt,
+    RecoveryVerificationReport, VerificationReport, build_recovery_receipt_with_snapshot_profile,
     verify_recovery_receipt, verify_v2_bundle,
 };
 use serde::Deserialize;
@@ -24,6 +25,8 @@ const REFERENCE_RUNTIME_REPORT: &str =
     include_str!("../../../evidence/local/reference_agent_runtime.json");
 const SECURITY_ASSURANCE_REPORT: &str =
     include_str!("../../../evidence/local/security_assurance_report.json");
+const POLKADOT_PORTABILITY_REPORT: &str =
+    include_str!("../../../evidence/local/polkadot_hub_portability_rehearsal.json");
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Scenario {
@@ -370,6 +373,7 @@ pub struct UiData {
     pub conformance: ConformanceEvidence,
     pub reference_runtime: ReferenceRuntimeEvidence,
     pub security_assurance: SecurityAssuranceEvidence,
+    pub portability: PortabilityRehearsalReport,
     pub mutation_count: usize,
     pub mutation_rejected: usize,
 }
@@ -490,6 +494,8 @@ impl UiData {
             .expect("reference agent runtime evidence valid");
         let security_assurance = serde_json::from_str(SECURITY_ASSURANCE_REPORT)
             .expect("bounded security assurance evidence valid");
+        let portability = serde_json::from_str(POLKADOT_PORTABILITY_REPORT)
+            .expect("Polkadot portability rehearsal evidence valid");
         let mutation_count = bundle
             .mutation_matrix
             .iter()
@@ -514,6 +520,7 @@ impl UiData {
             conformance,
             reference_runtime,
             security_assurance,
+            portability,
             mutation_count,
             mutation_rejected,
         }
@@ -528,12 +535,13 @@ impl UiData {
         sequence: u64,
         candidate_commitment: &str,
     ) -> Result<RecoveryDecisionReceipt, String> {
-        build_recovery_receipt(
+        build_recovery_receipt_with_snapshot_profile(
             &self.v2,
             candidate_commitment,
             sequence,
             "DEMO_SPACE_V2_LOCAL",
             None,
+            SNAPSHOT_PROFILE_V2,
         )
         .map_err(|error| error.to_string())
     }
@@ -845,6 +853,17 @@ mod tests {
         );
         assert_eq!(data.security_assurance.mutation_matrix.total, 20);
         assert!(!data.security_assurance.raw_memory_exported);
+        assert_eq!(data.portability.status, "LOCAL_REHEARSAL_PASS");
+        assert_eq!(data.portability.target.chain_id, "420420417");
+        assert_eq!(data.portability.target.deployment, "NOT_PERFORMED");
+        assert_eq!(
+            data.portability.target.public_rpc_observation,
+            "NOT_PERFORMED"
+        );
+        assert_eq!(
+            data.portability.comparison.stale_predecessor_rejection,
+            "BAD_PREVIOUS_STATE"
+        );
         assert_eq!(
             data.fixture.attack.expected_contract_reason,
             "BAD_PREVIOUS_STATE"

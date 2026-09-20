@@ -2,14 +2,15 @@
 
 use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use ml_spec_types::{
-    AuthorizationProof, EVIDENCE_V2, EvidenceBundleV2, PublicReplayBundle,
-    RECOVERY_BLOCK_UNVERIFIED, RECOVERY_CURRENT_HEAD, RECOVERY_HISTORICAL_CHECKPOINT,
-    RECOVERY_HOLD_FOR_REVIEW, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1, RECOVERY_RECEIPT_V1,
-    RECOVERY_REHEARSE_ONLY, RECOVERY_RESUME_ALLOWED, RECOVERY_UNKNOWN_OR_DIVERGED,
-    RECOVERY_UNVERIFIED, RecoveryAssurance, RecoveryBlockContext, RecoveryCandidate,
-    RecoveryDecision, RecoveryDecisionReceipt, RecoveryEvidence, SNAPSHOT_PROFILE_V1,
-    SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_LEGACY_UNDECLARED, SOURCE_PROTOCOL_CORPUS_LOCAL,
-    SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
+    AuthorizationProof, EVIDENCE_V2, EvidenceBundleV2, PortabilityRehearsalReport,
+    PublicReplayBundle, RECOVERY_BLOCK_UNVERIFIED, RECOVERY_CURRENT_HEAD,
+    RECOVERY_HISTORICAL_CHECKPOINT, RECOVERY_HOLD_FOR_REVIEW,
+    RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1, RECOVERY_RECEIPT_V1, RECOVERY_REHEARSE_ONLY,
+    RECOVERY_RESUME_ALLOWED, RECOVERY_UNKNOWN_OR_DIVERGED, RECOVERY_UNVERIFIED, RecoveryAssurance,
+    RecoveryBlockContext, RecoveryCandidate, RecoveryDecision, RecoveryDecisionReceipt,
+    RecoveryEvidence, SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL,
+    SOURCE_LEGACY_UNDECLARED, SOURCE_PROTOCOL_CORPUS_LOCAL, SOURCE_SEPOLIA_REFERENCE_OBSERVATION,
+    SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
 };
 use serde::Serialize;
 use std::path::Path;
@@ -77,6 +78,25 @@ pub struct RecoveryVerificationReport {
     pub recommended_action: String,
     pub candidate_commitment: String,
     pub decision_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct PortabilityVerificationCheck {
+    pub name: String,
+    pub status: String,
+    pub detail: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct PortabilityVerificationReport {
+    pub verdict: String,
+    pub observation_count: usize,
+    pub transition_projection: String,
+    pub state_roots: String,
+    pub authority_history: String,
+    pub stale_predecessor_rejection: String,
+    pub domain_separation: String,
+    pub checks: Vec<PortabilityVerificationCheck>,
 }
 
 #[derive(Serialize)]
@@ -696,6 +716,175 @@ pub fn verify_v2_bundle(
     })
 }
 
+fn portability_projection(bundle: &EvidenceBundleV2) -> Vec<(&str, &str)> {
+    bundle
+        .transitions
+        .iter()
+        .map(|transition| {
+            (
+                transition.transition_id.as_str(),
+                transition.next_state_root.as_str(),
+            )
+        })
+        .collect()
+}
+
+/// Independently replay the two detailed observations inside a portability
+/// report, then compare their invariant projections. This function validates
+/// the report format and both evidence bundles; it does not perform a network
+/// call or treat the local target-context observation as a deployment.
+pub fn verify_portability_report(
+    report: &PortabilityRehearsalReport,
+) -> Result<PortabilityVerificationReport, VerificationError> {
+    if report.schema_version != ml_spec_types::PORTABILITY_REHEARSAL_V1 {
+        return Err(reject("PORTABILITY_SCHEMA_VERSION_MISMATCH"));
+    }
+    if report.report_type != "polkadot_hub_revm_portability_rehearsal"
+        || report.status != "LOCAL_REHEARSAL_PASS"
+    {
+        return Err(reject("PORTABILITY_STATUS_MISMATCH"));
+    }
+    if report.target.chain_id != ml_spec_types::POLKADOT_HUB_TESTNET_CHAIN_ID
+        || report.target.deployment != "NOT_PERFORMED"
+        || report.target.public_rpc_observation != "NOT_PERFORMED"
+    {
+        return Err(reject("PORTABILITY_TARGET_BOUNDARY_MISMATCH"));
+    }
+    if report.observations.len() != 2 {
+        return Err(reject("PORTABILITY_OBSERVATION_COUNT_MISMATCH"));
+    }
+
+    let ethereum = report
+        .observations
+        .iter()
+        .find(|observation| observation.label == "Ethereum-local")
+        .ok_or_else(|| reject("PORTABILITY_ETHEREUM_OBSERVATION_MISSING"))?;
+    let polkadot = report
+        .observations
+        .iter()
+        .find(|observation| observation.label == "Polkadot Hub TestNet chain context")
+        .ok_or_else(|| reject("PORTABILITY_POLKADOT_OBSERVATION_MISSING"))?;
+
+    if ethereum.evidence.network.chain_id == report.target.chain_id
+        || polkadot.evidence.network.chain_id != report.target.chain_id
+    {
+        return Err(reject("PORTABILITY_CHAIN_CONTEXT_MISMATCH"));
+    }
+    if ethereum.evidence.registry != polkadot.evidence.registry {
+        return Err(reject("PORTABILITY_REGISTRY_IDENTITY_MISMATCH"));
+    }
+
+    verify_v2_bundle(&ethereum.evidence)
+        .map_err(|error| reject(format!("PORTABILITY_ETHEREUM_BUNDLE_INVALID:{error}")))?;
+    verify_v2_bundle(&polkadot.evidence)
+        .map_err(|error| reject(format!("PORTABILITY_POLKADOT_BUNDLE_INVALID:{error}")))?;
+
+    if portability_projection(&ethereum.evidence) != portability_projection(&polkadot.evidence) {
+        return Err(reject("PORTABILITY_TRANSITION_PROJECTION_MISMATCH"));
+    }
+    if ethereum.evidence.authorization_history != polkadot.evidence.authorization_history {
+        return Err(reject("PORTABILITY_AUTHORITY_HISTORY_MISMATCH"));
+    }
+
+    let ethereum_attack = ethereum
+        .evidence
+        .attack
+        .as_ref()
+        .ok_or_else(|| reject("PORTABILITY_ETHEREUM_ATTACK_MISSING"))?;
+    let polkadot_attack = polkadot
+        .evidence
+        .attack
+        .as_ref()
+        .ok_or_else(|| reject("PORTABILITY_POLKADOT_ATTACK_MISSING"))?;
+    if ethereum_attack.status != "REJECTED"
+        || polkadot_attack.status != "REJECTED"
+        || ethereum_attack.reason.as_deref() != Some("BAD_PREVIOUS_STATE")
+        || polkadot_attack.reason.as_deref() != Some("BAD_PREVIOUS_STATE")
+        || ethereum_attack.reason != polkadot_attack.reason
+    {
+        return Err(reject("PORTABILITY_ATTACK_RESULT_MISMATCH"));
+    }
+
+    if ethereum.domain_separator == polkadot.domain_separator {
+        return Err(reject("PORTABILITY_DOMAIN_SEPARATION_MISMATCH"));
+    }
+    for observation in [ethereum, polkadot] {
+        let proof_domain = observation
+            .evidence
+            .authorization_proofs
+            .first()
+            .ok_or_else(|| reject("PORTABILITY_AUTHORIZATION_PROOF_MISSING"))?
+            .domain_separator
+            .as_str();
+        if observation.domain_separator != proof_domain {
+            return Err(reject("PORTABILITY_DOMAIN_OBSERVATION_MISMATCH"));
+        }
+    }
+
+    if report.comparison.canonical_transitions != "MATCH"
+        || report.comparison.state_roots != "MATCH"
+        || report.comparison.authority_history != "MATCH"
+        || report.comparison.stale_predecessor_rejection != "BAD_PREVIOUS_STATE"
+        || report.comparison.eip712_domain != "CHAIN_BOUND_DIFFERENT"
+        || report.comparison.solidity_artifact != "SAME_COMMITTED_CREATION_BYTECODE"
+    {
+        return Err(reject("PORTABILITY_COMPARISON_SUMMARY_MISMATCH"));
+    }
+
+    Ok(PortabilityVerificationReport {
+        verdict: "VERIFIED".to_owned(),
+        observation_count: report.observations.len(),
+        transition_projection: "MATCH".to_owned(),
+        state_roots: "MATCH".to_owned(),
+        authority_history: "MATCH".to_owned(),
+        stale_predecessor_rejection: "BAD_PREVIOUS_STATE".to_owned(),
+        domain_separation: "CHAIN_BOUND_DIFFERENT".to_owned(),
+        checks: vec![
+            PortabilityVerificationCheck {
+                name: "Ethereum evidence bundle".to_owned(),
+                status: "PASS".to_owned(),
+                detail: "independent V2 replay".to_owned(),
+            },
+            PortabilityVerificationCheck {
+                name: "Polkadot target-context bundle".to_owned(),
+                status: "PASS".to_owned(),
+                detail: "independent V2 replay; local only".to_owned(),
+            },
+            PortabilityVerificationCheck {
+                name: "Transition and root projection".to_owned(),
+                status: "PASS".to_owned(),
+                detail: "MATCH".to_owned(),
+            },
+            PortabilityVerificationCheck {
+                name: "Stale predecessor result".to_owned(),
+                status: "PASS".to_owned(),
+                detail: "BAD_PREVIOUS_STATE".to_owned(),
+            },
+            PortabilityVerificationCheck {
+                name: "EIP-712 domain separation".to_owned(),
+                status: "PASS".to_owned(),
+                detail: "CHAIN_BOUND_DIFFERENT".to_owned(),
+            },
+        ],
+    })
+}
+
+pub fn verify_portability_json(
+    json: &str,
+) -> Result<PortabilityVerificationReport, VerificationError> {
+    let report: PortabilityRehearsalReport = serde_json::from_str(json)?;
+    verify_portability_report(&report)
+}
+
+pub fn verify_portability_file(
+    path: impl AsRef<Path>,
+) -> Result<PortabilityVerificationReport, VerificationError> {
+    let bytes = std::fs::read(path)?;
+    verify_portability_json(
+        std::str::from_utf8(&bytes).map_err(|_| reject("PORTABILITY_NOT_UTF8"))?,
+    )
+}
+
 pub fn evidence_bundle_hash(bundle: &EvidenceBundleV2) -> Result<String, VerificationError> {
     let encoded = serde_json::to_vec(bundle)?;
     Ok(hex_value(&keccak256(&encoded)))
@@ -705,7 +894,10 @@ fn recovery_decision_for_candidate(
     candidate: &RecoveryCandidate,
     bundle: &EvidenceBundleV2,
 ) -> Result<RecoveryDecision, VerificationError> {
-    if candidate.snapshot_profile != SNAPSHOT_PROFILE_V1 {
+    if !matches!(
+        candidate.snapshot_profile.as_str(),
+        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2
+    ) {
         return Ok(RecoveryDecision {
             classification: RECOVERY_UNVERIFIED.to_owned(),
             reason_code: "SNAPSHOT_PROFILE_UNSUPPORTED".to_owned(),
@@ -799,6 +991,27 @@ pub fn build_recovery_receipt(
     source_class: &str,
     block_context: Option<RecoveryBlockContext>,
 ) -> Result<RecoveryDecisionReceipt, VerificationError> {
+    build_recovery_receipt_with_snapshot_profile(
+        bundle,
+        candidate_commitment,
+        snapshot_sequence,
+        source_class,
+        block_context,
+        SNAPSHOT_PROFILE_V1,
+    )
+}
+
+pub fn build_recovery_receipt_with_snapshot_profile(
+    bundle: &EvidenceBundleV2,
+    candidate_commitment: &str,
+    snapshot_sequence: u64,
+    source_class: &str,
+    block_context: Option<RecoveryBlockContext>,
+    snapshot_profile: &str,
+) -> Result<RecoveryDecisionReceipt, VerificationError> {
+    if !matches!(snapshot_profile, SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2) {
+        return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
+    }
     verify_v2_bundle(bundle)?;
     validate_source_class(source_class)?;
     if bundle.source_class == SOURCE_LEGACY_UNDECLARED || bundle.source_class != source_class {
@@ -809,7 +1022,7 @@ pub fn build_recovery_receipt(
     let authorization_proof = verification.authorization_proof.clone();
     let authority_history = verification.authority_history.clone();
     let candidate = RecoveryCandidate {
-        snapshot_profile: SNAPSHOT_PROFILE_V1.to_owned(),
+        snapshot_profile: snapshot_profile.to_owned(),
         candidate_commitment: candidate_commitment.to_owned(),
         snapshot_sequence,
     };
@@ -867,7 +1080,10 @@ pub fn verify_recovery_receipt(
     {
         return Err(reject("RECOVERY_EVIDENCE_CONTEXT_MISMATCH"));
     }
-    if receipt.candidate.snapshot_profile != SNAPSHOT_PROFILE_V1 {
+    if !matches!(
+        receipt.candidate.snapshot_profile.as_str(),
+        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2
+    ) {
         return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
     }
     let expected_decision = recovery_decision_for_candidate(&receipt.candidate, bundle)?;
@@ -942,8 +1158,8 @@ mod tests {
     use super::*;
     use ml_spec_types::{
         AttackObservation, EVIDENCE_V2, EvidenceNetwork, Head, PrivacyBoundary,
-        RegistryObservation, SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME,
-        SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
+        RegistryObservation, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL,
+        SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
     };
 
     fn current_bundle() -> PublicReplayBundle {
@@ -1145,6 +1361,35 @@ mod tests {
     }
 
     #[test]
+    fn recovery_receipt_supports_the_explicit_v2_snapshot_profile() {
+        let bundle = current_v2_bundle();
+        let candidate = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+        let receipt = build_recovery_receipt_with_snapshot_profile(
+            &bundle,
+            &candidate,
+            bundle.head.sequence,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+            SNAPSHOT_PROFILE_V2,
+        )
+        .expect("the explicit V2 profile should produce a receipt");
+
+        assert_eq!(receipt.candidate.snapshot_profile, SNAPSHOT_PROFILE_V2);
+        assert_eq!(
+            verify_recovery_receipt(&receipt, &bundle)
+                .expect("the V2-profile receipt should verify")
+                .verdict,
+            "VERIFIED"
+        );
+    }
+
+    #[test]
     fn recovery_receipt_rejects_tampered_decision() {
         let bundle = current_v2_bundle();
         let candidate = bundle.transitions[0].delta.delta_commitment.clone();
@@ -1297,5 +1542,46 @@ mod tests {
         let report = verify_any_json(&json).expect("auto-detected v2 bundle should verify");
         assert_eq!(report.verdict, "VERIFIED");
         assert_eq!(report.transition_count, 4);
+    }
+
+    #[test]
+    fn portability_report_is_replayable_by_the_independent_verifier() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/polkadot_hub_portability_rehearsal.json"
+        );
+        let bytes = std::fs::read(path).expect("portability report exists");
+        let report = verify_portability_json(
+            std::str::from_utf8(&bytes).expect("portability report is UTF-8"),
+        )
+        .expect("the published portability report should replay independently");
+
+        assert_eq!(report.verdict, "VERIFIED");
+        assert_eq!(report.observation_count, 2);
+        assert_eq!(report.transition_projection, "MATCH");
+        assert_eq!(report.stale_predecessor_rejection, "BAD_PREVIOUS_STATE");
+    }
+
+    #[test]
+    fn portability_report_rejects_tampered_nested_evidence() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/polkadot_hub_portability_rehearsal.json"
+        );
+        let bytes = std::fs::read(path).expect("portability report exists");
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&bytes).expect("portability report is JSON");
+        value["observations"][1]["evidence"]["head"]["stateRoot"] =
+            serde_json::Value::String(format!("0x{}", "44".repeat(32)));
+
+        let error = verify_portability_json(
+            &serde_json::to_string(&value).expect("tampered report serializes"),
+        )
+        .expect_err("a changed nested head must fail closed");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message)
+                if message == "PORTABILITY_POLKADOT_BUNDLE_INVALID:HEAD_RECONSTRUCTION_MISMATCH"
+        ));
     }
 }

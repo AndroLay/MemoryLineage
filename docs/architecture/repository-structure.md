@@ -10,7 +10,7 @@ submission product.
 ```text
 contracts/       protocol inputs and shared vectors
 evm/             preserved JavaScript/EthereumJS compatibility lane
-crates/          primary Rust protocol, evidence, RPC, EVM, recovery, reference runtime, CLI, and verifier lanes
+crates/          primary Rust protocol, evidence, RPC, EVM, portability, recovery, reference runtime, CLI, and verifier lanes
 verifier/python/ historical independent replay oracle
 evidence/        reproducible outputs and public chain observations
 apps/inspector/  Dioxus Web inspect, tampering, and portable-verification surface
@@ -39,6 +39,9 @@ runtime code is not shared between them.
   commitments only.
 - `fixtures/silent-rollback/` preserves the earlier 17/18/19 fixture as a
   historical compatibility input.
+- `evidence/local/polkadot_hub_portability_rehearsal.json` is a local REVM
+  comparison artifact. It records a chain-context rehearsal only; it is not a
+  public Polkadot deployment or RPC observation.
 
 ## Why this is smaller than the reference repository
 

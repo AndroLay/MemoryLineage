@@ -5,7 +5,7 @@
     "name": "silent-rollback",
     "restoredSequence": 1
   },
-  "commitmentDomain": "memorylineage/private-snapshot/v1",
+  "commitmentDomain": "memorylineage/private-snapshot/v2",
   "description": "Registry-aligned synthetic SQLite values modeling private agent snapshots for the unified Demo Space V2.",
   "fixtureId": "silent-rollback-v2",
   "generatedBy": "ml-cli fixture demo-manifest",
@@ -13,19 +13,19 @@
     {
       "file": "snapshot-1.db",
       "sequence": 1,
-      "snapshotCommitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
+      "snapshotCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
       "visibleLabel": "Language preference recorded"
     },
     {
       "file": "snapshot-2.db",
       "sequence": 2,
-      "snapshotCommitment": "0x7e4497a6824ae736b7c12d99675d022e4a00525842b6cddc0016dc8682d8cf29",
+      "snapshotCommitment": "0x82695d499b0c82310bc9733c1cadca22c421061273efe2a5de6d1c7c402b677f",
       "visibleLabel": "Evidence-backed claim policy recorded"
     },
     {
       "file": "snapshot-3.db",
       "sequence": 3,
-      "snapshotCommitment": "0xc955da5c7817c8a4164b7186629b02150ae91f70c9aabb19178d8dcb5467d911",
+      "snapshotCommitment": "0x17069cac5b96a074dc1f3efc8aec5c094bb6ac6acdfd73d071388f66b383aef7",
       "visibleLabel": "Raw-memory privacy boundary recorded"
     }
   ],

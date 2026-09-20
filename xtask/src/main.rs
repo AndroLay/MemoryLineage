@@ -331,6 +331,105 @@ fn verify_demo_space_v2() -> Result<(), String> {
     result.map(|_| println!("PASS Demo Space V2 evidence"))
 }
 
+fn verify_polkadot_hub_portability() -> Result<(), String> {
+    let destination = std::env::temp_dir().join(format!(
+        "memorylineage-polkadot-portability-{}.json",
+        std::process::id()
+    ));
+    let destination_text = destination
+        .to_str()
+        .ok_or_else(|| "temporary portability path is not valid UTF-8".to_owned())?;
+    let result = run(
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "portability",
+            "polkadot-hub-rehearsal",
+            destination_text,
+        ],
+    );
+    if let Err(error) = result {
+        let _ = fs::remove_file(&destination);
+        return Err(error);
+    }
+    let expected = fs::read("evidence/local/polkadot_hub_portability_rehearsal.json")
+        .map_err(|error| format!("could not read committed portability report: {error}"))?;
+    let generated = fs::read(&destination)
+        .map_err(|error| format!("could not read generated portability report: {error}"))?;
+    if expected != generated {
+        let _ = fs::remove_file(&destination);
+        return Err("Polkadot Hub portability rehearsal is not reproducibly generated".to_owned());
+    }
+    if let Err(error) = run(
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "portability",
+            "verify",
+            destination_text,
+        ],
+    ) {
+        let _ = fs::remove_file(&destination);
+        return Err(error);
+    }
+    let report: serde_json::Value = match serde_json::from_slice(&generated) {
+        Ok(report) => report,
+        Err(error) => {
+            let _ = fs::remove_file(&destination);
+            return Err(format!("portability report is invalid JSON: {error}"));
+        }
+    };
+    if report.get("status").and_then(serde_json::Value::as_str) != Some("LOCAL_REHEARSAL_PASS")
+        || report
+            .pointer("/target/deployment")
+            .and_then(serde_json::Value::as_str)
+            != Some("NOT_PERFORMED")
+        || report
+            .pointer("/target/publicRpcObservation")
+            .and_then(serde_json::Value::as_str)
+            != Some("NOT_PERFORMED")
+        || report
+            .pointer("/comparison/stalePredecessorRejection")
+            .and_then(serde_json::Value::as_str)
+            != Some("BAD_PREVIOUS_STATE")
+    {
+        let _ = fs::remove_file(&destination);
+        return Err("Polkadot Hub portability report has an invalid status boundary".to_owned());
+    }
+    let schema: serde_json::Value =
+        match fs::read("evidence/schemas/portability-rehearsal-v1.schema.json")
+            .map_err(|error| format!("could not read portability schema: {error}"))
+            .and_then(|bytes| {
+                serde_json::from_slice(&bytes)
+                    .map_err(|error| format!("portability schema is invalid JSON: {error}"))
+            }) {
+            Ok(schema) => schema,
+            Err(error) => {
+                let _ = fs::remove_file(&destination);
+                return Err(error);
+            }
+        };
+    if schema
+        .pointer("/properties/schemaVersion/const")
+        .and_then(serde_json::Value::as_str)
+        != Some("memorylineage-portability-v1")
+    {
+        let _ = fs::remove_file(&destination);
+        return Err("portability schema is not pinned to v1".to_owned());
+    }
+    let _ = fs::remove_file(&destination);
+    println!("PASS Polkadot Hub portability rehearsal and independent replay");
+    Ok(())
+}
+
 fn verify_recovery_preflight() -> Result<(), String> {
     let temp_root = std::env::temp_dir().join(format!(
         "memorylineage-recovery-receipt-{}",
@@ -401,6 +500,10 @@ fn verify_recovery_preflight() -> Result<(), String> {
             .map_err(|error| format!("published recovery receipt is invalid JSON: {error}"))?;
         if receipt.get("policyId").and_then(serde_json::Value::as_str)
             != Some("strict-current-head-only-v1")
+            || receipt
+                .pointer("/candidate/snapshotProfile")
+                .and_then(serde_json::Value::as_str)
+                != Some("memorylineage/private-snapshot/v2")
             || receipt
                 .pointer("/evidence/sourceClass")
                 .and_then(serde_json::Value::as_str)
@@ -910,6 +1013,7 @@ fn verify() -> Result<(), String> {
     )?;
     verify_fixture_manifest()?;
     verify_demo_space_v2()?;
+    verify_polkadot_hub_portability()?;
     verify_recovery_preflight()?;
     verify_reference_agent_runtime()?;
     verify_security_assurance()?;
@@ -1181,6 +1285,7 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "evidence/local/rust_revm_authority_rotation.json",
             "evidence/local/reference_agent_runtime.json",
             "evidence/local/security_assurance_report.json",
+            "evidence/local/polkadot_hub_portability_rehearsal.json",
             "evidence/sepolia/sepolia_reread.json",
             "evidence/sepolia/silent_rollback_fixture_eth_call.json"
         ],

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Solidity 0.8.x, `solc`, EthereumJS VM, ethers-compatible signing, Python 3 standard library, unittest, JSON evidence.
 
-**Spec:** [DEEP_RESEARCH_2026-09-08.md](/home/andro/dev/projects/Devpost/3rd-Web-Hack/DEEP_RESEARCH_2026-09-08.md:1) and [AUDIT_LOOP_4_7_2026-09-08.md](/home/andro/dev/projects/Devpost/3rd-Web-Hack/AUDIT_LOOP_4_7_2026-09-08.md:1)
+**Spec:** [DEEP_RESEARCH_2026-09-08.md](../../research/DEEP_RESEARCH_2026-09-08.md:1) and [AUDIT_LOOP_4_7_2026-09-08.md](../../research/AUDIT_LOOP_4_7_2026-09-08.md:1)
 
 ## Global Constraints
 

@@ -3839,6 +3839,7 @@ dependencies = [
  "ml-evidence",
  "ml-local-evm",
  "ml-memory-store",
+ "ml-portability",
  "ml-recovery-gate",
  "ml-spec-types",
  "ml-verifier-independent",
@@ -3910,7 +3911,18 @@ name = "ml-memory-store"
 version = "0.1.0"
 dependencies = [
  "ml-core",
+ "ml-spec-types",
  "rusqlite",
+ "serde",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "ml-portability"
+version = "0.1.0"
+dependencies = [
+ "ml-local-evm",
+ "ml-spec-types",
  "serde",
  "thiserror 2.0.20",
 ]

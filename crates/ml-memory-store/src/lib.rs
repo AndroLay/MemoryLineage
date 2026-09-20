@@ -136,9 +136,11 @@ pub fn restore_snapshot(
     write_snapshot(destination, snapshot.sequence, &snapshot.values)
 }
 
-/// Derive a deterministic commitment for a private snapshot without exposing
-/// its contents. This is a fixture commitment, not a claim that the raw
-/// SQLite state is a semantic memory root.
+/// Derive the legacy V1 deterministic commitment for a private snapshot.
+///
+/// This delimiter-based encoding is retained so existing fixture and evidence
+/// hashes remain reproducible. New portable artifacts should use
+/// [`snapshot_commitment_v2`] instead.
 pub fn snapshot_commitment(snapshot: &MemorySnapshot) -> String {
     let mut canonical = format!(
         "memorylineage/private-snapshot/v1|sequence={}|",
@@ -151,6 +153,41 @@ pub fn snapshot_commitment(snapshot: &MemorySnapshot) -> String {
         canonical.push('|');
     }
     ml_core::keccak_text(&canonical)
+}
+
+/// Derive the V2 deterministic commitment for a private snapshot without
+/// exposing its contents.
+///
+/// V2 uses a domain-separated, length-prefixed binary encoding. Keys are
+/// traversed in `BTreeMap` order, so the result is deterministic while values
+/// containing delimiters cannot collide with a different key/value layout.
+/// This is a fixture commitment, not a claim that the raw SQLite state is a
+/// semantic memory root.
+pub fn snapshot_commitment_v2(snapshot: &MemorySnapshot) -> String {
+    let mut canonical = Vec::new();
+    canonical.extend_from_slice(ml_spec_types::SNAPSHOT_PROFILE_V2.as_bytes());
+    canonical.extend_from_slice(&snapshot.sequence.to_be_bytes());
+    canonical.extend_from_slice(
+        &u64::try_from(snapshot.values.len())
+            .expect("a BTreeMap length must fit in the canonical u64 count")
+            .to_be_bytes(),
+    );
+
+    for (key, value) in &snapshot.values {
+        append_length_prefixed(&mut canonical, key.as_bytes());
+        append_length_prefixed(&mut canonical, value.as_bytes());
+    }
+
+    ml_core::format_hex(&ml_core::keccak256(&canonical))
+}
+
+fn append_length_prefixed(output: &mut Vec<u8>, value: &[u8]) {
+    output.extend_from_slice(
+        &u64::try_from(value.len())
+            .expect("a string length must fit in the canonical u64 length")
+            .to_be_bytes(),
+    );
+    output.extend_from_slice(value);
 }
 
 pub fn snapshot_observations(
@@ -240,7 +277,7 @@ pub fn demo_space_v2_observations(
             sequence: snapshot.sequence,
             file: format!("snapshot-{}.db", snapshot.sequence),
             visible_label: None,
-            snapshot_commitment: snapshot_commitment(&snapshot),
+            snapshot_commitment: snapshot_commitment_v2(&snapshot),
         })
         .collect::<Vec<_>>();
     Ok(observations)
@@ -363,6 +400,28 @@ mod tests {
     }
 
     #[test]
+    fn v2_snapshot_commitment_separates_delimiter_ambiguous_values() {
+        let first = MemorySnapshot {
+            sequence: 1,
+            values: [("a".to_owned(), "b=c|d".to_owned())].into_iter().collect(),
+        };
+        let second = MemorySnapshot {
+            sequence: 1,
+            values: [("a=b".to_owned(), "c|d".to_owned())].into_iter().collect(),
+        };
+
+        assert_eq!(
+            snapshot_commitment(&first),
+            snapshot_commitment(&second),
+            "the legacy V1 encoding documents the ambiguity this profile fixes"
+        );
+        assert_ne!(
+            snapshot_commitment_v2(&first),
+            snapshot_commitment_v2(&second)
+        );
+    }
+
+    #[test]
     fn demo_space_v2_uses_registry_aligned_sequences_without_rewriting_v1() {
         let root = std::env::temp_dir().join(format!(
             "memorylineage-demo-space-v2-{}",
@@ -380,6 +439,10 @@ mod tests {
         assert_eq!(snapshots[2].values["privacy"], "raw-memory-private");
         let observations = demo_space_v2_observations(&root).expect("observations should derive");
         assert_eq!(observations.len(), 3);
+        assert_eq!(
+            observations[0].snapshot_commitment,
+            snapshot_commitment_v2(&snapshots[0])
+        );
         assert!(!observations[0].snapshot_commitment.contains("Indonesian"));
         let _ = std::fs::remove_dir_all(root);
     }

@@ -31,21 +31,26 @@ PUBLIC = ROOT / "target/dx/memorylineage-inspector/release/web/public"
 CDP_SOCKET_TIMEOUT_SECONDS = 8
 BOOT_TIMEOUT_SECONDS = 45
 INTERACTION_TIMEOUT_SECONDS = 25
+# The optional Sepolia probe performs several public-RPC reads and can be
+# slower than a local UI interaction. Keep its deadline separate so a slow
+# provider does not make the whole release smoke flaky while preserving the
+# truthful terminal-state checks below.
+SEPOLIA_PROBE_TIMEOUT_SECONDS = 45
 DESKTOP_VIEWPORT = (1440, 1000)
 MOBILE_VIEWPORT = (390, 844)
 
 ROUTES = {
     "/": "Verify the history",
-    "/inspect": "What is canonical right now?",
-    "/history": "How did the canonical history get here?",
-    "/history/3": "What exactly happened in this transition?",
-    "/lab": "Will an old backup pass as the next state?",
-    "/verify": "Can I verify this without trusting the website?",
-    "/evidence": "Where is the proof behind the claims?",
-    "/architecture": "How does MemoryLineage work?",
-    "/security": "What does this system actually guarantee?",
-    "/reproduce": "Can another developer reproduce these claims?",
-    "/prior-work": "What existed before the hackathon",
+    "/inspect": "Inspect Memory Space",
+    "/history": "Canonical committed lineage and authority events.",
+    "/history/3": "Transition #3",
+    "/lab": "Tampering Lab",
+    "/verify": "Verify Evidence",
+    "/evidence": "Public Evidence",
+    "/architecture": "How It Works",
+    "/security": "Security & Scope",
+    "/reproduce": "Reproduce the Submission",
+    "/prior-work": "What existed before the hackathon?",
 }
 
 
@@ -617,7 +622,7 @@ def click_and_wait_for_sepolia_probe(cdp: CdpSocket) -> None:
     if cdp.evaluate(expression) is not True:
         raise RuntimeError("button not found: Probe separate Sepolia")
 
-    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    deadline = time.time() + SEPOLIA_PROBE_TIMEOUT_SECONDS
     terminal_states = {"LIVE RPC: REJECTED", "SEPOLIA PROBE: UNAVAILABLE"}
     while time.time() < deadline:
         try:

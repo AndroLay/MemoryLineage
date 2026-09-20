@@ -8,6 +8,9 @@ pub const EVIDENCE_V1: &str = "memorylineage-evidence-v1";
 pub const EVIDENCE_V2: &str = "memorylineage-evidence-v2";
 pub const RECOVERY_RECEIPT_V1: &str = "memorylineage-recovery-receipt-v1";
 pub const SNAPSHOT_PROFILE_V1: &str = "memorylineage/private-snapshot/v1";
+pub const SNAPSHOT_PROFILE_V2: &str = "memorylineage/private-snapshot/v2";
+pub const PORTABILITY_REHEARSAL_V1: &str = "memorylineage-portability-v1";
+pub const POLKADOT_HUB_TESTNET_CHAIN_ID: &str = "420420417";
 pub const RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1: &str = "strict-current-head-only-v1";
 
 pub const SOURCE_DEMO_SPACE_V2_LOCAL: &str = "DEMO_SPACE_V2_LOCAL";
@@ -305,6 +308,67 @@ pub struct EvidenceBundleV2 {
     pub privacy: PrivacyBoundary,
     #[serde(rename = "verificationMetadata")]
     pub verification_metadata: VerificationMetadata,
+}
+
+/// A complete, replayable observation used by the portability rehearsal.
+///
+/// The report keeps the two bundles together so an independent verifier can
+/// validate each bundle and then compare the resulting projections. It is
+/// still evidence of local execution only; it does not imply a public network
+/// observation.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortabilityObservation {
+    pub label: String,
+    #[serde(rename = "executionBackend")]
+    pub execution_backend: String,
+    pub evidence: EvidenceBundleV2,
+    #[serde(rename = "domainSeparator")]
+    pub domain_separator: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortabilityRehearsalReport {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: String,
+    #[serde(rename = "reportType")]
+    pub report_type: String,
+    pub status: String,
+    pub target: PortabilityTarget,
+    pub comparison: PortabilityComparison,
+    pub claims: Vec<String>,
+    pub observations: Vec<PortabilityObservation>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortabilityTarget {
+    pub network: String,
+    #[serde(rename = "chainId")]
+    pub chain_id: String,
+    #[serde(rename = "executionBackend")]
+    pub execution_backend: String,
+    pub deployment: String,
+    #[serde(rename = "publicRpcObservation")]
+    pub public_rpc_observation: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PortabilityComparison {
+    #[serde(rename = "canonicalTransitions")]
+    pub canonical_transitions: String,
+    #[serde(rename = "stateRoots")]
+    pub state_roots: String,
+    #[serde(rename = "stalePredecessorRejection")]
+    pub stale_predecessor_rejection: String,
+    #[serde(rename = "authorityHistory")]
+    pub authority_history: String,
+    #[serde(rename = "eip712Domain")]
+    pub eip712_domain: String,
+    #[serde(rename = "solidityArtifact")]
+    pub solidity_artifact: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

@@ -7,7 +7,7 @@ Date: 2026-09-19
 ## Goal
 
 Rebuild the MemoryLineage Inspector presentation as a light evidence
-workspace inspired by the owner-supplied references in `/home/andro/Downloads/web3/`.
+workspace inspired by the owner-supplied references in `the owner-supplied visual reference directory`.
 The website remains the primary product. Existing Rust/WASM verification,
 Sepolia read-only inspection, published evidence fallback, and exact contract
 revert reasons remain the source of truth.
@@ -18,7 +18,7 @@ Inspector verifies, and how to run the Silent Rollback demonstration.
 
 ## Reference boundary
 
-The screenshots under `/home/andro/Downloads/web3/` are visual references
+The screenshots under `the owner-supplied visual reference directory` are visual references
 only. They are not runtime assets and their example counts, dates, hashes,
 labels, or claims must not be copied into product data.
 

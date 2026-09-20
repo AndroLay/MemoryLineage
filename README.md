@@ -116,9 +116,20 @@ flowchart LR
 ```
 
 Raw memory remains outside the chain and portable evidence. Demo Space V2 is
-synthetic test data, not user data. A separate Sepolia deployment and readback
-observation is included in the repository; the local Demo Space V2 history is
-not claimed as deployed to Sepolia.
+synthetic test data, not user data. The repository includes a separate Sepolia
+readback observation; Demo Space V2 is not claimed as deployed to Sepolia.
+
+### 7. Portability boundary
+
+```mermaid
+flowchart LR
+    E[Ethereum-local REVM] --> C[Compare transitions, roots, authority, rollback]
+    P[Polkadot Hub TestNet chain context] --> C
+    C --> R[LOCAL_REHEARSAL_PASS]
+    R --> N[Deployment and public RPC: NOT PERFORMED]
+```
+
+This is local portability preparation, not a public Polkadot deployment or cross-chain consensus claim.
 
 ## What it verifies
 
@@ -153,11 +164,11 @@ offline signer-contract reexecution.
 | Ethereum access | Alloy and read-only JSON-RPC |
 | Local execution | `revm` |
 | Fixture | Deterministic SQLite |
+| Portability | Local Polkadot Hub REVM chain-context rehearsal |
 | Independent verifier | Rust `ml-verifier-independent` |
 | Compatibility lanes | JavaScript/EthereumJS and Python |
 
-The pinned ERC-8350 draft is treated as a compatibility target. It is not
-described as a final standard.
+The pinned ERC-8350 draft is a compatibility target, not a final standard.
 
 ## Quick start
 
@@ -204,6 +215,8 @@ cargo run -q -p ml-cli -- revm mutations
 cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json
 cargo run -q -p ml-cli -- agent reference-demo
 cargo run -q -p ml-cli -- security bounded-audit
+cargo run -q -p ml-cli -- portability polkadot-hub-rehearsal
+cargo run -q -p ml-cli -- portability verify
 ```
 
 For a transportable clean archive:
@@ -213,8 +226,7 @@ cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
 cargo xtask reviewer-reproduce
 ```
 
-The reviewer archive reproduction is automated evidence. It is not a claim of
-independent human reproduction or external adoption.
+The reviewer archive reproduction is automated evidence, not a claim of independent human reproduction or external adoption.
 
 ## Verification status
 
@@ -225,14 +237,12 @@ The release gate currently covers:
 - SQLite fixture regeneration and Demo Space V2 invariants;
 - Rust/revm Silent Rollback, mutation, ERC-1271, and authority lanes;
 - reference agent-runtime recovery gating and bounded assurance;
+- local Polkadot Hub chain-context portability rehearsal with explicit limits;
 - 11-route browser smoke, accessibility, keyboard, responsive, tamper, and
   restore flows;
 - public package boundaries and legacy EVM/Python compatibility checks.
 
-The dependency scans report no known vulnerability, unsoundness, or yanked
-package. The RustSec scan reports two unmaintained transitive crates,
-`derivative` and `paste`; they are maintenance warnings, not known
-exploits.
+The dependency scans report no known vulnerability, unsoundness, or yanked package. RustSec reports two unmaintained transitive crates, `derivative` and `paste`; these are maintenance warnings, not known exploits.
 
 Still intentionally outside this repository release:
 
@@ -251,6 +261,7 @@ Still intentionally outside this repository release:
 | `crates/ml-evidence/` | Evidence schemas and projections |
 | `crates/ml-memory-store/` | SQLite snapshot tooling |
 | `crates/ml-local-evm/` | Rust/revm execution lane |
+| `crates/ml-portability/` | Explicit local portability rehearsal |
 | `crates/ml-verifier-independent/` | Separate Rust replay verifier |
 | `crates/ml-cli/` | Auditor and developer commands |
 | `fixtures/` | Synthetic public snapshots |
@@ -264,6 +275,7 @@ Still intentionally outside this repository release:
 - [Inspector demo runbook](docs/product/inspector-demo.md)
 - [Repository structure](docs/architecture/repository-structure.md)
 - [System boundaries](docs/architecture/system-boundaries.md)
+- [Portability rehearsal](docs/architecture/portability-rehearsal.md)
 - [Rust parity ledger](docs/migration/rust-parity.md)
 - [Testing and evidence](docs/testing.md)
 - [Security assurance](docs/security/security-assurance.md)

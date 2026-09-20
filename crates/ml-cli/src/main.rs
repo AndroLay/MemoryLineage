@@ -9,9 +9,12 @@ use ml_memory_store::{
     inspect_demo_space_v2_fixture, inspect_silent_rollback_fixture, restore_snapshot,
     snapshot_observations,
 };
-use ml_recovery_gate::{ProtectedResumeError, protected_resume};
+use ml_portability::run_polkadot_hub_rehearsal;
+use ml_recovery_gate::{
+    ProtectedResumeError, preflight_snapshot_with_profile, protected_resume_with_profile,
+};
 use ml_spec_types::EvidenceBundleV2;
-use ml_verifier_independent::{build_recovery_receipt, verify_file, verify_recovery_receipt};
+use ml_verifier_independent::{verify_file, verify_portability_file, verify_recovery_receipt};
 use std::path::{Path, PathBuf};
 
 fn repository_root() -> PathBuf {
@@ -43,6 +46,8 @@ fn usage() {
   cargo run -p ml-cli -- revm authority-rotation\n  \
   cargo run -p ml-cli -- revm demo-space-v2 [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- security bounded-audit [OUTPUT]\n  \
+  cargo run -p ml-cli -- portability polkadot-hub-rehearsal [OUTPUT]\n  \
+  cargo run -p ml-cli -- portability verify [REPORT]\n  \
   cargo run -p ml-cli -- evidence export-v2 [SOURCE] [DESTINATION]\n  \
   cargo run -p ml-cli -- evidence demo-v2 [FIXTURE_ROOT] [DESTINATION]\n  \
   cargo run -p ml-cli -- recover preflight <SNAPSHOT> [EVIDENCE] [RECEIPT] [SOURCE]\n  \
@@ -158,7 +163,7 @@ fn fixture_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 "fixtureId": "silent-rollback-v2",
                 "synthetic": true,
                 "description": "Registry-aligned synthetic SQLite values modeling private agent snapshots for the unified Demo Space V2.",
-                "commitmentDomain": "memorylineage/private-snapshot/v1",
+                "commitmentDomain": ml_spec_types::SNAPSHOT_PROFILE_V2,
                 "generatedBy": "ml-cli fixture demo-manifest",
                 "snapshots": observations,
                 "attack": {
@@ -225,6 +230,41 @@ fn security_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+fn portability_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    match args.first().map(String::as_str) {
+        Some("polkadot-hub-rehearsal") => {
+            let output = args.get(1).map(PathBuf::from).unwrap_or_else(|| {
+                repository_root().join("evidence/local/polkadot_hub_portability_rehearsal.json")
+            });
+            let snapshots = inspect_demo_space_v2_fixture(default_demo_fixture_root())?;
+            let commitments = snapshots
+                .iter()
+                .map(ml_memory_store::snapshot_commitment_v2)
+                .collect::<Vec<_>>();
+            let report = run_polkadot_hub_rehearsal(&commitments)?;
+            std::fs::write(
+                &output,
+                format!("{}\n", serde_json::to_string_pretty(&report)?),
+            )?;
+            println!(
+                "wrote local Polkadot Hub portability rehearsal to {}",
+                output.display()
+            );
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
+        Some("verify") => {
+            let report = args.get(1).map(PathBuf::from).unwrap_or_else(|| {
+                repository_root().join("evidence/local/polkadot_hub_portability_rehearsal.json")
+            });
+            let verification = verify_portability_file(&report)?;
+            println!("{}", serde_json::to_string_pretty(&verification)?);
+            Ok(())
+        }
+        _ => Err("portability requires polkadot-hub-rehearsal or verify".into()),
+    }
+}
+
 fn revm_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let action = args.first().map(String::as_str).unwrap_or("");
     match action {
@@ -256,7 +296,7 @@ fn revm_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let snapshots = inspect_demo_space_v2_fixture(&root)?;
             let commitments = snapshots
                 .iter()
-                .map(ml_memory_store::snapshot_commitment)
+                .map(ml_memory_store::snapshot_commitment_v2)
                 .collect::<Vec<_>>();
             let evidence = ml_local_evm::run_demo_space_v2(&commitments)?;
             println!("{}", serde_json::to_string_pretty(&evidence)?);
@@ -293,7 +333,7 @@ fn evidence_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
             let snapshots = inspect_demo_space_v2_fixture(&root)?;
             let commitments = snapshots
                 .iter()
-                .map(ml_memory_store::snapshot_commitment)
+                .map(ml_memory_store::snapshot_commitment_v2)
                 .collect::<Vec<_>>();
             let evidence: EvidenceBundleV2 = ml_local_evm::run_demo_space_v2(&commitments)?;
             write_v2_bundle(&evidence, &destination)?;
@@ -307,6 +347,14 @@ fn evidence_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 fn default_demo_evidence_path() -> PathBuf {
     repository_root().join("evidence/local/demo_space_v2_evidence.json")
+}
+
+fn snapshot_profile_for_source_class(source_class: &str) -> &'static str {
+    if source_class == ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL {
+        ml_spec_types::SNAPSHOT_PROFILE_V2
+    } else {
+        ml_spec_types::SNAPSHOT_PROFILE_V1
+    }
 }
 
 fn load_v2_evidence(
@@ -330,15 +378,14 @@ fn recovery_preflight(
         .get(3)
         .map(String::as_str)
         .unwrap_or("DEMO_SPACE_V2_LOCAL");
-    let snapshot = ml_memory_store::read_snapshot(snapshot_path)?;
     let evidence = load_v2_evidence(evidence_path)?;
-    Ok(build_recovery_receipt(
+    let (_, receipt) = preflight_snapshot_with_profile(
+        snapshot_path,
         &evidence,
-        &ml_memory_store::snapshot_commitment(&snapshot),
-        snapshot.sequence,
         source_class,
-        None,
-    )?)
+        snapshot_profile_for_source_class(source_class),
+    )?;
+    Ok(receipt)
 }
 
 fn recover_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
@@ -384,13 +431,19 @@ fn recover_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 .get(4)
                 .map(String::as_str)
                 .unwrap_or("DEMO_SPACE_V2_LOCAL");
-            match protected_resume(snapshot_path, &evidence, source_class, |snapshot| {
-                Ok::<String, String>(format!(
-                    "snapshot_sequence={},private_keys={}",
-                    snapshot.sequence,
-                    snapshot.values.len()
-                ))
-            }) {
+            match protected_resume_with_profile(
+                snapshot_path,
+                &evidence,
+                source_class,
+                snapshot_profile_for_source_class(source_class),
+                |snapshot| {
+                    Ok::<String, String>(format!(
+                        "snapshot_sequence={},private_keys={}",
+                        snapshot.sequence,
+                        snapshot.values.len()
+                    ))
+                },
+            ) {
                 Ok(resumed) => {
                     println!("{}", serde_json::to_string_pretty(&resumed.receipt)?);
                     println!("receipt verification: VERIFIED / PASS");
@@ -540,7 +593,7 @@ fn silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let snapshots = inspect_demo_space_v2_fixture(root)?;
     let commitments = snapshots
         .iter()
-        .map(ml_memory_store::snapshot_commitment)
+        .map(ml_memory_store::snapshot_commitment_v2)
         .collect::<Vec<_>>();
     let evidence = ml_local_evm::run_demo_space_v2(&commitments)?;
     let attack = evidence
@@ -636,6 +689,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         Some("conformance") => conformance_command(),
         Some("security") => security_command(&args.collect::<Vec<_>>()),
+        Some("portability") => portability_command(&args.collect::<Vec<_>>()),
         Some("revm") => revm_command(&args.collect::<Vec<_>>()),
         Some("evidence") => evidence_command(&args.collect::<Vec<_>>()),
         Some("recover") => recover_command(&args.collect::<Vec<_>>()),

@@ -30,7 +30,11 @@
       "required": ["snapshotProfile", "candidateCommitment", "snapshotSequence"],
       "properties": {
         "snapshotProfile": {
-          "const": "memorylineage/private-snapshot/v1"
+          "enum": [
+            "memorylineage/private-snapshot/v1",
+            "memorylineage/private-snapshot/v2"
+          ],
+          "description": "The receipt schema remains v1; the candidate commitment profile is versioned independently for legacy and unambiguous snapshot encodings."
         },
         "candidateCommitment": {
           "$ref": "#/$defs/bytes32"

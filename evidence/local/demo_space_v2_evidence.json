@@ -17,8 +17,8 @@
     "vectorHash": null
   },
   "head": {
-    "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
-    "stateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809",
+    "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+    "stateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
     "sequence": 3
   },
   "transitions": [
@@ -26,75 +26,75 @@
       "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
       "sequence": 1,
       "prevStateRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
-      "deltaCommitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
-      "provenanceCommitment": "0x9de51a008605d3fa6b73013b2b9e65068087dd174a17d869b2191aaae3444ed7",
+      "deltaCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
+      "provenanceCommitment": "0xf8b7636475923d56b0420cdc0b65a93249d94346b8e87bfa1c3d017528ad5bab",
       "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
-      "locatorCommitment": "0x7e071a67e108e23664facceb5dc87e78462ccba229029b7b2c74b129ad30f67e",
-      "transitionId": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
-      "nextStateRoot": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b"
+      "locatorCommitment": "0x1635abee2ee8e7bfb48c179d3a55ab2fa65cdb229b9abb10a45471318edfdb86",
+      "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
+      "nextStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6"
     },
     {
       "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
       "sequence": 2,
-      "prevStateRoot": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b",
-      "deltaCommitment": "0x7e4497a6824ae736b7c12d99675d022e4a00525842b6cddc0016dc8682d8cf29",
-      "provenanceCommitment": "0x6fe99cdb29986e1dfb69e721910432f1b88789c20f6fc971330dd7b6a59448b4",
+      "prevStateRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+      "deltaCommitment": "0x82695d499b0c82310bc9733c1cadca22c421061273efe2a5de6d1c7c402b677f",
+      "provenanceCommitment": "0x0c47a979095247a81958e2e8fb1491c08d3499967a9bb58dc08974e884fb0af9",
       "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
-      "locatorCommitment": "0xfa08b4557b5276d6b1c3bb4519aceba90f0c9f8e16b319bd37c0a827aa215246",
-      "transitionId": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
-      "nextStateRoot": "0xc8c3fc73d891d2b7ab61104a96a1fe8f0b23dd32efc15b25a501497fe8142b65"
+      "locatorCommitment": "0x7724146e86759c31ef19f9660cd6e34e695c275305e64e340a4e7e6be9b4211d",
+      "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
+      "nextStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3"
     },
     {
       "spaceId": "0x40159f0b27e609581b93930346027cc977b6717ee53c7ccf725c35105d162cb1",
       "sequence": 3,
-      "prevStateRoot": "0xc8c3fc73d891d2b7ab61104a96a1fe8f0b23dd32efc15b25a501497fe8142b65",
-      "deltaCommitment": "0xc955da5c7817c8a4164b7186629b02150ae91f70c9aabb19178d8dcb5467d911",
-      "provenanceCommitment": "0x8502edd3da016685549fe72379b4229f6bfd15150443188c0b252b9c815024d5",
+      "prevStateRoot": "0x1695499b314aa48d829d704246d78cb4e4f380e0f26f9380d7fa3b8734e4d8d3",
+      "deltaCommitment": "0x17069cac5b96a074dc1f3efc8aec5c094bb6ac6acdfd73d071388f66b383aef7",
+      "provenanceCommitment": "0xace70477ec842e3af20c1efc5847adfcedfe69a3c83ce5beade9ca1add79900a",
       "profileId": "0x9b19c9f72bcf8d35b46e0e723adbd9ad0cb9a5f0b8e8e4fb7cf5be6f2f9f5c7e",
-      "locatorCommitment": "0xed830f48ee4628f74515a9cfa0aa7e7e1719d0d5d7bdea831aeff0b3b135886a",
-      "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
-      "nextStateRoot": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809"
+      "locatorCommitment": "0x0982ac53902e0973e6806e9b9fb79bf6e1c735855625d7558c877d5898955ad1",
+      "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
+      "nextStateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0"
     }
   ],
   "authorizationProofs": [
     {
       "sequence": 1,
       "configNonce": 0,
-      "transitionId": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
+      "transitionId": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
       "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
       "authorizationType": "EOA_EIP712",
       "chainId": "31337",
       "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
-      "structHash": "0xf43e817abb41086e5cfdd5796e92d5c2717a1dc1819001b3e26f4facce9fe0dc",
+      "structHash": "0xfd0c7e962f95e390bf5a889ad5dc747db8974361f76bacee8e26869a7d982ead",
       "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
-      "signingDigest": "0x0a4b0d81f615646e5ac59ced904c192f9c457280bea0a1e5cf669fb479839389",
-      "signature": "0x3b72e06ff362faa8bbb6d67d060168c427d1dffb6381477ff004a0832f3e4945663b499d38c7283191855713fd2e3679d0dca22cec4792363536d2b32d00d1041c"
+      "signingDigest": "0x96d447d55a5ca3997a6e31112d93aa766b0985bf0166253ec1f3cbc7c7df82ba",
+      "signature": "0x80a8c46ca553f20083c72450ab8254d97ec1c3020488c6207e684e8cc90b09b03e2b6df2d0236bea263ae58329b8e74358c2bc4627acc424d899c88ba0c384371c"
     },
     {
       "sequence": 2,
       "configNonce": 0,
-      "transitionId": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
+      "transitionId": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
       "authorizer": "0x5cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb",
       "authorizationType": "EOA_EIP712",
       "chainId": "31337",
       "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
-      "structHash": "0xbaffc8504e5bb7970825a9966786bea373d4d927340a2fb69ef77553b48fcb25",
+      "structHash": "0xd85802df6a74a86c81afe567844503cd8ae95790d586aa6eda20ea86ba3c95ef",
       "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
-      "signingDigest": "0xd8116e9c1ee941183e62ddbbfaa0d9dd28ef41ac3a400a912b838582bc06ebaf",
-      "signature": "0xc96923c94aae66909639ada5632e82f3679340c423ca6efb0e44335560f1bcdf7507871c83a7c998499f3492cdf083d96f1947f5d8f859082e46d244ce9acb911b"
+      "signingDigest": "0x935a1ccd6d52229733f13376a172e6daf99c9773f65de42061b623715cf64411",
+      "signature": "0xbff4be2d64857defa8c7c462dbb667c720f2997422a1d97c98bdc43758fb02a35e0396808a9ea3423ff9b657b22763c669a2173e1c133ce545c7ca89a343fb3d1b"
     },
     {
       "sequence": 3,
       "configNonce": 1,
-      "transitionId": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "transitionId": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
       "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
       "authorizationType": "EOA_EIP712",
       "chainId": "31337",
       "verifyingContract": "0xcf23e7ac4477f4d7b93fea8512afbc21f532dcc6",
-      "structHash": "0x5c06b06aa9aea2f6cfe2735dca63ca532a456e56026dbbbb4cb12fbbd792ee6b",
+      "structHash": "0xe5d1b78582ec2a2810ba95311e5b9fef20d10cd32a95744ec6611e983c5fe145",
       "domainSeparator": "0xd23392b331662f5707dd00d0bf2ca6d8f7fef3ff6b872799f2fa4100e582f149",
-      "signingDigest": "0x45d35e970282db5c7ff9e6baa184da5007e7949998e21425b51d0512d48143b5",
-      "signature": "0x07c970323bf9e5b603ee6c268f15edab7c22f48c314d63c83c73929a2030a66474791d20181bae9bf1898f7bddc3943ae98f591402e5abdf0c99da5404d08d891b"
+      "signingDigest": "0x7b1b4f3e131607f7a24789a7d8754a54dbe7b9739bd3337f8c52d5c00958d46f",
+      "signature": "0xcbc87469af8edbca7adaeef4f27e8552ea8575227806fc2cd6e46b55bfb8222d27afcb6d8304695e9033da6c812be4fd80fc4042268a5e8980d102be5620233d1c"
     }
   ],
   "authorizationHistory": [
@@ -120,8 +120,8 @@
     "reason": "BAD_PREVIOUS_STATE",
     "restoredSnapshotSequence": 1,
     "attemptedSequence": 4,
-    "stalePredecessor": "0xcd92df69a7f425e7722471bee36cc8637b655daa5ca73264a93acd7d83bfa22b",
-    "canonicalPredecessor": "0xf6100104dd555ef99fb67e5fd3f789ff7f74a80a927bc6e6d72fb23df0071809",
+    "stalePredecessor": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+    "canonicalPredecessor": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
     "executionSource": "Rust/revm against published Solidity bytecode",
     "transactionBroadcast": false,
     "fixtureId": "silent-rollback-v2"

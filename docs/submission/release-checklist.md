@@ -13,6 +13,7 @@ evidence remains `NOT YET DEMONSTRATED`.
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
 | Evidence tamper/restore | PASS | `TRANSITION_ID_MISMATCH` then `VERIFIED` in browser smoke |
 | Recovery Decision Receipt | PASS | Current and historical receipts plus Rust/WASM/CLI checks |
+| Polkadot Hub portability rehearsal | PASS / local only | Nested Ethereum and target-context bundles replayed by the independent Rust verifier; deployment and public RPC remain `NOT_PERFORMED` |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` |
 | Public static website | LIVE | [memorylineage.pages.dev](https://memorylineage.pages.dev), hosted on Cloudflare Pages |
@@ -34,6 +35,10 @@ release path. Local development is supported through `cargo xtask serve-web`,
 which disables the pinned Dioxus alpha's incompatible Rust hot-patch path;
 `cargo xtask smoke-dev-web` repeats that browser check. Direct
 `dx serve --web` must include `--hot-patch false`.
+
+Dependency checks currently report no known RustSec or npm production
+vulnerabilities. RustSec still reports two transitive maintenance warnings:
+`derivative` and `paste`.
 
 ## External and submission gates
 
