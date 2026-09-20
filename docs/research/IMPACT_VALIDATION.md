@@ -1,9 +1,36 @@
 # MemoryLineage developer and impact validation
 
-Status saat ini: **PASS untuk dua sesi AI verifier independen**. Artefak
+Status saat ini: **reference runtime integration PASS locally; external human
+adoption NOT YET DEMONSTRATED**. Artefak
 `evidence/generated/research-spikes/impact_validation.json` menyimpan dua disposable-copy
 walkthrough, waktu replay, mismatch, jawaban protokol, dan label identitasnya.
-Validasi developer manusia tetap dicatat terpisah sebagai `PENDING`.
+Validasi developer manusia tetap dicatat terpisah sebagai `PENDING`. Artefak
+`evidence/local/reference_agent_runtime.json` sekarang menambahkan runtime
+reference yang benar-benar memuat snapshot current-head ke session dan menahan
+historical/diverged/invalid candidates sebelum loader. Itu adalah integrasi
+lokal yang dapat dijalankan ulang, bukan bukti adopsi eksternal.
+
+## Reference runtime integration
+
+Jalankan:
+
+```bash
+cargo run -q -p ml-cli -- agent reference-demo \
+  fixtures/silent-rollback-v2 \
+  evidence/local/demo_space_v2_evidence.json \
+  /tmp/reference-agent-runtime.json
+```
+
+Expected outcomes:
+
+- current head: `RESUMED` / loader invoked;
+- known historical checkpoint: `HELD` / `REHEARSE_ONLY`;
+- unknown or diverged snapshot: `HELD` / `HOLD_FOR_REVIEW`;
+- invalid evidence: `FAIL_CLOSED` / loader not invoked.
+
+This closes the repository's local implementation gap between a recovery
+decision and a runtime loader. It does not change the human-validation rule
+below.
 
 ## Protokol
 

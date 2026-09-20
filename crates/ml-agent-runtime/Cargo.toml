@@ -1,0 +1,16 @@
+[package]
+name = "ml-agent-runtime"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Reference agent-runtime resume adapter for MemoryLineage"
+
+[dependencies]
+ml-memory-store = { path = "../ml-memory-store" }
+ml-recovery-gate = { path = "../ml-recovery-gate" }
+ml-spec-types = { path = "../ml-spec-types" }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.20"
+
+[dev-dependencies]
+serde_json = "1.0.151"

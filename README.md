@@ -395,8 +395,21 @@ cargo run -q -p ml-cli -- verify evidence/local/memory_lineage_evm_evidence.json
 
 The Rust gate runs formatting, Clippy, workspace tests, deterministic fixture
 manifest regeneration, pinned conformance, independent replay, the Rust/revm
-Silent Rollback/mutation/ERC-1271/authority lanes, the Dioxus WASM compile, and
-the public package boundary check.
+Silent Rollback/mutation/ERC-1271/authority lanes, the reference agent-runtime
+loader boundary, bounded security assurance, the Dioxus WASM compile, and the
+public package boundary check.
+
+Run the two new evidence-producing surfaces directly when inspecting their
+artifacts:
+
+~~~bash
+cargo run -q -p ml-cli -- agent reference-demo
+cargo run -q -p ml-cli -- security bounded-audit
+~~~
+
+The reference runtime is a local framework-neutral integration. The security
+report is bounded executable assurance; neither is external adoption, a formal
+proof, or a third-party audit.
 
 ### Build the website
 
@@ -513,11 +526,11 @@ gates for a release candidate:
 
 | Evidence | Proves | Does not prove |
 | --- | --- | --- |
-| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, both fixture manifests, reproducible Demo Space V2 evidence, recovery receipt and protected-resume invariants, stale-root/authority/privacy invariants, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, or semantic truth of private memory |
+| `cargo xtask verify` | Rust formatting, Clippy, workspace tests, both fixture manifests, reproducible Demo Space V2 evidence, recovery receipt and protected-resume invariants, reference agent-runtime loader boundary, bounded security assurance, stale-root/authority/privacy invariants, conformance, independent replay, revm execution lanes, WASM compilation, and package boundaries | Deployed hosting, human understanding, external adoption, formal security proof, or semantic truth of private memory |
 | `cargo xtask build-web` | The pinned Dioxus application produces a static release artifact | A deployment platform serves every deep link correctly |
 | `cargo xtask smoke-web` | Chromium checks the static SPA fallback, 11 routes, Silent Rollback, evidence tamper/restore, and Recovery Decision Receipt tamper/restore | Production hosting, staging, or assistive-technology acceptance |
 | `cargo xtask smoke-dev-web` | Chromium checks the same routes and interactions against the supported hot-patch-disabled Dioxus development server | Production hosting, staging, or assistive-technology acceptance |
-| Rust/revm reports | The curated Solidity artifact agrees with the Rust lane for the published Silent Rollback, mutation, ERC-1271, and authority-rotation cases | Formal verification or all possible EVM/runtime behavior |
+| Rust/revm reports | The curated Solidity artifact agrees with the Rust lane for the published Silent Rollback, mutation, ERC-1271, authority-rotation, and bounded assurance cases | Formal verification, third-party audit, or all possible EVM/runtime behavior |
 | `npm run verify` | Preserved EVM, Python, fixture, Next.js typecheck/build, boundary, and package checks | Rust website visual quality or external user validation |
 | Sepolia deployment/readback | Recorded code, receipts, head, and second-endpoint observations match the published bundle | Light-client, consensus, or multi-provider consensus proof |
 | Browser smoke | The static release route and core Verify/Lab interactions render and expose exact results | Accessibility review on every device or production hosting |

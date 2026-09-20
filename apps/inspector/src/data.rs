@@ -20,6 +20,10 @@ pub const DEMO_RECOVERY_RECEIPT: &str =
 const SEPOLIA_DEPLOYMENT: &str = include_str!("../../../evidence/sepolia/sepolia_deployment.json");
 const SEPOLIA_REREAD: &str = include_str!("../../../evidence/sepolia/sepolia_reread.json");
 const CONFORMANCE_REPORT: &str = include_str!("../../../evidence/local/rust_revm_conformance.json");
+const REFERENCE_RUNTIME_REPORT: &str =
+    include_str!("../../../evidence/local/reference_agent_runtime.json");
+const SECURITY_ASSURANCE_REPORT: &str =
+    include_str!("../../../evidence/local/security_assurance_report.json");
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Scenario {
@@ -238,6 +242,84 @@ pub struct ConformanceEvidence {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct ReferenceRuntimeCase {
+    pub status: String,
+    #[serde(rename = "loader_invoked", alias = "loaderInvoked")]
+    pub loader_invoked: bool,
+    #[serde(default, rename = "recommendedAction", alias = "recommended_action")]
+    pub recommended_action: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct ReferenceRuntimeEvidence {
+    #[serde(rename = "reportType")]
+    pub report_type: String,
+    pub runtime: String,
+    #[serde(rename = "evidenceSource")]
+    pub evidence_source: String,
+    #[serde(rename = "rawMemoryExported")]
+    pub raw_memory_exported: bool,
+    #[serde(rename = "allExpected")]
+    pub all_expected: bool,
+    pub cases: ReferenceRuntimeCases,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct ReferenceRuntimeCases {
+    #[serde(rename = "currentHead")]
+    pub current_head: ReferenceRuntimeCase,
+    #[serde(rename = "historicalCheckpoint")]
+    pub historical_checkpoint: ReferenceRuntimeCase,
+    #[serde(rename = "divergedSnapshot")]
+    pub diverged_snapshot: ReferenceRuntimeCase,
+    #[serde(rename = "invalidEvidence")]
+    pub invalid_evidence: ReferenceRuntimeInvalidCase,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct ReferenceRuntimeInvalidCase {
+    pub status: String,
+    #[serde(rename = "loaderInvoked", alias = "loader_invoked")]
+    pub loader_invoked: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct SecurityAssuranceCase {
+    pub status: String,
+    pub expected: String,
+    pub observed: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct SecurityAssuranceMatrix {
+    pub total: usize,
+    pub rejected: usize,
+    pub all_expected: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct SecurityAssuranceInvariant {
+    pub name: String,
+    pub status: String,
+    pub expected: String,
+    pub observed: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+pub struct SecurityAssuranceEvidence {
+    pub report_type: String,
+    pub status: String,
+    pub formal_status: String,
+    pub valid_transitions: usize,
+    pub stale_predecessor_cases: Vec<SecurityAssuranceCase>,
+    pub sequence_gap_cases: Vec<SecurityAssuranceCase>,
+    pub mutation_matrix: SecurityAssuranceMatrix,
+    pub invariants: Vec<SecurityAssuranceInvariant>,
+    pub raw_memory_exported: bool,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct PrivateSnapshotRecord {
     pub sequence: u64,
@@ -286,6 +368,8 @@ pub struct UiData {
     pub deployment: DeploymentRecord,
     pub reread: SepoliaReread,
     pub conformance: ConformanceEvidence,
+    pub reference_runtime: ReferenceRuntimeEvidence,
+    pub security_assurance: SecurityAssuranceEvidence,
     pub mutation_count: usize,
     pub mutation_rejected: usize,
 }
@@ -402,6 +486,10 @@ impl UiData {
         let reread = serde_json::from_str(SEPOLIA_REREAD).expect("Sepolia reread evidence valid");
         let conformance =
             serde_json::from_str(CONFORMANCE_REPORT).expect("conformance evidence valid");
+        let reference_runtime = serde_json::from_str(REFERENCE_RUNTIME_REPORT)
+            .expect("reference agent runtime evidence valid");
+        let security_assurance = serde_json::from_str(SECURITY_ASSURANCE_REPORT)
+            .expect("bounded security assurance evidence valid");
         let mutation_count = bundle
             .mutation_matrix
             .iter()
@@ -424,6 +512,8 @@ impl UiData {
             deployment,
             reread,
             conformance,
+            reference_runtime,
+            security_assurance,
             mutation_count,
             mutation_rejected,
         }
@@ -737,6 +827,24 @@ mod tests {
         assert_eq!(data.deployment.chain_id, "11155111");
         assert_eq!(data.fixture.snapshots.len(), 3);
         assert_eq!(data.fixture.snapshots[0].sequence, 1);
+        assert!(data.reference_runtime.all_expected);
+        assert_eq!(data.reference_runtime.cases.current_head.status, "RESUMED");
+        assert!(data.reference_runtime.cases.current_head.loader_invoked);
+        assert_eq!(
+            data.reference_runtime
+                .cases
+                .historical_checkpoint
+                .recommended_action
+                .as_deref(),
+            Some("REHEARSE_ONLY")
+        );
+        assert_eq!(data.security_assurance.status, "BOUNDED_ASSURANCE_PASS");
+        assert_eq!(
+            data.security_assurance.formal_status,
+            "NOT_FORMALLY_VERIFIED"
+        );
+        assert_eq!(data.security_assurance.mutation_matrix.total, 20);
+        assert!(!data.security_assurance.raw_memory_exported);
         assert_eq!(
             data.fixture.attack.expected_contract_reason,
             "BAD_PREVIOUS_STATE"

@@ -79,6 +79,18 @@ broadcast.
    `RECOVERY_DECISION_MISMATCH` and `RECEIPT VERIFIED`.
 6. Verify the same exported bundle and receipt with the independent Rust CLI.
 
+The repository also exposes the runtime and assurance surfaces directly:
+
+```bash
+cargo run -q -p ml-cli -- agent reference-demo
+cargo run -q -p ml-cli -- security bounded-audit
+```
+
+The first command exercises a real local loader boundary: only the current
+head is loaded, while historical, diverged, and invalid candidates are held.
+The second executes the bounded Rust/revm assurance report. Neither command is
+an external adoption report or a formal third-party security audit.
+
 The separate protocol corpus still contains four committed transitions and
 the 20-case mutation lane. It is not presented as the Demo Space V2 incident.
 The result proves ordered committed history, predecessor continuity, the

@@ -3818,9 +3818,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "ml-agent-runtime"
+version = "0.1.0"
+dependencies = [
+ "ml-memory-store",
+ "ml-recovery-gate",
+ "ml-spec-types",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "ml-cli"
 version = "0.1.0"
 dependencies = [
+ "ml-agent-runtime",
  "ml-conformance",
  "ml-ethereum",
  "ml-evidence",

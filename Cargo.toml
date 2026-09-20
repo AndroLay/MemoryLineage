@@ -6,6 +6,7 @@ members = [
     "crates/ml-evidence",
     "crates/ml-conformance",
     "crates/ml-memory-store",
+    "crates/ml-agent-runtime",
     "crates/ml-recovery-gate",
     "crates/ml-ethereum",
     "crates/ml-local-evm",

@@ -1,0 +1,250 @@
+{
+  "report_type": "memorylineage-bounded-security-assurance-v1",
+  "status": "BOUNDED_ASSURANCE_PASS",
+  "formal_status": "NOT_FORMALLY_VERIFIED",
+  "execution": "revm against published Solidity creation bytecode",
+  "registry_artifact": "contracts/artifacts/memory_lineage_registry_creation.hex",
+  "chain_id": 31337,
+  "explored_histories": 1,
+  "valid_transitions": 5,
+  "stale_predecessor_cases": [
+    {
+      "name": "stale_predecessor_case_1",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "stale_predecessor_case_2",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "stale_predecessor_case_3",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "stale_predecessor_case_4",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "stale_predecessor_case_5",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "stale_predecessor_case_6",
+      "expected": "BAD_PREVIOUS_STATE",
+      "observed": "BAD_PREVIOUS_STATE",
+      "status": "REJECTED"
+    }
+  ],
+  "sequence_gap_cases": [
+    {
+      "name": "sequence_gap",
+      "expected": "BAD_SEQUENCE",
+      "observed": "BAD_SEQUENCE",
+      "status": "REJECTED"
+    },
+    {
+      "name": "sequence_zero",
+      "expected": "BAD_SEQUENCE",
+      "observed": "BAD_SEQUENCE",
+      "status": "REJECTED"
+    }
+  ],
+  "mutation_matrix": {
+    "total": 20,
+    "rejected": 20,
+    "all_expected": true,
+    "cases": [
+      {
+        "name": "sequence_gap",
+        "expected": "BAD_SEQUENCE",
+        "observed": "BAD_SEQUENCE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "sequence_zero",
+        "expected": "BAD_SEQUENCE",
+        "observed": "BAD_SEQUENCE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "rollback_predecessor",
+        "expected": "BAD_PREVIOUS_STATE",
+        "observed": "BAD_PREVIOUS_STATE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "wrong_predecessor_random",
+        "expected": "BAD_PREVIOUS_STATE",
+        "observed": "BAD_PREVIOUS_STATE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "zero_delta_commitment",
+        "expected": "ZERO_DELTA_COMMITMENT",
+        "observed": "ZERO_DELTA_COMMITMENT",
+        "status": "REJECTED"
+      },
+      {
+        "name": "zero_profile_id",
+        "expected": "ZERO_PROFILE_ID",
+        "observed": "ZERO_PROFILE_ID",
+        "status": "REJECTED"
+      },
+      {
+        "name": "unknown_space_a",
+        "expected": "UNKNOWN_SPACE",
+        "observed": "UNKNOWN_SPACE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "unknown_space_b",
+        "expected": "UNKNOWN_SPACE",
+        "observed": "UNKNOWN_SPACE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "wrong_eoa_signer",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "missing_signature",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "truncated_signature",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "signature_byte_tamper",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "signature_invalid_v",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "wrong_chain_domain",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "wrong_contract_domain",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "deltaCommitment_signature_binding",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "provenanceCommitment_signature_binding",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "locatorCommitment_signature_binding",
+        "expected": "INVALID_AUTHORIZATION",
+        "observed": "INVALID_AUTHORIZATION",
+        "status": "REJECTED"
+      },
+      {
+        "name": "duplicate_replay",
+        "expected": "BAD_SEQUENCE",
+        "observed": "BAD_SEQUENCE",
+        "status": "REJECTED"
+      },
+      {
+        "name": "parallel_history",
+        "expected": "BAD_SEQUENCE",
+        "observed": "BAD_SEQUENCE",
+        "status": "REJECTED"
+      }
+    ]
+  },
+  "erc1271": {
+    "accepted": true,
+    "rejected_reason": "INVALID_AUTHORIZATION"
+  },
+  "authority_rotation": {
+    "config_nonce": 1,
+    "authorizer": "0x1563915e194d8cfba1943570603f7606a3115508",
+    "old_authorizer_rejected": "INVALID_AUTHORIZATION",
+    "new_authorizer_accepted": true
+  },
+  "invariants": [
+    {
+      "name": "valid_history_state_roots",
+      "status": "PASS",
+      "expected": "5/5 Rust and Solidity roots match",
+      "observed": "5/5 Rust and Solidity roots match"
+    },
+    {
+      "name": "stale_predecessor_rejection",
+      "status": "PASS",
+      "expected": "6/6 BAD_PREVIOUS_STATE",
+      "observed": "6/6 BAD_PREVIOUS_STATE"
+    },
+    {
+      "name": "sequence_gap_rejection",
+      "status": "PASS",
+      "expected": "2/2 BAD_SEQUENCE",
+      "observed": "2/2 BAD_SEQUENCE"
+    },
+    {
+      "name": "adversarial_mutation_matrix",
+      "status": "PASS",
+      "expected": "20/20 expected rejections",
+      "observed": "20/20 expected rejections"
+    },
+    {
+      "name": "erc1271_authorization_boundary",
+      "status": "PASS",
+      "expected": "accepted then rejected after signer disables acceptance",
+      "observed": "accepted then rejected after signer disables acceptance"
+    },
+    {
+      "name": "authority_rotation",
+      "status": "PASS",
+      "expected": "nonce advances and old authority is rejected",
+      "observed": "nonce advances and old authority is rejected"
+    },
+    {
+      "name": "privacy_boundary",
+      "status": "PASS",
+      "expected": "rawMemoryExported=false",
+      "observed": "rawMemoryExported=false"
+    }
+  ],
+  "raw_memory_exported": false,
+  "limitations": [
+    "Bounded execution over the published corpus is not a formal proof over all inputs.",
+    "This report is not a third-party security audit or security certification.",
+    "It does not establish semantic truth or safety of private memory.",
+    "It does not establish production agent-runtime adoption."
+  ]
+}

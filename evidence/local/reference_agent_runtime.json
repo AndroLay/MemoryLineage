@@ -1,0 +1,49 @@
+{
+  "allExpected": true,
+  "cases": {
+    "currentHead": {
+      "candidate_commitment": "0xc955da5c7817c8a4164b7186629b02150ae91f70c9aabb19178d8dcb5467d911",
+      "classification": "CURRENT_HEAD",
+      "loader_invoked": true,
+      "raw_memory_exported": false,
+      "recommended_action": "RESUME_ALLOWED",
+      "runtime": "memorylineage-reference-agent-runtime-v1",
+      "snapshot_sequence": 3,
+      "status": "RESUMED"
+    },
+    "divergedSnapshot": {
+      "candidate_commitment": "0x1d150ebb2c4ad37a1b2ac0b1eda4249d6d238604b8f30f9193c1533bfadc3c79",
+      "classification": "UNKNOWN_OR_DIVERGED",
+      "loader_invoked": false,
+      "raw_memory_exported": false,
+      "recommended_action": "HOLD_FOR_REVIEW",
+      "runtime": "memorylineage-reference-agent-runtime-v1",
+      "snapshot_sequence": 3,
+      "status": "HELD"
+    },
+    "historicalCheckpoint": {
+      "candidate_commitment": "0x71247642845432d80db63f11c7ede84697e1380f5611524e4d317a1fae7fc993",
+      "classification": "KNOWN_HISTORICAL_CHECKPOINT",
+      "loader_invoked": false,
+      "raw_memory_exported": false,
+      "recommended_action": "REHEARSE_ONLY",
+      "runtime": "memorylineage-reference-agent-runtime-v1",
+      "snapshot_sequence": 1,
+      "status": "HELD"
+    },
+    "invalidEvidence": {
+      "loaderInvoked": false,
+      "status": "FAIL_CLOSED"
+    }
+  },
+  "evidenceSource": "DEMO_SPACE_V2_LOCAL",
+  "expected": {
+    "currentHead": "RESUME_ALLOWED / loader invoked",
+    "divergedSnapshot": "HOLD_FOR_REVIEW / loader not invoked",
+    "historicalCheckpoint": "REHEARSE_ONLY / loader not invoked",
+    "invalidEvidence": "FAIL_CLOSED"
+  },
+  "rawMemoryExported": false,
+  "reportType": "memorylineage-reference-agent-runtime-v1",
+  "runtime": "ReferenceAgentRuntime"
+}

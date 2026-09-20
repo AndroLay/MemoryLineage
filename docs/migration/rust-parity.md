@@ -11,6 +11,7 @@ not a judge score.
 | Structured conformance report | MATCH | `cargo run -q -p ml-cli -- conformance` |
 | SQLite snapshot read/restore | PASS | `cargo test -p ml-memory-store` |
 | Protected resume adapter | PASS | `cargo test -p ml-recovery-gate` holds snapshot 1 before the loader callback and permits snapshot 3 |
+| Reference agent runtime loader boundary | PASS | `cargo run -q -p ml-cli -- agent reference-demo` loads only the current head and holds historical/diverged/invalid candidates |
 | SQLite fixture commitment manifest | PASS | `cargo xtask verify` regenerates the manifest in `/tmp` and compares it byte-for-byte |
 | Alloy host ABI and Sepolia read | PASS | `cargo run -q -p ml-cli -- live inspect` |
 | Real Sepolia stale predecessor `eth_call` | PASS | `cargo run -q -p ml-cli -- live rollback` |
@@ -29,6 +30,7 @@ not a judge score.
 | Rust/revm core mutation lane | PASS | `cargo run -q -p ml-cli -- revm mutations` rejects 20/20 ordering, predecessor, zero-value, unknown-space, EOA signature/domain, replay, and branch cases with expected reasons |
 | Rust/revm ERC-1271 lane | PASS | `cargo run -q -p ml-cli -- revm erc1271` deploys the mock authorizer, accepts its owner signature, then rejects after acceptance is disabled |
 | Rust/revm authority rotation | PASS | `cargo run -q -p ml-cli -- revm authority-rotation` advances `configNonce`, rejects the old authorizer, and accepts the new authorizer |
+| Bounded security assurance | PASS | `cargo run -q -p ml-cli -- security bounded-audit` regenerates `evidence/local/security_assurance_report.json`; formal verification and third-party audit remain unclaimed |
 
 The exact contract revert reason remains `BAD_PREVIOUS_STATE`. Product copy may
 describe that result as a stale predecessor or predecessor mismatch, but the

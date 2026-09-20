@@ -16,6 +16,8 @@ mutation corpus separate in every explanation.
 | Restore Preflight | Verified against synthetic local evidence | “The Inspector classifies a selected public fixture commitment against the replayed Demo Space V2 head/history. It is not a production commitment, live chain assessment, or external runtime gate.” |
 | Recovery Decision Receipt | Verified locally and in Rust/WASM | “The receipts bind a selected snapshot commitment, named evidence source, effective authority assurance, and `strict-current-head-only-v1` policy to the replayed V2 bundle; published current-head and historical-hold artifacts cover `CURRENT_HEAD` and `KNOWN_HISTORICAL_CHECKPOINT`, while the browser/CLI also exercise divergent and unverified paths. They do not claim runtime enforcement.” |
 | Protected resume decision gate | Verified in the Rust `ml-recovery-gate` adapter and CLI fixture lane | “The adapter verifies the receipt and invokes its loader callback only for `RESUME_ALLOWED`; a known historical checkpoint is held as `REHEARSE_ONLY`. This is a generic reference adapter, not an integration with a production agent framework.” |
+| Reference agent runtime integration | Verified locally | “`ml-agent-runtime` loads the current-head snapshot into an in-memory session, holds historical and diverged snapshots before the loader, and fails closed on invalid evidence. This is a framework-neutral local integration; external adoption is not claimed.” |
+| Bounded security assurance | Verified locally | “Rust/revm exercises the checked-in Solidity artifact across five valid transitions, six stale predecessors, two sequence failures, the 20-case mutation matrix, ERC-1271, and authority rotation. The report explicitly remains `NOT_FORMALLY_VERIFIED`.” |
 | Recovery receipt privacy boundary | Verified by schema and artifact checks | “The published receipt contains commitments and evidence references only; raw SQLite values, secrets, and private locator contents are absent.” |
 | Sepolia rejection probe | Separate read-only observation | “The browser can issue a read-only `eth_call` to the existing Sepolia deployment using the same stale root. That registry space is not the Demo Space V2 history.” |
 | Browser Sepolia block context | Read-only RPC observation | “Head and probe calls are pinned to a resolved `finalized` or `safe` block number and the block hash is rechecked. This is one endpoint observation, not consensus proof.” |
@@ -34,7 +36,7 @@ mutation corpus separate in every explanation.
 | Memory truthfulness or AI reasoning correctness | Unsupported | Do not claim either property. |
 | Full historical offline ERC-1271 re-execution | Unsupported | Distinguish recorded on-chain acceptance from replaying the signer contract's historical state. |
 | Final ERC-8350 compliance | Unsupported | Say “conforms to the pinned draft/vector snapshot used by this build.” |
-| Formal security audit, complete security, or first implementation | Not claimed | Do not claim an audit, total security, or first-of-kind status. |
+| Formal security audit, complete security, or first implementation | Not claimed | Do not claim an audit, total security, or first-of-kind status. The bounded assurance report is not a third-party audit or formal proof. |
 | Judge score | Not applicable | The event publishes no numeric weighting. Do not publish an internally generated score as a judge result. |
 
 ## Competitive objective

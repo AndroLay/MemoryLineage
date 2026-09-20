@@ -145,7 +145,8 @@ fn Architecture() -> Element {
 
 #[component]
 fn Security() -> Element {
-    rsx! { SecurityPage {} }
+    let data = use_context::<UiData>();
+    rsx! { SecurityPage { data } }
 }
 
 #[component]

@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+use ml_agent_runtime::ReferenceAgentRuntime;
 use ml_conformance::run_pinned;
 use ml_ethereum::{inspect_registry, simulate_silent_rollback_with_predecessor};
 use ml_evidence::{load_public_replay_bundle, public_replay_to_v2, write_v2_bundle};
@@ -41,11 +42,13 @@ fn usage() {
   cargo run -p ml-cli -- revm erc1271\n  \
   cargo run -p ml-cli -- revm authority-rotation\n  \
   cargo run -p ml-cli -- revm demo-space-v2 [FIXTURE_ROOT]\n  \
+  cargo run -p ml-cli -- security bounded-audit [OUTPUT]\n  \
   cargo run -p ml-cli -- evidence export-v2 [SOURCE] [DESTINATION]\n  \
   cargo run -p ml-cli -- evidence demo-v2 [FIXTURE_ROOT] [DESTINATION]\n  \
   cargo run -p ml-cli -- recover preflight <SNAPSHOT> [EVIDENCE] [RECEIPT] [SOURCE]\n  \
   cargo run -p ml-cli -- recover verify <RECEIPT> [EVIDENCE]\n  \
   cargo run -p ml-cli -- recover enforce <SNAPSHOT> [EVIDENCE]\n  \
+  cargo run -p ml-cli -- agent reference-demo [FIXTURE_ROOT] [EVIDENCE] [OUTPUT]\n  \
   cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
   cargo run -p ml-cli -- demo legacy-silent-rollback [ROOT]\n  \
@@ -198,6 +201,28 @@ fn verify_command(path: &str) -> Result<(), Box<dyn std::error::Error>> {
 fn conformance_command() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", serde_json::to_string_pretty(&run_pinned()?)?);
     Ok(())
+}
+
+fn security_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    match args.first().map(String::as_str) {
+        Some("bounded-audit") => {
+            let output = args.get(1).map(PathBuf::from).unwrap_or_else(|| {
+                repository_root().join("evidence/local/security_assurance_report.json")
+            });
+            let report = ml_local_evm::run_bounded_security_assurance()?;
+            std::fs::write(
+                &output,
+                format!("{}\n", serde_json::to_string_pretty(&report)?),
+            )?;
+            println!(
+                "wrote bounded security assurance report to {}",
+                output.display()
+            );
+            Ok(())
+        }
+        Some(other) => Err(format!("unknown security action: {other}").into()),
+        None => Err("security requires bounded-audit".into()),
+    }
 }
 
 fn revm_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
@@ -389,6 +414,107 @@ fn recover_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+fn agent_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    match args.first().map(String::as_str) {
+        Some("reference-demo") => {
+            let fixture_root = args
+                .get(1)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_fixture_root);
+            let evidence_path = args
+                .get(2)
+                .map(PathBuf::from)
+                .unwrap_or_else(default_demo_evidence_path);
+            let output_path = args.get(3).map(PathBuf::from);
+            let evidence = load_v2_evidence(&evidence_path)?;
+            let mut runtime = ReferenceAgentRuntime::new();
+            let current = runtime.resume(
+                fixture_root.join("snapshot-3.db"),
+                &evidence,
+                ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+            )?;
+            let historical = runtime.resume(
+                fixture_root.join("snapshot-1.db"),
+                &evidence,
+                ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+            )?;
+
+            let diverged_path = std::env::temp_dir().join(format!(
+                "memorylineage-reference-agent-diverged-{}.db",
+                std::process::id()
+            ));
+            let diverged_values = [("unexpected".to_owned(), "local-only-state".to_owned())]
+                .into_iter()
+                .collect();
+            ml_memory_store::write_snapshot(&diverged_path, 3, &diverged_values)?;
+            let diverged = runtime.resume(
+                &diverged_path,
+                &evidence,
+                ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+            )?;
+            let _ = std::fs::remove_file(&diverged_path);
+
+            let mut invalid_evidence = evidence.clone();
+            invalid_evidence.transitions[0].transition_id = "0x00".to_owned();
+            let invalid = runtime.resume(
+                fixture_root.join("snapshot-3.db"),
+                &invalid_evidence,
+                ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+            );
+
+            let report = serde_json::json!({
+                "reportType": "memorylineage-reference-agent-runtime-v1",
+                "runtime": "ReferenceAgentRuntime",
+                "evidenceSource": ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+                "rawMemoryExported": false,
+                "cases": {
+                    "currentHead": current,
+                    "historicalCheckpoint": historical,
+                    "divergedSnapshot": diverged,
+                    "invalidEvidence": {
+                        "status": if invalid.is_err() { "FAIL_CLOSED" } else { "UNEXPECTED_SUCCESS" },
+                        "loaderInvoked": false,
+                    },
+                },
+                "expected": {
+                    "currentHead": "RESUME_ALLOWED / loader invoked",
+                    "historicalCheckpoint": "REHEARSE_ONLY / loader not invoked",
+                    "divergedSnapshot": "HOLD_FOR_REVIEW / loader not invoked",
+                    "invalidEvidence": "FAIL_CLOSED",
+                },
+                "allExpected": current.status == "RESUMED"
+                    && current.loader_invoked
+                    && historical.status == "HELD"
+                    && !historical.loader_invoked
+                    && historical.recommended_action == "REHEARSE_ONLY"
+                    && diverged.status == "HELD"
+                    && !diverged.loader_invoked
+                    && diverged.recommended_action == "HOLD_FOR_REVIEW"
+                    && invalid.is_err(),
+            });
+            if !report
+                .get("allExpected")
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Err(
+                    "reference agent runtime validation did not meet expected outcomes".into(),
+                );
+            }
+            if let Some(path) = output_path {
+                std::fs::write(
+                    &path,
+                    format!("{}\n", serde_json::to_string_pretty(&report)?),
+                )?;
+                eprintln!("wrote reference runtime report to {}", path.display());
+            }
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
+        _ => Err("agent requires reference-demo".into()),
+    }
+}
+
 fn legacy_silent_rollback_demo(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let snapshots = inspect_silent_rollback_fixture(root)?;
     let canonical = snapshots.last().ok_or("fixture has no snapshots")?;
@@ -509,9 +635,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             verify_command(&path)
         }
         Some("conformance") => conformance_command(),
+        Some("security") => security_command(&args.collect::<Vec<_>>()),
         Some("revm") => revm_command(&args.collect::<Vec<_>>()),
         Some("evidence") => evidence_command(&args.collect::<Vec<_>>()),
         Some("recover") => recover_command(&args.collect::<Vec<_>>()),
+        Some("agent") => agent_command(&args.collect::<Vec<_>>()),
         Some("demo") => match args.next().as_deref() {
             Some("silent-rollback") => {
                 let root = args

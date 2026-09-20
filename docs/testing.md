@@ -39,9 +39,10 @@ The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
 and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
 regeneration from freshly created SQLite files, snapshot/transition parity,
 stale-root attack checks, Recovery Decision Receipt generation/replay, the
-generic protected-resume adapter, independent evidence replay, the Rust/revm
-Silent Rollback/mutation/ERC-1271/authority lanes, the WASM compile, and the
-public package boundary check.
+generic protected-resume adapter, the reference agent-runtime loader boundary,
+the bounded Rust/revm security-assurance report, independent evidence replay,
+the Rust/revm Silent Rollback/mutation/ERC-1271/authority lanes, the WASM
+compile, and the public package boundary check.
 
 The static browser acceptance gate is separate and reproducible after the
 release artifact exists:
@@ -70,18 +71,22 @@ The supported development server can be started with:
 cargo xtask serve-web
 ```
 
-The pinned Dioxus alpha enables Rust hot-patching by default, while its
-browser emitter cannot parse the exception-handling module emitted by Rust
-1.97.1. `serve-web` passes `--hot-patch false` and keeps the browser path
-working. The repeatable acceptance check is:
+The pinned Dioxus alpha enables Rust hot-patching in its direct development
+runner by default, while its browser emitter cannot parse the
+exception-handling module emitted by Rust 1.97.1. The repository-owned
+`cargo xtask serve-web` workflow passes `--hot-patch false` and keeps the
+browser path working. The repeatable acceptance check is:
 
 ```bash
 cargo xtask smoke-dev-web
 ```
 
 The static release path remains the submission artifact and is checked by
-`cargo xtask smoke-web`. Direct `dx serve --web` use must include
-`--hot-patch false`.
+`cargo xtask smoke-web`. Plain `dx serve --web` remains an upstream pinned-CLI
+limitation; if it is invoked directly, it must include `--hot-patch false`.
+This repository treats `cargo xtask serve-web` and `cargo xtask smoke-dev-web`
+as the supported, tested developer workflow, so a contributor does not need to
+remember the fragile upstream flag.
 
 The release website artifact is built separately because it invokes the pinned
 Dioxus CLI:

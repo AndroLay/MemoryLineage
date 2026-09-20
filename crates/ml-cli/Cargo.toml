@@ -6,6 +6,7 @@ license = "MIT"
 description = "MemoryLineage developer and evidence CLI"
 
 [dependencies]
+ml-agent-runtime = { path = "../ml-agent-runtime" }
 ml-conformance = { path = "../ml-conformance" }
 ml-evidence = { path = "../ml-evidence" }
 ml-ethereum = { path = "../ml-ethereum" }

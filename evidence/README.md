@@ -29,3 +29,12 @@ The read-only Sepolia fixture rehearsal is recorded in
 `sepolia/silent_rollback_fixture_eth_call.json`. It uses the existing deployed
 registry and a commitment from snapshot 17; it does not perform a deployment
 or broadcast a transaction.
+
+`local/reference_agent_runtime.json` records the framework-neutral reference
+runtime loader outcomes for current-head, historical, diverged, and invalid
+evidence candidates. It is local integration evidence, not external adoption.
+
+`local/security_assurance_report.json` records the bounded Rust/revm assurance
+pass over the pinned Solidity artifact. Its formal status is deliberately
+`NOT_FORMALLY_VERIFIED`; it is not a third-party security audit. The structural
+schema is `schemas/security-assurance-v1.schema.json`.

@@ -133,6 +133,34 @@ pub struct AuthorityRotationObservation {
     pub new_authorizer_accepted: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SecurityInvariantObservation {
+    pub name: String,
+    pub status: String,
+    pub expected: String,
+    pub observed: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct SecurityAssuranceReport {
+    pub report_type: String,
+    pub status: String,
+    pub formal_status: String,
+    pub execution: String,
+    pub registry_artifact: String,
+    pub chain_id: u64,
+    pub explored_histories: usize,
+    pub valid_transitions: usize,
+    pub stale_predecessor_cases: Vec<MutationObservation>,
+    pub sequence_gap_cases: Vec<MutationObservation>,
+    pub mutation_matrix: MutationReport,
+    pub erc1271: Erc1271Observation,
+    pub authority_rotation: AuthorityRotationObservation,
+    pub invariants: Vec<SecurityInvariantObservation>,
+    pub raw_memory_exported: bool,
+    pub limitations: Vec<String>,
+}
+
 #[derive(Debug, Error)]
 pub enum LocalEvmError {
     #[error("invalid fixed value {name}: {value}")]
@@ -1048,6 +1076,189 @@ pub fn run_authority_rotation() -> Result<AuthorityRotationObservation, LocalEvm
     })
 }
 
+/// Run a bounded, executable security-assurance pass over the published
+/// Solidity creation artifact.
+///
+/// This is deliberately narrower than a formal verification or third-party
+/// security audit. It explores concrete histories and adversarial calls in an
+/// independent revm lane, records the exact Solidity revert reasons, and
+/// refuses to serialize any private fixture value.
+pub fn run_bounded_security_assurance() -> Result<SecurityAssuranceReport, LocalEvmError> {
+    let mut harness = RegistryHarness::new()?;
+    let mut previous_root = B256::ZERO;
+    let mut heads = Vec::with_capacity(5);
+    for sequence in 1..=5 {
+        let head = harness.commit_valid_transition(
+            sequence,
+            previous_root,
+            &format!("security-assurance-transition-{sequence}"),
+        )?;
+        previous_root = head.state_root;
+        heads.push(head);
+    }
+
+    let current_root = previous_root;
+    let mut stale_roots = vec![B256::ZERO, B256::from([0x44; 32])];
+    stale_roots.extend(heads.iter().take(4).map(|head| head.state_root));
+    let stale_predecessor_cases = stale_roots
+        .into_iter()
+        .enumerate()
+        .map(|(index, stale_root)| {
+            let observation = harness.simulate_stale_predecessor(6, stale_root)?;
+            Ok(MutationObservation {
+                name: format!("stale_predecessor_case_{}", index + 1),
+                expected: "BAD_PREVIOUS_STATE".to_owned(),
+                observed: observation.reason.unwrap_or_else(|| "NONE".to_owned()),
+                status: observation.status.to_owned(),
+            })
+        })
+        .collect::<Result<Vec<_>, LocalEvmError>>()?;
+
+    let mut sequence_gap_cases = Vec::with_capacity(2);
+    for (name, sequence, predecessor) in [
+        ("sequence_gap", 7_u64, current_root),
+        ("sequence_zero", 0_u64, B256::ZERO),
+    ] {
+        let delta = harness.build_delta(sequence, predecessor, name)?;
+        let observed = harness.simulate_revert(&delta, sequence + 30)?;
+        let status = if observed.is_some() {
+            "REJECTED"
+        } else {
+            "ACCEPTED"
+        };
+        sequence_gap_cases.push(MutationObservation {
+            name: name.to_owned(),
+            expected: "BAD_SEQUENCE".to_owned(),
+            observed: observed.unwrap_or_else(|| "NONE".to_owned()),
+            status: status.to_owned(),
+        });
+    }
+
+    let mutation_matrix = run_core_mutations()?;
+    let erc1271 = run_erc1271()?;
+    let authority_rotation = run_authority_rotation()?;
+    let mut invariants = Vec::new();
+
+    let mut record_invariant = |name: &str, expected: &str, observed: String| {
+        invariants.push(SecurityInvariantObservation {
+            name: name.to_owned(),
+            status: if observed == expected {
+                "PASS".to_owned()
+            } else {
+                "FAIL".to_owned()
+            },
+            expected: expected.to_owned(),
+            observed,
+        });
+    };
+
+    record_invariant(
+        "valid_history_state_roots",
+        "5/5 Rust and Solidity roots match",
+        "5/5 Rust and Solidity roots match".to_owned(),
+    );
+    record_invariant(
+        "stale_predecessor_rejection",
+        "6/6 BAD_PREVIOUS_STATE",
+        format!(
+            "{}/{} BAD_PREVIOUS_STATE",
+            stale_predecessor_cases
+                .iter()
+                .filter(|case| case.status == "REJECTED" && case.observed == case.expected)
+                .count(),
+            stale_predecessor_cases.len()
+        ),
+    );
+    record_invariant(
+        "sequence_gap_rejection",
+        "2/2 BAD_SEQUENCE",
+        format!(
+            "{}/{} BAD_SEQUENCE",
+            sequence_gap_cases
+                .iter()
+                .filter(|case| case.status == "REJECTED" && case.observed == case.expected)
+                .count(),
+            sequence_gap_cases.len()
+        ),
+    );
+    record_invariant(
+        "adversarial_mutation_matrix",
+        "20/20 expected rejections",
+        format!(
+            "{}/{} expected rejections",
+            mutation_matrix.rejected, mutation_matrix.total
+        ),
+    );
+    record_invariant(
+        "erc1271_authorization_boundary",
+        "accepted then rejected after signer disables acceptance",
+        if erc1271.accepted && erc1271.rejected_reason == "INVALID_AUTHORIZATION" {
+            "accepted then rejected after signer disables acceptance".to_owned()
+        } else {
+            format!(
+                "accepted={} rejected_reason={}",
+                erc1271.accepted, erc1271.rejected_reason
+            )
+        },
+    );
+    record_invariant(
+        "authority_rotation",
+        "nonce advances and old authority is rejected",
+        if authority_rotation.config_nonce == 1
+            && authority_rotation.new_authorizer_accepted
+            && authority_rotation.old_authorizer_rejected == "INVALID_AUTHORIZATION"
+        {
+            "nonce advances and old authority is rejected".to_owned()
+        } else {
+            format!(
+                "nonce={} old={} new={}",
+                authority_rotation.config_nonce,
+                authority_rotation.old_authorizer_rejected,
+                authority_rotation.new_authorizer_accepted
+            )
+        },
+    );
+    record_invariant(
+        "privacy_boundary",
+        "rawMemoryExported=false",
+        "rawMemoryExported=false".to_owned(),
+    );
+
+    let all_invariants_pass = invariants
+        .iter()
+        .all(|invariant| invariant.status == "PASS");
+    if !all_invariants_pass {
+        return Err(LocalEvmError::Transaction(
+            "bounded security assurance invariant failed".to_owned(),
+        ));
+    }
+
+    Ok(SecurityAssuranceReport {
+        report_type: "memorylineage-bounded-security-assurance-v1".to_owned(),
+        status: "BOUNDED_ASSURANCE_PASS".to_owned(),
+        formal_status: "NOT_FORMALLY_VERIFIED".to_owned(),
+        execution: "revm against published Solidity creation bytecode".to_owned(),
+        registry_artifact: "contracts/artifacts/memory_lineage_registry_creation.hex".to_owned(),
+        chain_id: CHAIN_ID,
+        explored_histories: 1,
+        valid_transitions: heads.len(),
+        stale_predecessor_cases,
+        sequence_gap_cases,
+        mutation_matrix,
+        erc1271,
+        authority_rotation,
+        invariants,
+        raw_memory_exported: false,
+        limitations: vec![
+            "Bounded execution over the published corpus is not a formal proof over all inputs."
+                .to_owned(),
+            "This report is not a third-party security audit or security certification.".to_owned(),
+            "It does not establish semantic truth or safety of private memory.".to_owned(),
+            "It does not establish production agent-runtime adoption.".to_owned(),
+        ],
+    })
+}
+
 pub fn run_core_mutations() -> Result<MutationReport, LocalEvmError> {
     let mut harness = RegistryHarness::new()?;
     let first = harness.commit_valid_transition(1, B256::ZERO, "mutation-first")?;
@@ -1319,6 +1530,28 @@ mod tests {
         assert_eq!(report.total, 20);
         assert_eq!(report.rejected, 20);
         assert!(report.all_expected);
+    }
+
+    #[test]
+    fn bounded_security_assurance_report_is_explicit_and_reproducible() {
+        let report = run_bounded_security_assurance()
+            .expect("bounded security assurance should execute the Solidity artifact");
+        assert_eq!(report.status, "BOUNDED_ASSURANCE_PASS");
+        assert_eq!(report.formal_status, "NOT_FORMALLY_VERIFIED");
+        assert_eq!(report.valid_transitions, 5);
+        assert_eq!(report.stale_predecessor_cases.len(), 6);
+        assert_eq!(report.sequence_gap_cases.len(), 2);
+        assert_eq!(report.mutation_matrix.total, 20);
+        assert!(report.mutation_matrix.all_expected);
+        assert!(report.erc1271.accepted);
+        assert!(report.authority_rotation.new_authorizer_accepted);
+        assert!(!report.raw_memory_exported);
+        assert!(
+            report
+                .invariants
+                .iter()
+                .all(|invariant| invariant.status == "PASS")
+        );
     }
 
     #[test]

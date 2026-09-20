@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use std::fs;
+use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -532,6 +533,145 @@ fn verify_recovery_preflight() -> Result<(), String> {
     result.map(|_| println!("PASS recovery preflight and protected resume gate"))
 }
 
+fn verify_reference_agent_runtime() -> Result<(), String> {
+    let destination = std::env::temp_dir().join(format!(
+        "memorylineage-reference-agent-runtime-{}.json",
+        std::process::id()
+    ));
+    let destination_text = destination
+        .to_str()
+        .ok_or_else(|| "temporary runtime report path is not valid UTF-8".to_owned())?;
+    let result = run(
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "agent",
+            "reference-demo",
+            "fixtures/silent-rollback-v2",
+            "evidence/local/demo_space_v2_evidence.json",
+            destination_text,
+        ],
+    );
+    if let Err(error) = result {
+        let _ = fs::remove_file(&destination);
+        return Err(error);
+    }
+    let expected = fs::read("evidence/local/reference_agent_runtime.json")
+        .map_err(|error| format!("could not read reference runtime evidence: {error}"))?;
+    let generated = fs::read(&destination)
+        .map_err(|error| format!("could not read generated reference runtime evidence: {error}"))?;
+    let _ = fs::remove_file(&destination);
+    if expected != generated {
+        return Err("reference agent runtime evidence is not reproducibly generated".to_owned());
+    }
+    let report: serde_json::Value = serde_json::from_slice(&generated)
+        .map_err(|error| format!("reference runtime evidence is invalid JSON: {error}"))?;
+    if report
+        .get("allExpected")
+        .and_then(serde_json::Value::as_bool)
+        != Some(true)
+        || report
+            .get("rawMemoryExported")
+            .and_then(serde_json::Value::as_bool)
+            != Some(false)
+        || report
+            .get("evidenceSource")
+            .and_then(serde_json::Value::as_str)
+            != Some("DEMO_SPACE_V2_LOCAL")
+        || report
+            .pointer("/cases/currentHead/loader_invoked")
+            .and_then(serde_json::Value::as_bool)
+            != Some(true)
+        || report
+            .pointer("/cases/historicalCheckpoint/loader_invoked")
+            .and_then(serde_json::Value::as_bool)
+            != Some(false)
+        || report
+            .pointer("/cases/divergedSnapshot/loader_invoked")
+            .and_then(serde_json::Value::as_bool)
+            != Some(false)
+        || report
+            .pointer("/cases/invalidEvidence/status")
+            .and_then(serde_json::Value::as_str)
+            != Some("FAIL_CLOSED")
+    {
+        return Err("reference agent runtime safety outcomes are incomplete".to_owned());
+    }
+    println!("PASS reference agent runtime");
+    Ok(())
+}
+
+fn verify_security_assurance() -> Result<(), String> {
+    let destination = std::env::temp_dir().join(format!(
+        "memorylineage-security-assurance-{}.json",
+        std::process::id()
+    ));
+    let destination_text = destination
+        .to_str()
+        .ok_or_else(|| "temporary security report path is not valid UTF-8".to_owned())?;
+    let result = run(
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "security",
+            "bounded-audit",
+            destination_text,
+        ],
+    );
+    if let Err(error) = result {
+        let _ = fs::remove_file(&destination);
+        return Err(error);
+    }
+    let expected = fs::read("evidence/local/security_assurance_report.json")
+        .map_err(|error| format!("could not read bounded security assurance evidence: {error}"))?;
+    let generated = fs::read(&destination)
+        .map_err(|error| format!("could not read generated bounded security report: {error}"))?;
+    let _ = fs::remove_file(&destination);
+    if expected != generated {
+        return Err("bounded security assurance evidence is not reproducibly generated".to_owned());
+    }
+    let report: serde_json::Value = serde_json::from_slice(&generated)
+        .map_err(|error| format!("bounded security report is invalid JSON: {error}"))?;
+    if report.get("status").and_then(serde_json::Value::as_str) != Some("BOUNDED_ASSURANCE_PASS")
+        || report
+            .get("formal_status")
+            .and_then(serde_json::Value::as_str)
+            != Some("NOT_FORMALLY_VERIFIED")
+        || report
+            .get("raw_memory_exported")
+            .and_then(serde_json::Value::as_bool)
+            != Some(false)
+        || report
+            .get("valid_transitions")
+            .and_then(serde_json::Value::as_u64)
+            != Some(5)
+        || report
+            .pointer("/stale_predecessor_cases")
+            .and_then(serde_json::Value::as_array)
+            .is_none_or(|cases| cases.len() != 6)
+        || report
+            .pointer("/sequence_gap_cases")
+            .and_then(serde_json::Value::as_array)
+            .is_none_or(|cases| cases.len() != 2)
+        || report
+            .pointer("/mutation_matrix/all_expected")
+            .and_then(serde_json::Value::as_bool)
+            != Some(true)
+    {
+        return Err("bounded security assurance invariants are incomplete".to_owned());
+    }
+    println!("PASS bounded security assurance");
+    Ok(())
+}
+
 fn doctor() -> Result<(), String> {
     fn command_available(program: &str, args: &[&str]) -> bool {
         Command::new(program)
@@ -644,6 +784,24 @@ fn serve_web() -> Result<(), String> {
     }
 }
 
+fn dev_server_app_ready(port: u16) -> bool {
+    let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) else {
+        return false;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+    if stream
+        .write_all(b"GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n")
+        .is_err()
+    {
+        return false;
+    }
+    let mut response = String::new();
+    if stream.read_to_string(&mut response).is_err() {
+        return false;
+    }
+    response.contains("Verify the history")
+}
+
 fn smoke_dev_web() -> Result<(), String> {
     let dx = std::env::var("DX_BIN").unwrap_or_else(|_| "dx".to_owned());
     let port = TcpListener::bind(("127.0.0.1", 0))
@@ -683,7 +841,7 @@ fn smoke_dev_web() -> Result<(), String> {
     let result = (|| {
         let deadline = Instant::now() + Duration::from_secs(90);
         loop {
-            if TcpStream::connect(("127.0.0.1", port)).is_ok() {
+            if dev_server_app_ready(port) {
                 break;
             }
             if let Some(status) = server
@@ -746,6 +904,8 @@ fn verify() -> Result<(), String> {
     verify_fixture_manifest()?;
     verify_demo_space_v2()?;
     verify_recovery_preflight()?;
+    verify_reference_agent_runtime()?;
+    verify_security_assurance()?;
     step(
         "pinned conformance",
         "cargo",
@@ -998,7 +1158,9 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "transitionAuthorization": "EOA_SIGNATURES_VERIFIED",
             "stalePredecessorSource": "transition 1 nextStateRoot",
             "expectedReason": "BAD_PREVIOUS_STATE",
-            "transactionBroadcast": false
+            "transactionBroadcast": false,
+            "referenceRuntime": "evidence/local/reference_agent_runtime.json",
+            "securityAssurance": "evidence/local/security_assurance_report.json"
         },
         "legacyFixture": "fixtures/silent-rollback/manifest.json",
         "evidence": [
@@ -1010,6 +1172,8 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "evidence/local/rust_revm_mutation_matrix.json",
             "evidence/local/rust_revm_erc1271.json",
             "evidence/local/rust_revm_authority_rotation.json",
+            "evidence/local/reference_agent_runtime.json",
+            "evidence/local/security_assurance_report.json",
             "evidence/sepolia/sepolia_reread.json",
             "evidence/sepolia/silent_rollback_fixture_eth_call.json"
         ],
