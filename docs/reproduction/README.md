@@ -20,8 +20,9 @@ Give the reviewer:
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
-tree. A hosted website or a new Sepolia deployment is not required for this
-reproduction.
+tree. The static Inspector is also available at
+[memorylineage.pages.dev](https://memorylineage.pages.dev), but this
+reproduction does not depend on the hosted site or a new Sepolia deployment.
 
 ## Automated path
 
@@ -48,9 +49,9 @@ cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
 
 The command refuses a dirty worktree and checks the resulting archive for
 private design references, generated build output, dependencies, credentials,
-and generated evidence. This archive is a transportable review surface when a
-hosted website is intentionally unavailable; it does not make a private GitHub
-repository public.
+and generated evidence. This archive is a transportable source/evidence review
+surface independent of hosted website availability; it does not make a private
+GitHub repository public or configure the website deployment.
 
 A reviewer who receives the archive can run the same path without GitHub
 access:

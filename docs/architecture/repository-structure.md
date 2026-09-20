@@ -43,5 +43,7 @@ runtime code is not shared between them.
 ## Why this is smaller than the reference repository
 
 This project has no mobile client, database worker, billing system, or
-deployment platform. The Inspector is a static Rust/WASM website; the legacy
-Next.js surface and EthereumJS/Python lanes remain compatibility oracles.
+application backend. The Inspector is a static Rust/WASM website hosted on
+Cloudflare Pages; hosting is managed outside this source tree, so deployment
+credentials and workflows are not included. The legacy Next.js surface and
+EthereumJS/Python lanes remain compatibility oracles.

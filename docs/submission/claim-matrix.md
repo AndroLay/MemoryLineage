@@ -31,7 +31,8 @@ mutation corpus separate in every explanation.
 | Reviewer archive runnable without Git metadata | Owner-side gate | “`cargo xtask reviewer-reproduce` extracts the exact archive and runs the automated reproduction path; it remains automated evidence, not external human reproduction.” |
 | GitHub Actions browser gate | Configured; remote result pending | “CI is configured to verify Rust, build the Dioxus site, and run Chromium smoke. Report the remote run only after GitHub Actions completes successfully.” |
 | Independent human clean-checkout reproduction | Not yet demonstrated | Do not imply external developers have reproduced the project. |
-| Production HTTPS website or staging | Not in scope for this work | No public deployment or staging environment is claimed. |
+| Public static Inspector | Deployed | “The Rust/WASM Inspector is available at [memorylineage.pages.dev](https://memorylineage.pages.dev) on Cloudflare Pages.” This does not mean Demo Space V2 is deployed to Sepolia. |
+| Staging environment | Not provided | No separate staging environment is claimed. |
 | Semantic poisoning detection | Out of scope | Do not claim that MemoryLineage detects malicious meaning in otherwise valid memory. |
 | Memory truthfulness or AI reasoning correctness | Unsupported | Do not claim either property. |
 | Full historical offline ERC-1271 re-execution | Unsupported | Distinguish recorded on-chain acceptance from replaying the signer contract's historical state. |
@@ -45,4 +46,5 @@ Forkline remains the product-story and end-to-end coherence benchmark from the
 reviewed public submissions. MemoryLineage targets a more explicit restore
 decision, portable replay, evidence assurance levels, and named negative paths.
 This matrix does not claim a higher jury score or superiority on hosted
-availability or demo video, which are outside the current work scope.
+availability merely because the site is live, nor does it claim video quality
+or external adoption. Hosting improves access; it does not prove those outcomes.

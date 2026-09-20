@@ -11,6 +11,7 @@ local Demo Space V2 evidence separate from the existing Sepolia observation.
 | [Pitch deck source](pitch-deck.md) | Eight-slide presentation outline based on current evidence |
 | [Release checklist](release-checklist.md) | Finalization state and remaining external gates |
 
-The pitch deck is a source document. It does not claim that a video, hosted
-website, staging environment, or external human reproduction exists before the
-corresponding evidence is recorded.
+The pitch deck is a source document. The public static website is live at
+[memorylineage.pages.dev](https://memorylineage.pages.dev). A demo video,
+separate staging environment, and external human reproduction are not claimed
+until their evidence is recorded.

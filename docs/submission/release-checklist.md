@@ -15,6 +15,7 @@ evidence remains `NOT YET DEMONSTRATED`.
 | Recovery Decision Receipt | PASS | Current and historical receipts plus Rust/WASM/CLI checks |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` |
+| Public static website | LIVE | [memorylineage.pages.dev](https://memorylineage.pages.dev), hosted on Cloudflare Pages |
 | Pitch deck source | PASS | [`pitch-deck.md`](pitch-deck.md) |
 
 ## Automated verification
@@ -41,7 +42,8 @@ which disables the pinned Dioxus alpha's incompatible Rust hot-patch path;
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
 | GitHub Actions remote PASS | PENDING | Recent runs ended in platform `startup_failure` with no jobs |
 | Final submission tag | NOT YET CREATED | Create only after the release candidate and external evidence are frozen |
-| Public hosting / staging | OUT OF SCOPE | Explicitly excluded from the current work |
+| New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
+| Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
 | Demo video | OUT OF SCOPE | Explicitly excluded from the current work |
 
 ## Finalization rule

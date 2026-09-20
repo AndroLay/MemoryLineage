@@ -220,7 +220,7 @@ Forkline: chain event → reorg risk → external delivery
 MemoryLineage: private snapshot restore → stale lineage risk → agent-state recovery decision
 ```
 
-The benchmark is a set of observable release qualities, not a promised competition result. “Beat Forkline” means exceeding it on the dimensions MemoryLineage can control and measure. It does not mean claiming a higher jury score, winning rank, hosted availability, or video quality while public hosting and video are excluded from this work.
+The benchmark is a set of observable release qualities, not a promised competition result. “Beat Forkline” means exceeding it on the dimensions MemoryLineage can control and measure. It does not mean claiming a higher jury score or winning rank. The static Inspector is now hosted publicly; demo video quality and external adoption remain separate, unproven dimensions.
 
 | Dimension | Forkline lesson / observed bar | MemoryLineage's current evidence | Required superiority gate |
 | --- | --- | --- | --- |
@@ -233,7 +233,7 @@ The benchmark is a set of observable release qualities, not a promised competiti
 | Negative paths | Demonstrate the error boundary instead of only a happy-path dashboard. | Restore assessment covers evidence-head match, known historical checkpoint, unknown/diverged, and unverified; attack corpus covers named mutations. | Smoke-test all four preflight classes, bad evidence, unknown scenario, RPC unavailable, unexpected result, and exact tamper failure. Semantic poisoning remains `OUT OF SCOPE`, not “rejected.” |
 | Reproducibility | A clean setup and direct test path reduce reviewer effort. | The repository has a Cargo verification gate, static WASM build, and Chromium smoke command. | Keep one documented primary gate; run it from a clean worktree and preserve the output. Do not claim an external reproduction until an external person runs it. |
 | Visual and interaction design | A visible rehearsal makes an abstract chain condition legible. | The Dioxus Inspector has 11 evidence-workspace routes and a Restore Preflight selector. | Preserve target design hierarchy, keyboard operation, status text/icons, 1440px/390px layout, and browser smoke. Avoid adding extra dashboard metrics or generic card grids. |
-| Public availability | A live public surface lowers the friction to try the competitor. | The static site is locally buildable; hosted site and staging are outside the current directive. | Mark hosted availability as intentionally unclaimed. Do not describe MemoryLineage as stronger on this dimension until the owner authorizes deployment. |
+| Public availability | A live public surface lowers the friction to try the competitor. | The static site is hosted at [memorylineage.pages.dev](https://memorylineage.pages.dev); there is no separate staging environment, and Demo Space V2 remains local. | Identify the hosted site accurately; do not imply a staging environment, a Sepolia Demo Space V2 deployment, or production agent integration. |
 | External validation | Public artifacts are not a substitute for an independent person following the setup. | External human clean-checkout reproduction is not yet demonstrated. | Keep it `NOT YET DEMONSTRATED` until recorded. Ask the tester to describe what is and is not proven; this tests comprehension, not security certification. |
 | Submission media | Video improves judge access to an incident. | Demo video is explicitly excluded from the current work. | Do not claim superiority on video/pitch media. Treat it as a separately authorized submission task if scope changes. |
 
@@ -254,7 +254,7 @@ No one should convert this table into fabricated numeric “dominance scores.”
 
 These are design inputs from the reviewed source/repository set, not claims that MemoryLineage has reproduced every competitor feature. The most valuable combination is: Forkline's incident clarity, FinalityDesk's exact checks, checkpoint tools' honest rehearsal model, and the existing independent replay evidence—under a single strict security boundary.
 
-Forkline is the benchmark, not a feature checklist. MemoryLineage's route to a stronger submission is a single coherent snapshot-restore story plus more explicit evidence assurance, a portable independent report, and clear privacy/security boundaries. It should aim to exceed Forkline on measurable, controllable dimensions: scenario clarity, evidence-to-claim traceability, negative-path coverage, independent replay, and reproducibility. It cannot honestly claim superiority in hosted availability or public deployment while deployment is explicitly out of scope, and no plan can guarantee a judge's ranking.
+Forkline is the benchmark, not a feature checklist. MemoryLineage's route to a stronger submission is a single coherent snapshot-restore story plus more explicit evidence assurance, a portable independent report, and clear privacy/security boundaries. It should aim to exceed Forkline on measurable, controllable dimensions: scenario clarity, evidence-to-claim traceability, negative-path coverage, independent replay, and reproducibility. Hosting the static website does not prove adoption or guarantee a judge's ranking; the Demo Space V2 history remains local rather than deployed to Sepolia.
 
 ## Current repository boundary
 
@@ -269,7 +269,7 @@ behavior is recorded here for historical context:
 4. preserve the Solidity contract, current evidence files, conformance vectors, and exact `BAD_PREVIOUS_STATE` behavior;
 5. bind a Recovery Decision Receipt to the evidence source class, policy identifier, bundle hash, and verified authorization assurance.
 
-It will not add an agent framework integration, publish or stage the site, deploy a new space/contract, record a demo video, or claim production readiness.
+The public static site is published separately. This work does not add an agent framework integration or staging environment, deploy a new space/contract, record a demo video, or claim production readiness.
 
 ## Roadmap and measurable goals
 

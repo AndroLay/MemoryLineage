@@ -9,6 +9,10 @@ on-chain.
 
 Release baseline: **`v1.0.0`**
 
+Live website: [memorylineage.pages.dev](https://memorylineage.pages.dev) — the
+static Rust/WASM Inspector is hosted on Cloudflare Pages. The local Demo Space
+V2 remains separate and is not deployed to Sepolia.
+
 ## The problem
 
 An agent can restore an old private database after a crash, migration, or
@@ -234,7 +238,7 @@ Still intentionally outside this repository release:
 
 - formal third-party security audit;
 - external human clean-checkout reproduction and production adoption;
-- public hosting, deployment, and staging;
+- a new Sepolia deployment of Demo Space V2 and a separate staging environment;
 - demo video recording.
 
 ## Repository map

@@ -1,9 +1,10 @@
 # Devpost description draft
 
 This draft is the short judge-facing description for MemoryLineage. It keeps
-the same wording as the repository and claim matrix. It intentionally does not
-claim a hosted demo, external adoption, semantic memory safety, or authorship of
-ERC-8350.
+the same wording as the repository and claim matrix. The static Inspector is
+available at [memorylineage.pages.dev](https://memorylineage.pages.dev). This
+draft does not claim external adoption, semantic memory safety, or authorship
+of ERC-8350.
 
 ## Problem
 
@@ -93,6 +94,7 @@ evidence. It does not determine whether private memory is semantically true or
 safe, whether an AI reasoned correctly, whether an agent's action was caused by
 that memory, or whether an external runtime obeys the reference recovery gate.
 
-The next evidence step is external developer reproduction. Public hosting,
-staging, and video are submission operations outside this repository's local
+The next evidence step is external developer reproduction. The public static
+Inspector is available at [memorylineage.pages.dev](https://memorylineage.pages.dev);
+separate staging and demo video remain outside this repository's local
 release-preparation path.
