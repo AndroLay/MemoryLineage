@@ -20,56 +20,89 @@ MemoryLineage records only fixed-size commitments and transition metadata in an
 Ethereum registry. The memory, documents, prompts, and private locator contents
 remain off-chain.
 
-## The MemoryLineage flow
+## The important flows
 
-```mermaid
-flowchart TD
-    S1[Private Snapshot 1] --> S2[Private Snapshot 2]
-    S2 --> S3[Private Snapshot 3]
-    S3 --> H[Canonical committed head]
+### 1. System architecture
 
-    S1 -. restore locally .-> R[Restored Snapshot 1]
-    R --> A[Attempt transition 4 using Snapshot 1 root]
-    H --> A
-    A --> X[REJECTED<br/>BAD_PREVIOUS_STATE]
-
-    S1 --> M[Rust memory store and commitments]
-    S2 --> M
-    S3 --> M
-    M --> C[Solidity MemoryLineage Registry]
-    C --> H
-    C --> O[Ethereum Sepolia / read-only RPC]
-    C --> E[Portable evidence bundle]
-    O --> I[Rust/WASM Inspector]
-    E --> I
-    E --> V[Independent Rust verifier and CLI]
-
-    I --> P[Inspect → History → Tampering Lab → Verify]
+```text
+Private SQLite snapshots
+        ↓
+Rust memory store + canonical commitments
+        ↓
+Solidity MemoryLineage Registry
+        ├─ Rust/revm local execution
+        └─ Ethereum Sepolia read-only observation
+        ↓
+Rust/WASM Inspector + portable evidence
+        ↓
+Independent Rust verifier and CLI
 ```
 
-The local Demo Space V2 contains synthetic SQLite snapshots 1, 2, and 3. The
-operator can restore Snapshot 1 locally, but its actual stale root cannot be
-accepted as the successor of the later canonical head. The same evidence can
-be inspected in the browser and replayed independently from the CLI.
-
-The reviewer journey is:
+### 2. Reviewer journey
 
 ```text
 Home → Inspect → History → Tampering Lab → Verify → Independent CLI
+Understand → Canonical → Trace → Attack → Verify → Reproduce
 ```
 
 The Inspector has 11 routes. Four are primary tools: `/inspect`, `/history`,
-`/lab`, and `/verify`. The supporting routes provide the home explanation,
+`/lab`, and `/verify`. The other routes cover the home explanation,
 transition detail, public evidence, architecture, security scope,
-reproduction instructions, and submission provenance.
+reproduction, and submission provenance.
 
-The browser can export or import evidence, reject a changed commitment with
-`TRANSITION_ID_MISMATCH`, restore the original bundle, and report `VERIFIED`.
-Raw memory remains outside the chain and portable evidence.
+### 3. The Silent Rollback
 
-The local Demo Space V2 is synthetic and is not user data. A separate Sepolia
-deployment and readback observation is included in the repository; the local
-Demo Space V2 history is not claimed as deployed to Sepolia.
+```text
+Snapshot 1 → Snapshot 2 → Snapshot 3
+     │                              ↓
+     └─ restore locally       canonical committed head
+                    ↓
+       attempt transition 4 with Snapshot 1 root
+                    ↓
+          REJECTED / BAD_PREVIOUS_STATE
+```
+
+The local Demo Space V2 contains synthetic SQLite snapshots 1, 2, and 3. The
+restored snapshot remains possible locally, but its actual stale root cannot be
+accepted as the successor of the later canonical head.
+
+### 4. Evidence verification
+
+```text
+Export evidence → Import bundle → Verify in Rust/WASM
+                                      ↓
+                 change one commitment → TRANSITION_ID_MISMATCH
+                                      ↓
+                 restore original    → VERIFIED
+                                      ↓
+                         replay with independent Rust CLI
+```
+
+### 5. Recovery decision
+
+```text
+Candidate snapshot → replay named evidence history → decision
+       ├─ current head       → RESUME_ALLOWED
+       ├─ known historical   → REHEARSE_ONLY
+       ├─ diverged           → HOLD_FOR_REVIEW
+       └─ invalid evidence   → FAIL_CLOSED
+```
+
+### 6. Privacy boundary
+
+```text
+Raw memory, documents, prompts, private locators
+                         │ stays off-chain
+                         ↓
+Fixed-size commitments + transition metadata
+                         ↓
+Registry, public observations, and portable evidence
+```
+
+Raw memory remains outside the chain and portable evidence. Demo Space V2 is
+synthetic test data, not user data. A separate Sepolia deployment and readback
+observation is included in the repository; the local Demo Space V2 history is
+not claimed as deployed to Sepolia.
 
 ## What it verifies
 
