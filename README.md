@@ -24,25 +24,28 @@ remain off-chain.
 
 ### 1. System architecture
 
-```text
-Private SQLite snapshots
-        ↓
-Rust memory store + canonical commitments
-        ↓
-Solidity MemoryLineage Registry
-        ├─ Rust/revm local execution
-        └─ Ethereum Sepolia read-only observation
-        ↓
-Rust/WASM Inspector + portable evidence
-        ↓
-Independent Rust verifier and CLI
+```mermaid
+flowchart TD
+    M[Private SQLite snapshots] --> C[Rust memory store<br/>canonical commitments]
+    C --> R[Solidity MemoryLineage Registry]
+    R --> L[Rust/revm local execution]
+    R --> S[Ethereum Sepolia<br/>read-only observation]
+    L --> I[Rust/WASM Inspector]
+    S --> I
+    R --> E[Portable evidence bundle]
+    I --> V[Independent Rust verifier<br/>and CLI]
+    E --> V
 ```
 
 ### 2. Reviewer journey
 
-```text
-Home → Inspect → History → Tampering Lab → Verify → Independent CLI
-Understand → Canonical → Trace → Attack → Verify → Reproduce
+```mermaid
+flowchart LR
+    H[Home<br/>Understand] --> I[Inspect<br/>Canonical]
+    I --> T[History<br/>Trace]
+    T --> L[Tampering Lab<br/>Attack]
+    L --> V[Verify<br/>Validate]
+    V --> C[Independent CLI<br/>Reproduce]
 ```
 
 The Inspector has 11 routes. Four are primary tools: `/inspect`, `/history`,
@@ -52,14 +55,15 @@ reproduction, and submission provenance.
 
 ### 3. The Silent Rollback
 
-```text
-Snapshot 1 → Snapshot 2 → Snapshot 3
-     │                              ↓
-     └─ restore locally       canonical committed head
-                    ↓
-       attempt transition 4 with Snapshot 1 root
-                    ↓
-          REJECTED / BAD_PREVIOUS_STATE
+```mermaid
+flowchart TD
+    S1[Snapshot 1] --> S2[Snapshot 2]
+    S2 --> S3[Snapshot 3]
+    S3 --> H[Canonical committed head]
+    S1 -. restore locally .-> R[Restored Snapshot 1]
+    R --> A[Attempt transition 4<br/>using Snapshot 1 root]
+    H --> A
+    A --> X[REJECTED<br/>BAD_PREVIOUS_STATE]
 ```
 
 The local Demo Space V2 contains synthetic SQLite snapshots 1, 2, and 3. The
@@ -68,35 +72,43 @@ accepted as the successor of the later canonical head.
 
 ### 4. Evidence verification
 
-```text
-Export evidence → Import bundle → Verify in Rust/WASM
-                                      ↓
-                 change one commitment → TRANSITION_ID_MISMATCH
-                                      ↓
-                 restore original    → VERIFIED
-                                      ↓
-                         replay with independent Rust CLI
+```mermaid
+flowchart TD
+    E[Export evidence] --> I[Import bundle]
+    I --> V[Verify in Rust/WASM]
+    V --> T[Tamper one commitment]
+    T --> X[TRANSITION_ID_MISMATCH]
+    X --> R[Restore original bundle]
+    R --> P[VERIFIED]
+    P --> C[Replay with independent Rust CLI]
 ```
 
 ### 5. Recovery decision
 
-```text
-Candidate snapshot → replay named evidence history → decision
-       ├─ current head       → RESUME_ALLOWED
-       ├─ known historical   → REHEARSE_ONLY
-       ├─ diverged           → HOLD_FOR_REVIEW
-       └─ invalid evidence   → FAIL_CLOSED
+```mermaid
+flowchart TD
+    C[Candidate snapshot] --> R[Replay named evidence history]
+    R --> D{Classification}
+    D -->|Current head| A[RESUME_ALLOWED]
+    D -->|Known historical| H[REHEARSE_ONLY]
+    D -->|Diverged| V[HOLD_FOR_REVIEW]
+    D -->|Invalid evidence| F[FAIL_CLOSED]
 ```
 
 ### 6. Privacy boundary
 
-```text
-Raw memory, documents, prompts, private locators
-                         │ stays off-chain
-                         ↓
-Fixed-size commitments + transition metadata
-                         ↓
-Registry, public observations, and portable evidence
+```mermaid
+flowchart LR
+    subgraph Private["PRIVATE / OFF-CHAIN"]
+        M[Raw memory<br/>documents, prompts, locators]
+    end
+    subgraph Public["PUBLIC VERIFICATION DOMAIN"]
+        C[Fixed-size commitments<br/>transition metadata]
+        R[Registry and observations]
+        E[Portable evidence]
+        C --> R --> E
+    end
+    M -. local derivation only .-> C
 ```
 
 Raw memory remains outside the chain and portable evidence. Demo Space V2 is
