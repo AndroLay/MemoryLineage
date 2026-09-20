@@ -61,7 +61,7 @@ The answer is an evidence-backed classification plus a bounded next step:
 | `UNKNOWN / DIVERGED` | Preserve the normal path as unresolved and show the commitment mismatch. | It does not identify who changed the snapshot or why. |
 | `UNVERIFIED` | Show the failed/missing check and require another evidence source. | It is not a rejection of the underlying memory's meaning. |
 
-The current UI implements only the first, fixture-scoped version of this decision. It selects one of the public synthetic SQLite checkpoints, compares its existing commitment with the replay-verified local Demo Space V2 bundle, and can tamper a browser copy. It does not recompute a production private-memory commitment, read the local SQLite database from the browser, observe a live registry for this assessment, or block agent startup. Those limits must be visible near the result, not hidden in a separate technical document.
+The current UI implements only the first, fixture-scoped version of this decision. It selects one of the public synthetic SQLite checkpoints, compares its existing commitment with the replay-verified local Demo Space V2 bundle, and can tamper a browser copy. It does not recompute a production private-memory commitment, read the local SQLite database from the browser, use the optional Sepolia probe to classify the local fixture, or block agent startup. The separate read-only probe observes the previously deployed registry and is labeled independently; it does not turn the fixture into a production or public Demo Space V2 history. Those limits must be visible near the result, not hidden in a separate technical document.
 
 ## Why this is a real Web3 problem, and when it is not
 

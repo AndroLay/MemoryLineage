@@ -26,6 +26,10 @@ resolved package metadata from the checked-in `Cargo.lock` and
 - `solc` 0.8.36 — the npm wrapper is MIT licensed; the Solidity compiler
   distribution carries its own upstream license and notices.
 
+The solc wrapper requests `tmp` 0.2.6. The root `package.json` pins the
+scoped transitive override to `tmp` 0.2.7; the resolved version and integrity
+are recorded in `package-lock.json`.
+
 The exact dependency metadata is recorded in `package-lock.json`. The
 ERC-8350 draft and its published vectors are prior standards work and are
 referenced as an explicitly pinned compatibility target; MemoryLineage does

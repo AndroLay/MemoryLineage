@@ -804,6 +804,11 @@ fn dev_server_app_ready(port: u16) -> bool {
 
 fn smoke_dev_web() -> Result<(), String> {
     let dx = std::env::var("DX_BIN").unwrap_or_else(|_| "dx".to_owned());
+    let ready_timeout_seconds = std::env::var("MEMORYLINEAGE_DEV_READY_TIMEOUT_SECS")
+        .ok()
+        .and_then(|value| value.parse::<u64>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or(180);
     let port = TcpListener::bind(("127.0.0.1", 0))
         .map_err(|error| format!("could not reserve a local dev-server port: {error}"))?
         .local_addr()
@@ -839,7 +844,7 @@ fn smoke_dev_web() -> Result<(), String> {
         .map_err(|error| format!("could not start {dx}: {error}"))?;
 
     let result = (|| {
-        let deadline = Instant::now() + Duration::from_secs(90);
+        let deadline = Instant::now() + Duration::from_secs(ready_timeout_seconds);
         loop {
             if dev_server_app_ready(port) {
                 break;
@@ -851,7 +856,9 @@ fn smoke_dev_web() -> Result<(), String> {
                 return Err(format!("{dx} serve exited before becoming ready: {status}"));
             }
             if Instant::now() >= deadline {
-                return Err(format!("{dx} serve did not become ready within 90 seconds"));
+                return Err(format!(
+                    "{dx} serve did not become ready within {ready_timeout_seconds} seconds"
+                ));
             }
             thread::sleep(Duration::from_millis(250));
         }

@@ -271,6 +271,116 @@ def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
     )
 
 
+def verify_accessibility_and_keyboard(cdp: CdpSocket, path: str) -> None:
+    """Check the route's basic semantics and exercise its keyboard order.
+
+    This is intentionally a deterministic smoke check, not a replacement for
+    assistive-technology testing. It catches the regressions that are easiest
+    to introduce in a WASM route migration: missing headings, unnamed
+    controls, missing live status, and a route whose controls cannot receive
+    focus through the normal Tab order.
+    """
+    audit = cdp.evaluate(
+        """(() => {
+          const visible = element => {
+            const style = getComputedStyle(element);
+            return element.getClientRects().length > 0
+              && style.display !== 'none'
+              && style.visibility !== 'hidden'
+              && style.visibility !== 'collapse';
+          };
+          const name = element => {
+            const labelledBy = element.getAttribute('aria-labelledby');
+            const labelledText = labelledBy
+              ? labelledBy.split(/\\s+/).map(id => document.getElementById(id)?.innerText || '').join(' ')
+              : '';
+            const label = element.labels?.[0]?.innerText || '';
+            return (element.getAttribute('aria-label') || labelledText || label
+              || element.getAttribute('title') || element.innerText || element.value || '').trim();
+          };
+          const interactive = Array.from(document.querySelectorAll(
+            'a, button, input, select, textarea, [role="button"], [tabindex]'
+          )).filter(visible).filter(element => !element.disabled);
+          const unnamed = interactive
+            .filter(element => !name(element))
+            .slice(0, 8)
+            .map(element => `${element.tagName.toLowerCase()}${element.className ? '.' + element.className : ''}`);
+          const liveRegions = Array.from(document.querySelectorAll('[aria-live]')).filter(visible);
+          return {
+            headings: document.querySelectorAll('h1').length,
+            interactive: interactive.length,
+            unnamed,
+            focusable: interactive.filter(element => element.tabIndex >= 0).length,
+            liveRegions: liveRegions.length,
+          };
+        })()"""
+    ) or {}
+    if not isinstance(audit, dict):
+        raise RuntimeError(f"accessibility audit returned an invalid result on {path}")
+    if audit.get("headings") != 1:
+        raise RuntimeError(f"route {path} must expose exactly one visible h1")
+    if not audit.get("interactive") or not audit.get("focusable"):
+        raise RuntimeError(f"route {path} has no visible keyboard-interactive controls")
+    if audit.get("unnamed"):
+        raise RuntimeError(f"route {path} has unnamed controls: {audit['unnamed']!r}")
+    if path in {"/lab", "/verify"} and not audit.get("liveRegions"):
+        raise RuntimeError(f"route {path} has no aria-live result region")
+
+    cdp.evaluate(
+        """(() => {
+          document.body?.setAttribute('data-memorylineage-focus-start', 'true');
+          document.body?.setAttribute('tabindex', '-1');
+          document.body?.focus();
+        })()"""
+    )
+    focused = []
+    for _ in range(40):
+        cdp.command(
+            "Input.dispatchKeyEvent",
+            {
+                "type": "keyDown",
+                "key": "Tab",
+                "code": "Tab",
+                "windowsVirtualKeyCode": 9,
+                "nativeVirtualKeyCode": 9,
+            },
+        )
+        cdp.command(
+            "Input.dispatchKeyEvent",
+            {
+                "type": "keyUp",
+                "key": "Tab",
+                "code": "Tab",
+                "windowsVirtualKeyCode": 9,
+                "nativeVirtualKeyCode": 9,
+            },
+        )
+        state = cdp.evaluate(
+            """(() => {
+              const element = document.activeElement;
+              const style = element ? getComputedStyle(element) : null;
+              const visible = Boolean(element && element.getClientRects().length
+                && style?.display !== 'none' && style?.visibility !== 'hidden');
+              return {
+                tag: element?.tagName || '',
+                name: (element?.innerText || element?.getAttribute('aria-label') || '').trim(),
+                visible,
+                tabIndex: element?.tabIndex ?? -1,
+              };
+            })()"""
+        ) or {}
+        if isinstance(state, dict) and state.get("visible") and state.get("tabIndex", -1) >= 0:
+            focused.append(state)
+    cdp.evaluate("document.body?.removeAttribute('data-memorylineage-focus-start')")
+    cdp.evaluate("document.body?.removeAttribute('tabindex')")
+    if not focused:
+        raise RuntimeError(f"route {path} did not expose a focusable control through Tab")
+    print(
+        f"PASS accessibility {path or '/'} / h1 + named controls + keyboard focus "
+        f"({len(focused)} stops)"
+    )
+
+
 def navigate_via_internal_link(
     cdp: CdpSocket, path: str, expected: str
 ) -> None:
@@ -465,7 +575,7 @@ def click_and_wait_for_rollback(cdp: CdpSocket) -> None:
         raise RuntimeError("button not found: Run Silent Rollback")
 
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
-    terminal_states = {"LOCAL EVIDENCE: REJECTED"}
+    terminal_states = {"LOCAL EVIDENCE: REJECTED", "LIVE RPC: REJECTED"}
     while time.time() < deadline:
         try:
             result = cdp.evaluate("""(() => {
@@ -487,6 +597,51 @@ def click_and_wait_for_rollback(cdp: CdpSocket) -> None:
             raise RuntimeError(f"rollback returned an unexpected live result: {detail}")
         time.sleep(0.25)
     raise RuntimeError("Silent Rollback did not reach an actual rejection result")
+
+
+def click_and_wait_for_sepolia_probe(cdp: CdpSocket) -> None:
+    """Exercise the optional browser RPC path without hiding its source.
+
+    A browser may be unable to use the public RPC because of provider CORS or
+    network policy. That is a valid unavailable outcome; an unavailable probe
+    must never be rendered as a live rejection.
+    """
+    expression = """(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        element => element.textContent && element.textContent.includes('Probe separate Sepolia')
+      );
+      if (!button) return false;
+      button.click();
+      return true;
+    })()"""
+    if cdp.evaluate(expression) is not True:
+        raise RuntimeError("button not found: Probe separate Sepolia")
+
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    terminal_states = {"LIVE RPC: REJECTED", "SEPOLIA PROBE: UNAVAILABLE"}
+    while time.time() < deadline:
+        try:
+            result = cdp.evaluate("""(() => {
+              const heading = document.querySelector('.result-panel .result-heading strong');
+              const detail = document.querySelector('.result-panel .result-heading small');
+              return { heading: heading?.textContent?.trim() || '', detail: detail?.textContent || '' };
+            })()""") or {}
+        except (TimeoutError, socket.timeout):
+            time.sleep(1.0)
+            continue
+        heading = result.get("heading", "") if isinstance(result, dict) else ""
+        detail = result.get("detail", "") if isinstance(result, dict) else ""
+        if heading in terminal_states:
+            if heading == "LIVE RPC: REJECTED" and "BAD_PREVIOUS_STATE" not in detail:
+                raise RuntimeError("live Sepolia probe omitted BAD_PREVIOUS_STATE")
+            if heading == "SEPOLIA PROBE: UNAVAILABLE" and "SEPARATE SEPOLIA PROBE" not in detail:
+                raise RuntimeError("unavailable Sepolia probe omitted its source boundary")
+            print(f"PASS browser Sepolia probe -> {heading}")
+            return
+        if heading == "UNEXPECTED LIVE RESULT":
+            raise RuntimeError(f"browser Sepolia probe returned an unexpected result: {detail}")
+        time.sleep(0.25)
+    raise RuntimeError("browser Sepolia probe did not reach a truthful terminal state")
 
 
 def verify_history_ledger(cdp: CdpSocket) -> None:
@@ -709,6 +864,7 @@ def main() -> int:
         verify_restore_preflight(cdp)
         for path, expected in ROUTES.items():
             wait_for_url(base, path, expected, cdp)
+            verify_accessibility_and_keyboard(cdp, path)
             if path == "/history":
                 verify_history_ledger(cdp)
             if path == "/history/3":
@@ -718,6 +874,7 @@ def main() -> int:
 
         wait_for_url(base, "/lab/silent-rollback", "Run Silent Rollback", cdp)
         click_and_wait_for_rollback(cdp)
+        click_and_wait_for_sepolia_probe(cdp)
         wait_for_url(base, "/verify", "VERIFIED", cdp)
         click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
         click_and_wait(cdp, "Restore original", "VERIFIED")

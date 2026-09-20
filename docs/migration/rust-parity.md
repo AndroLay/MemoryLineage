@@ -22,6 +22,8 @@ not a judge score.
 | Dioxus public route smoke | PASS | `cargo xtask smoke-web` loads `/`, `/inspect`, `/history`, `/history/3`, `/lab`, `/verify`, `/evidence`, `/architecture`, `/security`, `/reproduce`, and `/prior-work` through a static SPA fallback |
 | History ledger | PASS | Browser and Rust tests confirm three Demo Space V2 commits plus the stale-root rejection; the separate 20-case protocol corpus is explicitly labeled |
 | Dioxus responsive smoke | PASS | `cargo xtask smoke-web` checks every route at 390px for page-level horizontal overflow |
+| Dioxus route accessibility smoke | PASS | Chromium checks one visible `h1`, named interactive controls, keyboard Tab focus on every route, and `aria-live` result regions on Lab/Verify |
+| Browser Sepolia probe boundary | PASS in current environment | The smoke observes `LIVE RPC: REJECTED` when the public provider is reachable, while the UI has a truthful `SEPOLIA PROBE: UNAVAILABLE` fallback |
 | GitHub Actions browser gate | CONFIGURED | CI installs the pinned Dioxus CLI, builds the static Inspector, and runs `cargo xtask smoke-web`; report a remote PASS only after the run completes |
 | Evidence decoder regression | PASS | `cargo test -p memorylineage-inspector` loads the bundled deployment, reread, replay, mutation, and conformance artifacts |
 | Legacy nine-step gate | PASS | `npm run verify` |

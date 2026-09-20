@@ -1,6 +1,6 @@
 # Dependency audit record
 
-Date: 19 September 2026
+Date: 20 September 2026
 
 ## Rust workspace
 
@@ -13,28 +13,28 @@ a Rust advisory scan.
 
 ## Preserved Node compatibility lane
 
-Command:
+Commands:
 
 ```bash
-npm audit --omit=dev --audit-level=high --package-lock-only
+npm ci --ignore-scripts
+npm audit --omit=dev --audit-level=high
 ```
 
-Result: the audit reports four advisories in the preserved Next.js/Solidity
-compatibility lane:
+Result: `found 0 vulnerabilities` in the installed production dependency
+graph. The compatibility lane keeps the evidence-bound Next.js `15.5.25` and
+solc `0.8.36` versions. The root package manifest applies scoped npm overrides
+to PostCSS `8.5.23` and tmp `0.2.7`, the respective patch releases, because
+the npm advisory database flags the locked transitive versions. Keeping solc
+itself pinned preserves the published compiler and bytecode baseline.
+`npm ci --ignore-scripts` and the complete `npm run verify` lane must be rerun
+whenever either override changes.
 
-- `postcss` is pulled by the locked Next.js lane; the available remediation
-  requires a breaking Next.js 16 upgrade;
-- `tmp` is pulled by `solc` 0.8.36; the available remediation requires moving
-  to `solc` 0.8.37 outside the pinned compiler range.
-
-`npm audit fix --dry-run --package-lock-only --omit=dev` confirmed those are
-the available upgrade paths and made no lockfile change. They are not silently
-forced during this submission hardening because the Next.js lane is retained as
-a compatibility oracle and changing `solc` can change compiled bytecode and
-invalidate the published contract evidence. Revisit both dependencies before a
-future production deployment; this repository does not claim the legacy lane is
-advisory-clean.
+This is a compatibility-lane dependency remediation, not a claim that the
+Solidity contract has undergone a formal security audit.
 
 The Rust/Dioxus website does not execute the legacy Next.js server or compile
 the Solidity contract in the browser. The contract trust anchor remains the
 already-published artifact and its evidence-bound compiler lane.
+
+The exact dependency metadata and override are recorded in `package-lock.json`
+and `package.json`.

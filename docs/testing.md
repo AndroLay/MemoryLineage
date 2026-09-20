@@ -57,13 +57,18 @@ cargo xtask release
 `smoke-web` uses only Python's standard library and a locally installed
 Chromium. It serves the static output with an `index.html` fallback, checks all
 11 routes, checks the 390px viewport for page-level overflow on every route,
-then exercises the local Silent Rollback evidence replay, evidence tampering,
+checks one visible heading, named interactive controls, and keyboard Tab focus
+on every route, then exercises the local Silent Rollback evidence replay, evidence tampering,
 evidence restore, and Recovery Decision Receipt verification, tampering, and
 restore. The rollback smoke waits for the result panel's terminal state and
 checks that its detail contains the exact machine reason, so the pre-run
 expected-reason badge cannot count as a result. It does not deploy or contact a
 staging environment. `cargo xtask release` runs the same smoke after building
-the release artifact and then checks the release package boundary.
+the release artifact and then checks the release package boundary. These are
+browser semantics and keyboard smoke checks; they do not replace testing with
+assistive technology. The smoke also clicks the optional `Probe separate
+Sepolia` control and accepts only a truthful `LIVE RPC: REJECTED` result or a
+source-labeled `SEPOLIA PROBE: UNAVAILABLE` fallback.
 
 The supported development server can be started with:
 
@@ -80,6 +85,10 @@ browser path working. The repeatable acceptance check is:
 ```bash
 cargo xtask smoke-dev-web
 ```
+
+The development-server readiness window defaults to 180 seconds for a cold
+Dioxus compile. Set `MEMORYLINEAGE_DEV_READY_TIMEOUT_SECS` when a slower or
+faster bounded environment needs a different limit.
 
 The static release path remains the submission artifact and is checked by
 `cargo xtask smoke-web`. Plain `dx serve --web` remains an upstream pinned-CLI
