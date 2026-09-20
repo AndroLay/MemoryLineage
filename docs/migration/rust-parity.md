@@ -24,7 +24,7 @@ not a judge score.
 | GitHub Actions browser gate | CONFIGURED | CI installs the pinned Dioxus CLI, builds the static Inspector, and runs `cargo xtask smoke-web`; report a remote PASS only after the run completes |
 | Evidence decoder regression | PASS | `cargo test -p memorylineage-inspector` loads the bundled deployment, reread, replay, mutation, and conformance artifacts |
 | Legacy nine-step gate | PASS | `npm run verify` |
-| Dioxus dev-server route and full responsive parity | NOT YET DEMONSTRATED | `dx serve --web` currently fails in the dev emitter on the generated WASM exceptions proposal; release static artifact smoke is separate |
+| Dioxus dev-server route and full responsive parity | NOT YET DEMONSTRATED | `dx serve --web` starts, but the browser build fails with `Failed to parse import section` in the pinned emitter; release static artifact smoke is separate |
 | Rust/revm registry execution slice | PASS | `cargo run -q -p ml-cli -- revm silent-rollback` deploys the curated Solidity artifact, commits three transitions, and decodes `BAD_PREVIOUS_STATE` |
 | Rust/revm core mutation lane | PASS | `cargo run -q -p ml-cli -- revm mutations` rejects 20/20 ordering, predecessor, zero-value, unknown-space, EOA signature/domain, replay, and branch cases with expected reasons |
 | Rust/revm ERC-1271 lane | PASS | `cargo run -q -p ml-cli -- revm erc1271` deploys the mock authorizer, accepts its owner signature, then rejects after acceptance is disabled |
@@ -42,8 +42,9 @@ The primary Silent Rollback action replays the local Demo Space V2 bundle in
 Rust/WASM. A separate browser JSON-RPC control performs an optional read-only
 Sepolia `eth_call`; if it fails, the UI preserves the local result and reports
 the probe as unavailable. The static release smoke is the reproducible browser
-gate; the pinned `dx serve --web` dev emitter remains separately qualified
-because it currently rejects the generated WASM exceptions proposal.
+gate. The pinned `dx serve --web` server starts, but its browser emitter still
+fails while parsing the generated WASM module, so full dev-server parity remains
+separately qualified.
 
 The Rust/revm lane currently covers the registry deployment, registration,
 three valid direct-authorized commits, Rust reference root comparison, the

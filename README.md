@@ -111,16 +111,22 @@ the local Demo Space V2 incident; the repository does not claim that this demo
 history has been deployed to Sepolia.
 
 The static Dioxus release artifact and browser interaction smoke path are
-verified. The pinned Dioxus development emitter still has a known WASM
-exceptions-proposal limitation, so `dx serve --web` is documented separately
-from the verified static release path.
+verified. The pinned Dioxus development server starts, but its browser build
+currently fails with `Failed to parse import section` while the emitter handles
+the generated WASM module. `dx serve --web` remains documented separately from
+the verified static release path; this does not change the release artifact or
+the protocol semantics.
 
 The following remain open submission work and are not claimed as complete:
 
 - independent clean-checkout reproduction by external developers;
-- demo video and pitch-deck artifacts;
+- demo video;
 - a final submission tag;
 - deployed hosting for the static website.
+
+The judge-facing pitch deck source is available at
+[`docs/submission/pitch-deck.md`](docs/submission/pitch-deck.md). Exporting or
+uploading presentation media remains a separate submission operation.
 
 This repository intentionally does not perform public deployment, staging, or
 video recording as part of its local release-preparation gate.
@@ -405,9 +411,10 @@ target/dx/memorylineage-inspector/release/web/public/
 the pinned CLI is installed elsewhere. A static host must route unknown paths
 to `index.html` so the deep links remain available.
 
-The pinned Dioxus development emitter currently has a known WASM
-exceptions-proposal limitation. The static release build is the verified
-browser path for the current toolchain.
+The pinned Dioxus development server starts, but the browser-facing emitter
+currently fails with `Failed to parse import section` for the generated WASM
+module. The static release build is the verified browser path for the current
+toolchain.
 
 For the complete local release-preparation gate, including the static build,
 Chromium route/interaction smoke, and tracked-file package boundary check:

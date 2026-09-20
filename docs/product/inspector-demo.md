@@ -24,10 +24,10 @@ cargo xtask build-web
 ```
 
 Serve `target/dx/memorylineage-inspector/release/web/public/` with an SPA
-fallback to `index.html`. The pinned Dioxus development emitter still has a
-WASM exceptions-proposal limitation, so the documented local path uses the
-static release artifact. The preserved Next.js surface is a compatibility
-oracle only.
+fallback to `index.html`. The pinned Dioxus development server starts, but its
+browser emitter currently fails with `Failed to parse import section`; the
+static release artifact is therefore the verified local browser path. The
+preserved Next.js surface is a compatibility oracle only.
 
 ## Demo Space V2
 
