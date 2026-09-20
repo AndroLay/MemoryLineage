@@ -20,11 +20,11 @@ not a judge score.
 | Dioxus release interaction smoke | PASS | Chromium/CDP replayed local Demo Space V2 in Silent Rollback, then tampered/restored the V2 bundle and the Recovery Decision Receipt; observed `BAD_PREVIOUS_STATE`, `TRANSITION_ID_MISMATCH`, `RECOVERY_DECISION_MISMATCH`, and `VERIFIED` |
 | Dioxus public route smoke | PASS | `cargo xtask smoke-web` loads `/`, `/inspect`, `/history`, `/history/3`, `/lab`, `/verify`, `/evidence`, `/architecture`, `/security`, `/reproduce`, and `/prior-work` through a static SPA fallback |
 | History ledger | PASS | Browser and Rust tests confirm three Demo Space V2 commits plus the stale-root rejection; the separate 20-case protocol corpus is explicitly labeled |
-| Dioxus responsive smoke | PASS | `cargo xtask smoke-web` checks every route at 390px for page-level horizontal overflow; full dev-server parity remains separately qualified below |
+| Dioxus responsive smoke | PASS | `cargo xtask smoke-web` checks every route at 390px for page-level horizontal overflow |
 | GitHub Actions browser gate | CONFIGURED | CI installs the pinned Dioxus CLI, builds the static Inspector, and runs `cargo xtask smoke-web`; report a remote PASS only after the run completes |
 | Evidence decoder regression | PASS | `cargo test -p memorylineage-inspector` loads the bundled deployment, reread, replay, mutation, and conformance artifacts |
 | Legacy nine-step gate | PASS | `npm run verify` |
-| Dioxus dev-server route and full responsive parity | NOT YET DEMONSTRATED | `dx serve --web` starts, but the browser build fails with `Failed to parse import section` in the pinned emitter; release static artifact smoke is separate |
+| Dioxus dev-server route and interaction parity | PASS | `cargo xtask smoke-dev-web` starts the pinned server with hot-patching disabled and Chromium verifies the root, Silent Rollback, and clean browser/network state |
 | Rust/revm registry execution slice | PASS | `cargo run -q -p ml-cli -- revm silent-rollback` deploys the curated Solidity artifact, commits three transitions, and decodes `BAD_PREVIOUS_STATE` |
 | Rust/revm core mutation lane | PASS | `cargo run -q -p ml-cli -- revm mutations` rejects 20/20 ordering, predecessor, zero-value, unknown-space, EOA signature/domain, replay, and branch cases with expected reasons |
 | Rust/revm ERC-1271 lane | PASS | `cargo run -q -p ml-cli -- revm erc1271` deploys the mock authorizer, accepts its owner signature, then rejects after acceptance is disabled |
@@ -41,10 +41,10 @@ artifact and contain no raw memory or signing keys.
 The primary Silent Rollback action replays the local Demo Space V2 bundle in
 Rust/WASM. A separate browser JSON-RPC control performs an optional read-only
 Sepolia `eth_call`; if it fails, the UI preserves the local result and reports
-the probe as unavailable. The static release smoke is the reproducible browser
-gate. The pinned `dx serve --web` server starts, but its browser emitter still
-fails while parsing the generated WASM module, so full dev-server parity remains
-separately qualified.
+the probe as unavailable. The static release smoke and the hot-patch-disabled
+development-server smoke are both reproducible browser gates. Plain
+`dx serve --web` is not the supported command for this pinned alpha because
+it defaults to the incompatible Rust hot-patch path; use `cargo xtask serve-web`.
 
 The Rust/revm lane currently covers the registry deployment, registration,
 three valid direct-authorized commits, Rust reference root comparison, the

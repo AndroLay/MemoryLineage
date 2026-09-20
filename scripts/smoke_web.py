@@ -9,6 +9,7 @@ same SPA fallback required by a static deployment, without deploying anything.
 from __future__ import annotations
 
 import base64
+import argparse
 import http.server
 import json
 import os
@@ -623,19 +624,30 @@ def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
             click_and_wait(cdp, "Restore original", "VERIFIED")
 
 def main() -> int:
-    if not (PUBLIC / "index.html").is_file():
+    parser = argparse.ArgumentParser(
+        description="Run the MemoryLineage browser acceptance smoke against a static artifact or an existing server."
+    )
+    parser.add_argument(
+        "--base-url",
+        help="check an already-running server instead of starting the static-artifact fallback server",
+    )
+    args = parser.parse_args()
+    if not args.base_url and not (PUBLIC / "index.html").is_file():
         raise RuntimeError("static release is missing; run cargo xtask build-web first")
     chromium = find_chromium()
     server = None
     browser = None
     temporary = tempfile.mkdtemp(prefix="memorylineage-smoke-")
     try:
-        handler = lambda *args, **kwargs: SpaHandler(*args, directory=str(PUBLIC), **kwargs)
-        server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), handler)
-        server.daemon_threads = True
-        threading.Thread(target=server.serve_forever, daemon=True).start()
-        port = server.server_address[1]
-        base = f"http://127.0.0.1:{port}"
+        if args.base_url:
+            base = args.base_url.rstrip("/")
+        else:
+            handler = lambda *args, **kwargs: SpaHandler(*args, directory=str(PUBLIC), **kwargs)
+            server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), handler)
+            server.daemon_threads = True
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            port = server.server_address[1]
+            base = f"http://127.0.0.1:{port}"
 
         debug_port = socket.socket()
         debug_port.bind(("127.0.0.1", 0))
@@ -745,7 +757,11 @@ def main() -> int:
         cdp.command("Emulation.clearDeviceMetricsOverride")
         capture_requested_screenshots(base, cdp)
         cdp.close()
-        print("PASS: static browser smoke")
+        print(
+            "PASS: development browser smoke"
+            if args.base_url
+            else "PASS: static browser smoke"
+        )
         return 0
     finally:
         if browser is not None:

@@ -64,11 +64,24 @@ expected-reason badge cannot count as a result. It does not deploy or contact a
 staging environment. `cargo xtask release` runs the same smoke after building
 the release artifact and then checks the release package boundary.
 
-The pinned development server can be checked separately with `dx serve
---web`, but it is not part of the release gate. In the current pinned
-toolchain the server starts and the browser emitter then reports
-`Failed to parse import section`; this remains a documented Dioxus/toolchain
-limitation rather than a reason to weaken the verified static path.
+The supported development server can be started with:
+
+```bash
+cargo xtask serve-web
+```
+
+The pinned Dioxus alpha enables Rust hot-patching by default, while its
+browser emitter cannot parse the exception-handling module emitted by Rust
+1.97.1. `serve-web` passes `--hot-patch false` and keeps the browser path
+working. The repeatable acceptance check is:
+
+```bash
+cargo xtask smoke-dev-web
+```
+
+The static release path remains the submission artifact and is checked by
+`cargo xtask smoke-web`. Direct `dx serve --web` use must include
+`--hot-patch false`.
 
 The release website artifact is built separately because it invokes the pinned
 Dioxus CLI:

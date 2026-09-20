@@ -47,9 +47,11 @@ The first Rust migration slice now passes:
   rejection with `BAD_PREVIOUS_STATE`.
 
 The release artifact now passes a Chromium/CDP smoke test for initial render,
-Silent Rollback, Verify, and evidence tamper interaction. `dx serve --web`
-dev-server smoke remains NOT YET DEMONSTRATED because the pinned Dioxus dev
-emitter rejects the generated WASM exceptions proposal. The Next.js Inspector
-remains the migration oracle for broader responsive parity. A first Rust/revm
-registry execution slice now deploys the curated Solidity artifact and rejects
-the stale predecessor; EthereumJS remains the broader execution oracle.
+Silent Rollback, Verify, and evidence tamper interaction. The pinned Dioxus
+alpha's default Rust hot-patch path is incompatible with the WASM module
+emitted by Rust 1.97.1, so the supported development command disables that
+path. `cargo xtask smoke-dev-web` now passes the route and interaction smoke
+against the running development server. The Next.js Inspector remains the
+migration oracle for historical comparison. A first Rust/revm registry
+execution slice now deploys the curated Solidity artifact and rejects the
+stale predecessor; EthereumJS remains the broader execution oracle.

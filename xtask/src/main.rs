@@ -1,8 +1,11 @@
 #![forbid(unsafe_code)]
 
 use std::fs;
+use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 fn run(program: &str, args: &[&str]) -> Result<(), String> {
     let output = Command::new(program)
@@ -614,6 +617,112 @@ fn build_web() -> Result<(), String> {
     )
 }
 
+fn serve_web() -> Result<(), String> {
+    let dx = std::env::var("DX_BIN").unwrap_or_else(|_| "dx".to_owned());
+    let status = Command::new(&dx)
+        .args([
+            "serve",
+            "--package",
+            "memorylineage-inspector",
+            "--web",
+            "--hot-patch",
+            "false",
+            "--open",
+            "false",
+        ])
+        .env("CCACHE_DISABLE", "1")
+        .env_remove("RUSTC_WRAPPER")
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .status()
+        .map_err(|error| format!("could not start {dx}: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{dx} serve exited with {status}"))
+    }
+}
+
+fn smoke_dev_web() -> Result<(), String> {
+    let dx = std::env::var("DX_BIN").unwrap_or_else(|_| "dx".to_owned());
+    let port = TcpListener::bind(("127.0.0.1", 0))
+        .map_err(|error| format!("could not reserve a local dev-server port: {error}"))?
+        .local_addr()
+        .map_err(|error| format!("could not read the local dev-server port: {error}"))?
+        .port();
+    let port_text = port.to_string();
+    let server_args = vec![
+        "serve".to_owned(),
+        "--package".to_owned(),
+        "memorylineage-inspector".to_owned(),
+        "--web".to_owned(),
+        "--addr".to_owned(),
+        "127.0.0.1".to_owned(),
+        "--port".to_owned(),
+        port_text.clone(),
+        "--open".to_owned(),
+        "false".to_owned(),
+        "--hot-patch".to_owned(),
+        "false".to_owned(),
+        "--hot-reload".to_owned(),
+        "false".to_owned(),
+        "--watch".to_owned(),
+        "false".to_owned(),
+    ];
+    let mut server = Command::new(&dx)
+        .args(&server_args)
+        .env("CCACHE_DISABLE", "1")
+        .env_remove("RUSTC_WRAPPER")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("could not start {dx}: {error}"))?;
+
+    let result = (|| {
+        let deadline = Instant::now() + Duration::from_secs(90);
+        loop {
+            if TcpStream::connect(("127.0.0.1", port)).is_ok() {
+                break;
+            }
+            if let Some(status) = server
+                .try_wait()
+                .map_err(|error| format!("could not inspect {dx} serve: {error}"))?
+            {
+                return Err(format!("{dx} serve exited before becoming ready: {status}"));
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("{dx} serve did not become ready within 90 seconds"));
+            }
+            thread::sleep(Duration::from_millis(250));
+        }
+
+        let base_url = format!("http://127.0.0.1:{port}");
+        let smoke = Command::new("python3")
+            .args(["scripts/smoke_web.py", "--base-url", &base_url])
+            .env("CCACHE_DISABLE", "1")
+            .env_remove("RUSTC_WRAPPER")
+            .output()
+            .map_err(|error| format!("could not start dev-server browser smoke: {error}"))?;
+        if smoke.status.success() {
+            println!("PASS development browser smoke");
+            Ok(())
+        } else {
+            Err(format!(
+                "development browser smoke failed with {}\n{}{}",
+                smoke.status,
+                String::from_utf8_lossy(&smoke.stdout),
+                String::from_utf8_lossy(&smoke.stderr)
+            ))
+        }
+    })();
+
+    let _ = server.kill();
+    let _ = server.wait();
+    result
+}
+
 fn verify() -> Result<(), String> {
     step("format", "cargo", &["fmt", "--all", "--", "--check"])?;
     step(
@@ -934,15 +1043,17 @@ fn main() {
             &["run", "-q", "-p", "ml-cli", "--", "fixture", "inspect"],
         ),
         "build-web" => build_web(),
+        "serve-web" => serve_web(),
         "package-check" => run("bash", &["scripts/check-public-package.sh"]),
         "release" => release_prep(),
         "reproduce" => reproduce(),
         "reviewer-package" => reviewer_package(std::env::args().nth(2).as_deref()),
         "reviewer-reproduce" => reviewer_reproduce(),
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
+        "smoke-dev-web" => smoke_dev_web(),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, package-check, release, reproduce, reviewer-package, reviewer-reproduce, smoke-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, serve-web, package-check, release, reproduce, reviewer-package, reviewer-reproduce, smoke-web, smoke-dev-web, or release-manifest"
         )),
     };
 

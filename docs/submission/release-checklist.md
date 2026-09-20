@@ -29,9 +29,10 @@ npm run verify
 ```
 
 The static Dioxus release path and Chromium smoke are the supported browser
-release path. The pinned `dx serve --web` development emitter starts, but its
-browser build currently fails with `Failed to parse import section`; this is
-tracked as a toolchain/emitter limitation and is not used as release evidence.
+release path. Local development is supported through `cargo xtask serve-web`,
+which disables the pinned Dioxus alpha's incompatible Rust hot-patch path;
+`cargo xtask smoke-dev-web` repeats that browser check. Direct
+`dx serve --web` must include `--hot-patch false`.
 
 ## External and submission gates
 

@@ -30,6 +30,8 @@ jobs:
         run: cargo xtask build-web
       - name: Smoke-test Inspector routes and evidence flows
         run: cargo xtask smoke-web
+      - name: Smoke-test supported Dioxus development server
+        run: cargo xtask smoke-dev-web
       - name: Check tracked release boundary
         run: bash scripts/check-public-package.sh --release
       - name: Reproduce from transportable reviewer archive
