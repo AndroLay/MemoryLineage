@@ -20,63 +20,56 @@ MemoryLineage records only fixed-size commitments and transition metadata in an
 Ethereum registry. The memory, documents, prompts, and private locator contents
 remain off-chain.
 
-## The core flow
+## The MemoryLineage flow
 
-```text
-Private SQLite memory
-        ↓
-Rust commitments
-        ↓
-Solidity registry on Ethereum
-        ↓
-Portable evidence
-        ↓
-Independent Rust verification
+```mermaid
+flowchart TD
+    S1[Private Snapshot 1] --> S2[Private Snapshot 2]
+    S2 --> S3[Private Snapshot 3]
+    S3 --> H[Canonical committed head]
+
+    S1 -. restore locally .-> R[Restored Snapshot 1]
+    R --> A[Attempt transition 4 using Snapshot 1 root]
+    H --> A
+    A --> X[REJECTED<br/>BAD_PREVIOUS_STATE]
+
+    S1 --> M[Rust memory store and commitments]
+    S2 --> M
+    S3 --> M
+    M --> C[Solidity MemoryLineage Registry]
+    C --> H
+    C --> O[Ethereum Sepolia / read-only RPC]
+    C --> E[Portable evidence bundle]
+    O --> I[Rust/WASM Inspector]
+    E --> I
+    E --> V[Independent Rust verifier and CLI]
+
+    I --> P[Inspect → History → Tampering Lab → Verify]
 ```
 
-### The Silent Rollback
+The local Demo Space V2 contains synthetic SQLite snapshots 1, 2, and 3. The
+operator can restore Snapshot 1 locally, but its actual stale root cannot be
+accepted as the successor of the later canonical head. The same evidence can
+be inspected in the browser and replayed independently from the CLI.
 
-The local Demo Space V2 contains three synthetic snapshots:
-
-```text
-Snapshot 1 → Snapshot 2 → Snapshot 3  ← canonical committed head
-```
-
-The operator restores Snapshot 1 and attempts to continue the history. The
-Rust/revm execution uses Snapshot 1's actual stale state root against the
-canonical head at Snapshot 3. The registry rejects the attempt with the exact
-Solidity reason:
+The reviewer journey is:
 
 ```text
-REJECTED
-BAD_PREVIOUS_STATE
+Home → Inspect → History → Tampering Lab → Verify → Independent CLI
 ```
 
-The local restore is still possible. MemoryLineage proves that the restored
-snapshot cannot silently become the next canonical committed state under the
-registry rules.
+The Inspector has 11 routes. Four are primary tools: `/inspect`, `/history`,
+`/lab`, and `/verify`. The supporting routes provide the home explanation,
+transition detail, public evidence, architecture, security scope,
+reproduction instructions, and submission provenance.
 
-## Try the product
+The browser can export or import evidence, reject a changed commitment with
+`TRANSITION_ID_MISMATCH`, restore the original bundle, and report `VERIFIED`.
+Raw memory remains outside the chain and portable evidence.
 
-The Rust/WASM Dioxus Inspector is the primary product:
-
-```text
-Home → Inspect → History → Tampering Lab → Verify
-```
-
-The website lets a reviewer:
-
-1. inspect the canonical head and authority history;
-2. run the Silent Rollback rehearsal;
-3. export or import portable evidence;
-4. change one commitment and receive `TRANSITION_ID_MISMATCH`;
-5. restore the original bundle and receive `VERIFIED`;
-6. reproduce the result with the independent Rust CLI.
-
-The Inspector has 11 routes. Four are primary tools: `/inspect`,
-`/history`, `/lab`, and `/verify`. The supporting routes are `/`,
-`/history/:sequence`, `/evidence`, `/architecture`, `/security`,
-`/reproduce`, and `/prior-work`.
+The local Demo Space V2 is synthetic and is not user data. A separate Sepolia
+deployment and readback observation is included in the repository; the local
+Demo Space V2 history is not claimed as deployed to Sepolia.
 
 ## What it verifies
 
@@ -100,26 +93,6 @@ MemoryLineage does not determine:
 The bounded security report is not a formal proof or a third-party security
 audit. ERC-1271 results distinguish on-chain acceptance from full historical
 offline signer-contract reexecution.
-
-## Architecture
-
-```text
-SQLite snapshots
-      ↓
-Rust memory store and canonicalization
-      ↓
-Solidity MemoryLineage Registry
-      ↓
-Ethereum Sepolia / read-only RPC
-      ↓
-Rust/WASM Inspector
-      ↓
-Evidence bundle → independent Rust verifier and CLI
-```
-
-The local Demo Space V2 is synthetic and is not user data. A separate Sepolia
-deployment and readback observation is included in the repository; the local
-Demo Space V2 history is not claimed as deployed to Sepolia.
 
 ## Technology
 
