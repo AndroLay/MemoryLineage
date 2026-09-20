@@ -7,7 +7,7 @@ It verifies whether a committed memory state is the continuous, authorized
 successor of the previously committed state without publishing raw memory
 on-chain.
 
-Release baseline: **`v1.0.0`**
+Release baseline: **`v1.0.0`** · current review candidate: [`v1.0.1-rc.2`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.2)
 
 Live website: [memorylineage.pages.dev](https://memorylineage.pages.dev) — the
 static Rust/WASM Inspector is hosted on Cloudflare Pages. The local Demo Space

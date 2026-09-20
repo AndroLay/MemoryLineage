@@ -173,6 +173,6 @@ cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
 cargo xtask reviewer-reproduce
 ```
 
-These are automated local/owner-side gates. External human reproduction,
-production hosting, staging, and the demo video remain separate submission
-operations until their evidence is recorded.
+These are automated local/owner-side gates. The public static Inspector is
+already hosted; external human reproduction, staging, and the demo video remain
+separate submission operations until their evidence is recorded.

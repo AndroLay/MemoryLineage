@@ -18,6 +18,14 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
+The current tagged review candidate is
+[`v1.0.1-rc.2`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.2).
+For an exact checkout, use:
+
+```bash
+git checkout v1.0.1-rc.2
+```
+
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
 tree. The static Inspector is also available at
@@ -40,7 +48,7 @@ unproven.
 
 ## Reviewer archive
 
-After committing the exact release candidate, create a clean source/evidence
+After checking out the exact release candidate, create a clean source/evidence
 archive:
 
 ```bash
