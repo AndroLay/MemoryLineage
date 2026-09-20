@@ -7,9 +7,30 @@ Date: 20 September 2026
 `cargo metadata --format-version 1 --locked --offline` completed against the
 checked-in `Cargo.lock`. All workspace packages declare MIT licensing, and the
 resolved direct Rust dependencies are recorded in
-[`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md). `cargo-audit` is not
-installed in this environment, so this is license/lockfile evidence rather than
-a Rust advisory scan.
+[`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md).
+
+The RustSec advisory database was scanned with:
+
+```bash
+cargo audit
+```
+
+Result: no vulnerability, unsoundness, or yanked-package advisory was reported
+for the 633 resolved dependencies. The scan reports two allowed maintenance
+warnings:
+
+| Crate | Version | Advisory | Interpretation |
+| --- | ---: | --- | --- |
+| `derivative` | 2.2.0 | `RUSTSEC-2024-0388` | Unmaintained transitive crate in the locked dependency graph |
+| `paste` | 1.0.15 | `RUSTSEC-2024-0436` | Unmaintained transitive crate; active paths include the pinned Alloy/revm lane |
+
+These are maintenance warnings, not known vulnerability advisories. The
+workspace keeps Alloy `2.4.2`, revm `43.0.2`, Dioxus `0.8.0-alpha.1`, and the
+checked-in lockfile because the current versions are part of the verified
+Rust/EVM/WASM parity boundary. Replacing them only to remove an unmaintained
+transitive macro crate would require a fresh parity and release audit. A future
+dependency refresh must rerun the full Rust/revm, evidence, WASM, and browser
+gates before it can be accepted.
 
 ## Preserved Node compatibility lane
 
