@@ -8,6 +8,8 @@ pub const SEPOLIA_REGISTRY: &str = "0x36fE9FA585565615Adcfe8680a126F770931E160";
 #[cfg(target_arch = "wasm32")]
 pub const SEPOLIA_SPACE: &str =
     "0x910968e7e2ae2899858c72b71683d55d3b1b11a69aae9f38448ee4cbb896580c";
+#[cfg(target_arch = "wasm32")]
+const RPC_TIMEOUT_MS: i32 = 12_000;
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -146,9 +148,9 @@ fn rpc_revert_reason(error: &serde_json::Value) -> Option<String> {
 
 #[cfg(target_arch = "wasm32")]
 async fn rpc(method: &str, params: serde_json::Value) -> Result<serde_json::Value, String> {
-    use wasm_bindgen::{JsCast, JsValue};
+    use wasm_bindgen::{JsCast, JsValue, closure::Closure};
     use wasm_bindgen_futures::JsFuture;
-    use web_sys::{Request, RequestInit, Response};
+    use web_sys::{AbortController, Request, RequestInit, Response};
 
     let body = serde_json::json!({
         "jsonrpc": "2.0",
@@ -159,6 +161,8 @@ async fn rpc(method: &str, params: serde_json::Value) -> Result<serde_json::Valu
     let options = RequestInit::new();
     options.set_method("POST");
     options.set_body(&JsValue::from_str(&body.to_string()));
+    let controller = AbortController::new().map_err(|_| "RPC_ABORT_CREATE_FAILED".to_owned())?;
+    options.set_signal(Some(&controller.signal()));
     let request = Request::new_with_str_and_init(SEPOLIA_RPC, &options)
         .map_err(|_| "RPC_REQUEST_CREATE_FAILED".to_owned())?;
     request
@@ -166,9 +170,19 @@ async fn rpc(method: &str, params: serde_json::Value) -> Result<serde_json::Valu
         .set("content-type", "application/json")
         .map_err(|_| "RPC_HEADER_FAILED".to_owned())?;
     let window = web_sys::window().ok_or_else(|| "WINDOW_UNAVAILABLE".to_owned())?;
+    let timeout_controller = controller.clone();
+    let timeout_callback = Closure::once_into_js(move || timeout_controller.abort());
+    let timeout_id = window
+        .set_timeout_with_callback_and_timeout_and_arguments_0(
+            timeout_callback.unchecked_ref(),
+            RPC_TIMEOUT_MS,
+        )
+        .map_err(|_| "RPC_TIMEOUT_SETUP_FAILED".to_owned())?;
     let response = JsFuture::from(window.fetch_with_request(&request))
         .await
-        .map_err(|_| "RPC_NETWORK_FAILED".to_owned())?
+        .map_err(|_| "RPC_NETWORK_OR_TIMEOUT_FAILED".to_owned());
+    window.clear_timeout_with_handle(timeout_id);
+    let response = response?
         .dyn_into::<Response>()
         .map_err(|_| "RPC_RESPONSE_CAST_FAILED".to_owned())?;
     let value = JsFuture::from(response.json().map_err(|_| "RPC_JSON_FAILED".to_owned())?)

@@ -15,14 +15,14 @@ V2 remains separate and is not deployed to Sepolia.
 
 ## The problem
 
-An agent can restore an old private database after a crash, migration, or
-incident. The local database alone cannot tell an independent reviewer whether
-that snapshot is the current checkpoint, a known historical checkpoint, a
-divergent state, or an unverifiable state.
+Persistent agents keep memory in mutable off-chain storage controlled by one
+operator. After a restore, migration, or failover, an independent reviewer
+cannot tell whether a candidate snapshot is the current authorized continuation,
+a known historical checkpoint, or a divergent state.
 
-MemoryLineage records only fixed-size commitments and transition metadata in an
-Ethereum registry. The memory, documents, prompts, and private locator contents
-remain off-chain.
+MemoryLineage records fixed-size commitments and transition metadata while raw
+memory remains off-chain. Read the complete [problem, importance, impact, and
+scope note](docs/product/problem-and-impact.md).
 
 ## The important flows
 

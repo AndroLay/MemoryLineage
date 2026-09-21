@@ -7,11 +7,22 @@ clear path from inspection to falsification to independent verification.
 
 ## Visual direction
 
-The Inspector is a light evidence workspace carried by a stage-manager cue
+The Inspector is a dark evidence workspace carried by a stage-manager cue
 rail. A memory history is a sequence of cues held in a ruled timeline; the
-current canonical state is shown in cobalt, a rejected attempt in rose, and
-authority or scope warnings in brass. The interface is an incident-review
-instrument, not a generic crypto dashboard.
+current canonical state is shown in restrained cobalt, a rejected attempt in
+coral, and authority or scope warnings in amber. The interface is an
+incident-review instrument, not a generic crypto dashboard.
+
+The visual hierarchy follows one audit argument:
+
+```text
+incident → canonical history → attempted change → exact verdict → replayable proof
+```
+
+Every page keeps the same space, selected state, source class, and evidence
+boundary visible where they are relevant. Supporting detail is progressively
+disclosed through readout rows, event tables, and forensic links instead of
+competing with the primary decision.
 
 The public website has four primary operational surfaces:
 
@@ -49,17 +60,19 @@ live observation.
 
 ## Tokens
 
-- Navy: `#142238` for the top navigation.
-- Ink: `#101a31` for headings and primary text.
-- Muted: `#6d80a5` for supporting text.
-- Cobalt: `#1769f5` for canonical sequence and active controls.
-- Cobalt soft: `#edf4ff` for selected evidence surfaces.
-- Border: `#dbe5f3` for hairlines and table rules.
-- Surface: `#ffffff` for the main canvas.
-- Surface 2: `#f7faff` for supporting panels.
-- Success: `#18b979` for verified checks.
-- Danger: `#ed5963` for rejected attempts.
-- Warning: `#e4a12c` for authority and scope warnings.
+- Navy: `#081321` for navigation and the deepest shell surface.
+- Ink: `#f4f7fb` for headings and primary text.
+- Muted: `#a9b9ce` for supporting text.
+- Cobalt: `#78aaff` for canonical sequence and active controls.
+- Cobalt soft: `#142b47` for selected evidence surfaces.
+- Border: `#263d58` for hairlines and table rules.
+- Surface: `#0f1e31` for evidence panels.
+- Surface 2: `#091625` for the page canvas.
+- Surface 3: `#13263d` for inner readouts and tables.
+- Surface deep: `#050c16` for machine output and rejection panels.
+- Success: `#6bd7b4` for verified checks.
+- Danger: `#f2878d` for rejected attempts.
+- Warning: `#e7bf6e` for authority and scope warnings.
 
 A color is never the only carrier of a status. Status text and a shape or icon
 remain visible in every state.
@@ -71,7 +84,9 @@ strong display weight for page headings. Use monospace only for hashes,
 addresses, sequences, blocks, error codes, and machine output.
 
 Use a primary workspace, a secondary sidebar, tables, readout rows, and a
-timeline. Avoid gradient text, glass decoration, repeated metric-card grids,
+timeline. Prefer a small number of meaningful surfaces over repeated cards.
+Use the four-step audit path in the Tampering Lab to show restore, comparison,
+replay, and verdict as one operation. Avoid gradient text, glass decoration,
 random crypto illustrations, and large empty marketing spaces.
 
 ## Interaction and states

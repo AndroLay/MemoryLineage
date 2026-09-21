@@ -51,17 +51,7 @@ pub fn Icon(name: IconName, size: u32) -> Element {
 
 #[component]
 pub fn TopNavigation(route: Route) -> Element {
-    let inspect_surface = matches!(
-        route,
-        Route::Home
-            | Route::Inspect
-            | Route::Transition(_)
-            | Route::Evidence
-            | Route::Architecture
-            | Route::Security
-            | Route::Reproduce
-            | Route::PriorWork
-    );
+    let inspect_surface = matches!(route, Route::Inspect | Route::Transition(_));
     let active = |candidate: Route| {
         if route == candidate || (candidate == Route::Inspect && inspect_surface) {
             "nav-link nav-link-active"
@@ -89,7 +79,6 @@ pub fn TopNavigation(route: Route) -> Element {
                 Link { class: active(Route::Verify), to: AppRoute::Verify {}, "Verify" }
             }
             div { class: "topbar-meta",
-                span { class: "source-chip source-observed", span { class: "source-dot" }, "SEPOLIA / OBSERVED" }
                 a { class: "topbar-muted topbar-link", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noreferrer", "GITHUB / PRIVATE REPO" }
             }
         }

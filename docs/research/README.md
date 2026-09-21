@@ -65,3 +65,11 @@ that must be resolved before portability or cross-chain recovery claims are made
 Historical score files must not be presented as official judge scores. The
 current evidence gate reports pass/fail conditions and deliberately does not
 manufacture a Devpost score.
+
+The additional execution plan for raising evidence-adjusted Top-1 readiness is
+recorded in
+[`docs/superpowers/plans/2026-09-21-memorylineage-top1-readiness.md`](../superpowers/plans/2026-09-21-memorylineage-top1-readiness.md).
+It joins the existing Demo Space V2 fixture, protected agent-resume gate,
+portable evidence, Inspector journey, and independent reproduction into one
+reviewable vertical slice. It is a target plan, not evidence that the listed
+gates have already been completed.

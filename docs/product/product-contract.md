@@ -14,6 +14,11 @@ The product tagline remains:
 
 ## Real problem and Web3 condition
 
+The complete problem statement, consequences, trust-role condition, adjacent
+systems, measurable impact, and reusable submission wording are maintained in
+[Problem, Importance, and Impact](./problem-and-impact.md). This contract keeps
+the short normative version used by the product.
+
 A persistent agent operator can restore or replace its off-chain memory. If an
 independent controller or auditor needs to know which state transitions were
 previously authorized, the operator's local database is not a shared source of

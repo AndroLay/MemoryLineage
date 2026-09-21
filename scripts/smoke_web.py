@@ -510,11 +510,13 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         expected_reason,
         "without publishing the private memory itself",
         "existing Sepolia deployment is a separate observation",
-        "Load an older private snapshot locally.",
-        "Check it against the committed head.",
-        "See the exact Solidity reason.",
+        "An old backup can look perfectly normal.",
+        "The agent remembers",
+        "An old backup is restored",
+        "The reviewer cannot tell",
+        "MEMORYLINEAGE ADDS THE MISSING CHECK",
+        "Follow one short path.",
         "WHY A SHARED REGISTRY",
-        "A judge can understand the failure before reading the cryptography",
         *[snapshot["visibleLabel"] for snapshot in manifest["snapshots"]],
     ]
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
@@ -529,7 +531,7 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         body = " ".join(body.split())
         missing = [marker for marker in expected if marker not in body]
         if not missing:
-            print("PASS home problem story / old backup + canonical head + fixture labels")
+            print("PASS home problem story / plain-language restore flow + canonical head + fixture labels")
             return
         time.sleep(0.25)
     note_nodes = cdp.evaluate(

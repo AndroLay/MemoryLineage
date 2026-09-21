@@ -41,26 +41,76 @@ pub fn HomePage(data: UiData) -> Element {
             section { class: "home-hero",
                 div { class: "home-hero-copy",
                     p { class: "eyebrow", "MEMORY LINEAGE" }
-                    h1 { "Verify the history, not the memory." }
-                    p { class: "home-lede", "A private snapshot can be restored locally. MemoryLineage shows which committed root comes next without publishing the private memory itself." }
+                    p { class: "home-tagline", "Verify the history, not the memory." }
+                    h1 { "An old AI-memory backup can look current." }
+                    p { class: "home-lede", "The file still opens and the agent can still start. MemoryLineage checks whether that restored private state is the authorized continuation of the shared history before anyone treats it as current, without publishing the private memory itself." }
                     div { class: "action-row",
-                        Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Run Silent Rollback ", Icon { name: IconName::Arrow, size: 16 } }
+                        Link { class: "button button-primary", to: AppRoute::Inspect {}, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
                         Link { class: "button button-secondary", to: AppRoute::Verify {}, "Verify Evidence" }
                     }
                     section { class: "home-metrics",
-                        div { class: "home-metric", Icon { name: IconName::Database, size: 27 }, div { strong { "{data.v2.transitions.len()}" }, span { "committed demo states" } } }
-                        div { class: "home-metric", Icon { name: IconName::Shield, size: 27 }, div { strong { "{data.mutation_rejected}/{data.mutation_count}" }, span { "corpus cases rejected" } } }
-                        div { class: "home-metric", Icon { name: IconName::Open, size: 27 }, div { strong { "Sepolia" }, span { "separate read-only observation" } } }
+                        div { class: "home-metric", Icon { name: IconName::Database, size: 27 }, div { strong { "{data.fixture.snapshots.len()}" }, span { "private snapshots in the demo" } } }
+                        div { class: "home-metric", Icon { name: IconName::Shield, size: 27 }, div { strong { "{data.mutation_rejected}/{data.mutation_count}" }, span { "known history attacks rejected" } } }
+                        div { class: "home-metric", Icon { name: IconName::Open, size: 27 }, div { strong { "Sepolia" }, span { "separate chain observation" } } }
                     }
                 }
                 div { class: "home-hero-trust content-panel",
-                    p { class: "panel-kicker", "THE AUDIT BOUNDARY" }
+                    div { class: "home-trust-heading",
+                        div { p { class: "panel-kicker", "THE INCIDENT / ONE EVIDENCE PATH" } strong { "Old restore vs canonical head" } }
+                        span { class: "home-trust-status", "LOCAL DEMO SPACE V2" }
+                    }
+                    div { class: "incident-rail", aria_label: "Demo Space V2 canonical snapshots",
+                        for snapshot in data.fixture.snapshots.iter() {
+                            div { class: if snapshot.sequence == head.delta.sequence { "incident-state incident-state-current" } else { "incident-state" },
+                                span { class: "incident-sequence", "{snapshot.sequence:02}" }
+                                span { class: "incident-label", "{snapshot.visible_label.as_deref().unwrap_or(\"Snapshot\")}" }
+                                strong { if snapshot.sequence == head.delta.sequence { "CANONICAL HEAD" } else { "COMMITTED" } }
+                                code { "{short_hash(&snapshot.snapshot_commitment, 8, 6)}" }
+                            }
+                        }
+                    }
+                    div { class: "incident-attempt",
+                        div { span { "RESTORED LOCALLY" } strong { "Snapshot {restored_sequence}" } code { "{short_hash(&stale_root, 8, 6)}" } }
+                        div { class: "incident-arrow", "→" }
+                        div { span { "ATTEMPTED CONTINUATION" } strong { "Transition {attempted_sequence}" } code { "{contract_reason}" } }
+                    }
+                    div { class: "incident-result", span { "EXACT MACHINE RESULT" }, StatusBadge { label: "BAD_PREVIOUS_STATE".to_owned(), tone: "danger".to_owned() } }
                     div { class: "trust-list",
                         div { class: "trust-item", Icon { name: IconName::Lock, size: 24 }, div { strong { "Memory stays local" }, span { "Only commitments cross the boundary." } } }
                         div { class: "trust-item", Icon { name: IconName::History, size: 24 }, div { strong { "The checkpoint is shared" }, span { "Anyone can replay the committed succession." } } }
                         div { class: "trust-item", Icon { name: IconName::Authority, size: 24 }, div { strong { "Authority is recorded" }, span { "Changes are part of the evidence." } } }
                         div { class: "trust-item", Icon { name: IconName::Open, size: 24 }, div { strong { "Evidence travels" }, span { "Export the bundle and verify it elsewhere." } } }
                     }
+                }
+            }
+            section { class: "section-wrap home-problem-explainer content-panel",
+                div { class: "home-problem-copy",
+                    p { class: "panel-kicker", "THE PROBLEM IN PLAIN LANGUAGE" }
+                    h2 { "An old backup can look perfectly normal." }
+                    p { "The database opens. The agent starts. But the people who did not operate it have no independent way to tell whether the restored memory is the latest state or an older one." }
+                    p { class: "home-problem-emphasis", "MemoryLineage answers one question: can this private snapshot continue the history everyone agreed on?" }
+                }
+                div { class: "home-problem-steps", aria_label: "The restore problem",
+                    div { class: "home-problem-step",
+                        span { class: "home-problem-step-number", "01" }
+                        strong { "The agent remembers" }
+                        span { "Useful context is stored in a private database." }
+                    }
+                    div { class: "home-problem-step",
+                        span { class: "home-problem-step-number", "02" }
+                        strong { "An old backup is restored" }
+                        span { "The local file can go back to snapshot {restored_sequence}, even when newer states were already recorded." }
+                    }
+                    div { class: "home-problem-step home-problem-step-alert",
+                        span { class: "home-problem-step-number", "03" }
+                        strong { "The reviewer cannot tell" }
+                        span { "Without a shared history, an older state can look like the current one." }
+                    }
+                }
+                div { class: "home-problem-answer",
+                    span { class: "home-problem-answer-label", "MEMORYLINEAGE ADDS THE MISSING CHECK" }
+                    strong { "An older root cannot silently become the next shared state." }
+                    Link { class: "text-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "See the failed restore →" }
                 }
             }
             section { class: "home-overview section-wrap content-panel",
@@ -121,24 +171,25 @@ pub fn HomePage(data: UiData) -> Element {
                 Link { class: "text-link", to: AppRoute::Architecture {}, "Read the architecture →" }
             }
             section { class: "section-wrap home-reviewer-flow content-panel",
-                div { class: "panel-kicker", "REVIEW IN THREE STEPS" }
+                div { class: "panel-kicker", "HOW TO USE MEMORYLINEAGE" }
+                h2 { "Follow one short path." }
                 div { class: "judge-path", aria_label: "Judge path",
                     div { class: "judge-step",
                         span { class: "judge-step-number", "01" }
-                        div { strong { "Restore" }, span { "Load an older private snapshot locally." } }
+                        div { strong { "Inspect" }, span { "Choose a snapshot and see how it compares with the recorded head." }, Link { class: "judge-step-link", to: AppRoute::Inspect {}, "Open Inspect →" } }
                     }
                     div { class: "judge-step-arrow", "→" }
                     div { class: "judge-step",
                         span { class: "judge-step-number", "02" }
-                        div { strong { "Compare" }, span { "Check it against the committed head." } }
+                        div { strong { "Test" }, span { "Try to continue from an older snapshot." }, Link { class: "judge-step-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Open Tampering Lab →" } }
                     }
                     div { class: "judge-step-arrow", "→" }
                     div { class: "judge-step",
                         span { class: "judge-step-number judge-step-number-danger", "03" }
-                        div { strong { "Reject" }, span { "See the exact Solidity reason." } }
+                        div { strong { "Verify" }, span { "Export, tamper, restore, and replay the evidence." }, Link { class: "judge-step-link", to: AppRoute::Verify {}, "Open Verify →" } }
                     }
                 }
-                p { class: "home-judge-note", "A judge can understand the failure before reading the cryptography: local storage can be restored, but an earlier root cannot silently become the registry's current predecessor." }
+                p { class: "home-judge-note", "You do not need to understand the cryptography first. Start with Inspect, try the older snapshot in the Lab, then use Verify to check the same result outside the page." }
             }
             section { class: "section-wrap home-evidence-note",
                 SourceLine { source: "DEMO SPACE V2 / LOCAL REVM".to_owned(), note: format!("{} committed states / {} mutation cases", data.v2.transitions.len(), data.mutation_count) }
@@ -260,7 +311,7 @@ pub fn InspectPage(data: UiData) -> Element {
             PageHeader {
                 kicker: "INSPECT / MEMORY SPACE".to_owned(),
                 title: "Inspect Memory Space".to_owned(),
-                description: "Find the committed head, then compare a local snapshot against it.".to_owned(),
+                description: "Choose a snapshot below. MemoryLineage will tell you whether it is current, an older checkpoint, or a state it cannot verify.".to_owned(),
                 source: "DEMO SPACE V2 / LOCAL REVM".to_owned(),
             }
             div { class: "inspect-context-bar",
@@ -273,7 +324,7 @@ pub fn InspectPage(data: UiData) -> Element {
                 div { class: "field-readout", span { "NETWORK" }, strong { "{data.v2.network.name}" }, code { "CHAIN {data.v2.network.chain_id}" } }
                 div { class: "field-readout", span { "REGISTRY ADDRESS" }, strong { "{short_hash(&data.v2.registry.address, 14, 8)}" }, code { "LOCAL SOLIDITY INSTANCE" } }
                 div { class: "field-readout", span { "SPACE ID" }, strong { "{short_hash(&data.v2.registry.space_id, 14, 8)}" }, code { "DEMO SPACE V2" } }
-                Link { class: "button button-primary", to: AppRoute::Inspect {}, "Inspect ", Icon { name: IconName::Arrow, size: 16 } }
+                Link { class: "button button-primary", to: AppRoute::History {}, "View history ", Icon { name: IconName::Arrow, size: 16 } }
             }
             div { class: "inspect-layout",
                 main {
@@ -286,9 +337,9 @@ pub fn InspectPage(data: UiData) -> Element {
                         div { class: "inspect-lineage-footer", span { "{data.v2.transitions.len()} observed states" }, span { "|" }, span { "head sequence {head.delta.sequence}" }, span { "|" }, span { "local Demo Space V2" }, Link { class: "text-link", to: AppRoute::History {}, "View full history ", Icon { name: IconName::Arrow, size: 14 } } }
                     }
                     section { class: "inspect-summary-cards",
-                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Database, size: 24 }, div { p { class: "panel-kicker", "CANONICAL HEAD" } h2 { "State {head.delta.sequence}" } CopyValue { label: "canonical head".to_owned(), value: head.next_state_root.clone(), compact: true } } }
-                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Authority, size: 24 }, div { p { class: "panel-kicker", "AUTHORITY CHANGES" } h2 { "{history_count}" } span { "configNonce records" } } }
-                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Shield, size: 24 }, div { p { class: "panel-kicker", "LINEAGE GAPS" } h2 { "0" } span { "No missing states" } } }
+                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Database, size: 24 }, div { p { class: "panel-kicker", "CURRENT RECORDED HEAD" } h2 { "State {head.delta.sequence}" } CopyValue { label: "canonical head".to_owned(), value: head.next_state_root.clone(), compact: true } } }
+                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Authority, size: 24 }, div { p { class: "panel-kicker", "WHEN AUTHORITY CHANGED" } h2 { "{history_count}" } span { "approval changes recorded" } } }
+                        div { class: "content-panel inspect-summary-card", Icon { name: IconName::Shield, size: 24 }, div { p { class: "panel-kicker", "MISSING STEPS" } h2 { "0" } span { "History is continuous" } } }
                     }
                     section { class: "content-panel inspect-boundary-panel",
                         div { class: "boundary-half", div { class: "panel-kicker", "ON CHAIN" }, p { "What's public and verifiable" }, div { class: "boundary-tags", span { "state commitments" }, span { "transition metadata" }, span { "authorizations" }, span { "timestamps" } } }
@@ -307,17 +358,18 @@ pub fn InspectPage(data: UiData) -> Element {
                         Link { class: "button button-secondary button-full", to: AppRoute::Transition { sequence: head.delta.sequence }, "View state details ", Icon { name: IconName::Arrow, size: 14 } }
                     }
                     section { class: "content-panel inspect-evidence-panel", div { class: "panel-title-row", div { p { class: "panel-kicker", "EVIDENCE SOURCE" } h3 { "{data.v2.source_class}" } }, StatusBadge { label: "OBSERVED".to_owned(), tone: "observed".to_owned() } }, ReadoutRow { label: "Source".to_owned(), value: "Demo Space V2".to_owned(), detail: "local Rust/revm evidence".to_owned() }, ReadoutRow { label: "Sepolia".to_owned(), value: format!("block {}", data.reread.block_number), detail: "separate read-only reread".to_owned() }, p { class: "small-note", "A local restore does not move the registry head. The website labels local evidence and Sepolia separately." } }
-                    section { class: "content-panel inspect-actions-panel", div { class: "panel-kicker", "ACTIONS" }, Link { class: "button button-primary button-wide", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Simulate Rollback ", Icon { name: IconName::History, size: 15 } } Link { class: "button button-secondary button-wide", to: AppRoute::Verify {}, "Export Evidence ", Icon { name: IconName::Open, size: 15 } } Link { class: "button button-secondary button-wide", to: AppRoute::Verify {}, "Verify Bundle ", Icon { name: IconName::Shield, size: 15 } } }
+                    section { class: "content-panel inspect-actions-panel", div { class: "panel-kicker", "NEXT STEP" }, p { class: "inspect-action-help", "The head is the latest recorded state. Test an older restore to see what the registry accepts." }, Link { class: "button button-primary button-wide", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Simulate Rollback ", Icon { name: IconName::History, size: 15 } } Link { class: "button button-secondary button-wide", to: AppRoute::Verify {}, "Export Evidence ", Icon { name: IconName::Open, size: 15 } } Link { class: "button button-secondary button-wide", to: AppRoute::Verify {}, "Verify Bundle ", Icon { name: IconName::Shield, size: 15 } } }
                 }
             }
             section { class: "section-wrap content-panel restore-preflight",
                 div { class: "panel-title-row",
-                    div { p { class: "panel-kicker", "BEFORE RESUME / RESTORE PREFLIGHT" } h2 { "Does this snapshot match the recorded history?" } }
+                    div { p { class: "panel-kicker", "BEFORE RESUME / RESTORE PREFLIGHT" } h2 { "Does this snapshot match the recorded history?" } p { class: "preflight-help", "Choose a checkpoint. We compare it with the recorded head and explain what you can do next." } }
                     StatusBadge { label: assessment_label.to_owned(), tone: assessment_tone.to_owned() }
                 }
                 div { class: "preflight-grid",
                     div { class: "preflight-candidates",
-                        p { class: "preflight-label", "SYNTHETIC SQLITE CHECKPOINTS" }
+                        p { class: "preflight-label", "CHOOSE A SNAPSHOT" }
+                        p { class: "preflight-hint", "These are synthetic demo checkpoints; no private user data is loaded." }
                         div { class: "preflight-snapshot-list", role: "group", aria_label: "Select a demo snapshot for restore preflight",
                             for snapshot in data.fixture.snapshots.iter() {
                                 PreflightSnapshotButton {
@@ -721,12 +773,44 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
         },
         _ => "REJECT EXPECTED",
     };
+    let replay_class = if was_attempted {
+        "audit-path-step audit-path-step-complete"
+    } else {
+        "audit-path-step"
+    };
+    let verdict_class = match current_state {
+        RollbackUiState::EvidenceRejected | RollbackUiState::LiveRejected => {
+            "audit-path-step audit-path-step-rejected"
+        }
+        RollbackUiState::LiveUnavailable
+        | RollbackUiState::EvidenceInvalid
+        | RollbackUiState::UnexpectedLive => "audit-path-step audit-path-step-warning",
+        RollbackUiState::ProbingSepolia => "audit-path-step audit-path-step-active",
+        RollbackUiState::Ready => "audit-path-step",
+    };
+    let verdict_label = match current_state {
+        RollbackUiState::EvidenceRejected | RollbackUiState::LiveRejected => "REJECTED",
+        RollbackUiState::LiveUnavailable => "UNAVAILABLE",
+        RollbackUiState::EvidenceInvalid => "INVALID",
+        RollbackUiState::UnexpectedLive => "UNEXPECTED",
+        RollbackUiState::ProbingSepolia => "READING",
+        RollbackUiState::Ready => "AWAITING RUN",
+    };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Tampering Lab".to_owned(), description: "Try the failure cases against the rules that accepted the history.".to_owned(), source: page_source.to_owned() }
+            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Tampering Lab".to_owned(), description: "Restore an older snapshot, then try to continue the newer history. The result explains exactly what the registry accepts or rejects.".to_owned(), source: page_source.to_owned() }
+            section { class: "audit-path", aria_label: "Silent Rollback audit path",
+                div { class: "audit-path-step audit-path-step-complete", span { "01" }, div { strong { "Restore" }, small { "Snapshot {data.restored_snapshot().sequence}" } } }
+                span { class: "audit-path-arrow", aria_hidden: "true", "→" }
+                div { class: "audit-path-step audit-path-step-complete", span { "02" }, div { strong { "Compare" }, small { "stale root / head" } } }
+                span { class: "audit-path-arrow", aria_hidden: "true", "→" }
+                div { class: replay_class, span { "03" }, div { strong { "Replay" }, small { "local Rust/revm" } } }
+                span { class: "audit-path-arrow", aria_hidden: "true", "→" }
+                div { class: verdict_class, span { "04" }, div { strong { "Verdict" }, small { "{verdict_label}" } } }
+            }
             div { class: "lab-workspace",
                 aside { class: "scenario-list content-panel",
-                    div { class: "panel-kicker", "ATTACK SCENARIOS" }
+                    div { class: "panel-kicker", "CHOOSE A TEST" }
                     for scenario in Scenario::ALL {
                         button { class: if scenario == selected_scenario { "scenario-item scenario-item-active" } else { "scenario-item" }, aria_pressed: scenario == selected_scenario, onclick: move |_| { selected.set(scenario); attempted.set(false); state.set(RollbackUiState::Ready); source.set("PUBLISHED LOCAL REVM".to_owned()); },
                             span { class: "scenario-index", "{scenario.evidence_kind()}" }
@@ -736,7 +820,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     }
                 }
                 section { class: "attack-workspace content-panel",
-                    div { class: "panel-title-row", div { p { class: "panel-kicker", "CANONICAL VS ATTEMPT" } h2 { "{selected_scenario.title()}" } }, StatusBadge { label: result_label.to_owned(), tone: result_tone.to_owned() } }
+                    div { class: "panel-title-row", div { p { class: "panel-kicker", "WHAT WE ARE COMPARING" } h2 { "{selected_scenario.title()}" } }, StatusBadge { label: result_label.to_owned(), tone: result_tone.to_owned() } }
                     if selected_scenario == Scenario::SilentRollback {
                         div { class: "rollback-story",
                             div { class: "rollback-column", span { class: "panel-kicker", "SYNTHETIC FIXTURE / CANONICAL SNAPSHOT" }, div { class: "snapshot-stack", for snapshot in data.fixture.snapshots.iter() { if snapshot.sequence == data.canonical_snapshot().sequence { strong { "SNAPSHOT {snapshot.sequence} / COMMITTED" } } else { span { "SNAPSHOT {snapshot.sequence}" } } small { class: "snapshot-label", "{snapshot.visible_label.as_deref().unwrap_or(\"Label unavailable\")}" } if snapshot.sequence != data.canonical_snapshot().sequence { span { "↓" } } } }, code { "protocol root {short_hash(&data.head().next_state_root, 12, 8)}" } }
@@ -745,7 +829,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                         }
                         div { class: "attack-action-row",
                             button { class: "button button-danger", onclick: run_rollback, disabled: is_busy, "Run Silent Rollback ", Icon { name: IconName::Arrow, size: 15 } }
-                            span { class: "attack-action-source", "Execution source: published Rust/revm evidence" }
+                            span { class: "attack-action-source", "Runs published local evidence; no transaction is sent." }
                         }
                     }
                 }
@@ -781,7 +865,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                                 h3 { "Checking the existing registry's head and response." }
                             } else {
                                 div { class: "result-heading result-heading-ready", span { class: "result-symbol", "◉" }, div { strong { "READY TO VERIFY" }, small { "The primary action replays the unified local Rust/revm evidence. A separate control reads the existing Sepolia space." } } }
-                                h3 { "Restore snapshot 1, then compare its root with canonical state 3." }
+                                h3 { "The older snapshot should not become the next state." }
                                 p { "The sample fixture is synthetic and public. The bundle contains commitments only; the local contract execution is reproducible with the Rust CLI." }
                                 button { class: "button button-secondary button-full", onclick: probe_sepolia, disabled: is_busy, if is_busy { "Reading Sepolia…" } else { "Probe separate Sepolia" } }
                             }
@@ -1077,16 +1161,21 @@ pub fn VerifyPage(data: UiData) -> Element {
     };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "VERIFY / PORTABLE EVIDENCE".to_owned(), title: "Verify Evidence".to_owned(), description: "Load the bundle, change one field, and see what independent replay catches.".to_owned(), source: current_source.clone() }
+            PageHeader { kicker: "VERIFY / PORTABLE EVIDENCE".to_owned(), title: "Verify Evidence".to_owned(), description: "Export a bundle, change one commitment, and confirm that verification catches the change.".to_owned(), source: current_source.clone() }
             div { class: "verify-workspace",
                 aside { class: "content-panel evidence-actions-panel",
                     div { class: "panel-kicker", "EVIDENCE WORKBENCH" }
-                    h2 { "Exportable evidence." }
-                    p { "The bundle contains sequence, predecessor roots, commitments, authority records, and the observed head. It never contains raw memory." }
+                    h2 { "Start with the evidence bundle." }
+                    p { "It contains the history fingerprints and approval records needed for replay. It never contains raw memory." }
                     div { class: "evidence-facts", div { span { "TRANSITIONS" }, strong { "{data.v2.transitions.len()}" } }, div { span { "SCHEMA" }, strong { "V2" } }, div { span { "RAW MEMORY" }, strong { "OFF-CHAIN" } } }
                     button { class: "button button-primary button-wide", onclick: export_action, "Export evidence.json" }
-                    label { class: "file-drop", strong { "Import evidence.json" }, span { "V1 or V2 public evidence bundle" }, input { r#type: "file", accept: "application/json,.json", onchange: import_action } }
+                    label { class: "file-drop", strong { "Import a saved evidence bundle" }, span { "V1 or V2 public evidence bundle" }, input { r#type: "file", accept: "application/json,.json", onchange: import_action } }
                     div { class: "source-line source-line-vertical", span { class: "source-dot source-dot-blue" }, strong { "{current_source}" }, if let Some(name) = current_file.as_deref() { span { "{name}" } } }
+                    div { class: "verify-guide", aria_label: "How to verify evidence",
+                        div { span { "1" }, strong { "Load" }, small { "use the published or imported bundle" } }
+                        div { span { "2" }, strong { "Tamper" }, small { "change one commitment" } }
+                        div { span { "3" }, strong { "Restore" }, small { "confirm the original is VERIFIED" } }
+                    }
                 }
                 section { class: "content-panel verification-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "VERIFICATION SUMMARY" }, h2 { "Independent replay" } }, StatusBadge { label: if is_verified { "VERIFIED".to_owned() } else { "REJECTED".to_owned() }, tone: if is_verified { "verified".to_owned() } else { "danger".to_owned() } } }
