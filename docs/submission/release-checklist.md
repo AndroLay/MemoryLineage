@@ -45,7 +45,7 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| GitHub Actions remote PASS | BLOCKED BY PLATFORM | Push run [`35537419699`](https://github.com/AndroLay/MemoryLineage/actions/runs/35537419699) and manual dispatch [`35537502288`](https://github.com/AndroLay/MemoryLineage/actions/runs/35537502288) both ended in `startup_failure` with `jobs: []`; no repository step started |
+| GitHub Actions remote PASS | BLOCKED BY HOSTED RUNNER | Final-commit runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), and [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420) ended before the first step with `runner_id: 0`; local release verification remains PASS |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Final release tag | PENDING FINAL CI | Create `v1.0.1` only after the final commit passes remote CI |
 | GitHub Release | PENDING FINAL CI | Publish [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) from the final tag |
