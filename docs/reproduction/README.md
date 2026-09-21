@@ -19,11 +19,11 @@ Give the reviewer:
 4. no additional explanation of the product.
 
 The current tagged review candidate is
-[`v1.0.1-rc.2`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.2).
+[`v1.0.1-rc.3`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.3).
 For an exact checkout, use:
 
 ```bash
-git checkout v1.0.1-rc.2
+git checkout v1.0.1-rc.3
 ```
 
 The repository is intentionally able to run the core path without deployment:
