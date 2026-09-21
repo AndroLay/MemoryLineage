@@ -106,13 +106,14 @@ The first-time review path is intentionally shorter than the full architecture
 description:
 
 ```text
-Restore snapshot 1
-  -> compare with the state-3 evidence head
+Inspect the canonical head
+  -> run the old restore rehearsal
   -> reject the stale predecessor with BAD_PREVIOUS_STATE
   -> tamper one evidence commitment
   -> reject with TRANSITION_ID_MISMATCH
   -> restore the original bundle
   -> verify it independently
+  -> reproduce the result with the Rust CLI
 ```
 
 The browser, CLI, and evidence pages use the same Demo Space V2 bundle for

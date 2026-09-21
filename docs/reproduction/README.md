@@ -18,12 +18,12 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
-The current tagged review candidate is
-[`v1.0.1-rc.3`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.3).
+The current tagged release is
+[`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 For an exact checkout, use:
 
 ```bash
-git checkout v1.0.1-rc.3
+git checkout v1.0.1
 ```
 
 The repository is intentionally able to run the core path without deployment:
@@ -48,7 +48,7 @@ unproven.
 
 ## Reviewer archive
 
-After checking out the exact release candidate, create a clean source/evidence
+After checking out the exact tagged release, create a clean source/evidence
 archive:
 
 ```bash
@@ -58,8 +58,8 @@ cargo xtask reviewer-package /tmp/memorylineage-reviewer-package.tar.gz
 The command refuses a dirty worktree and checks the resulting archive for
 private design references, generated build output, dependencies, credentials,
 and generated evidence. This archive is a transportable source/evidence review
-surface independent of hosted website availability; it does not make a private
-GitHub repository public or configure the website deployment.
+surface independent of hosted website availability; it does not change GitHub
+repository visibility or configure the website deployment.
 
 A reviewer who receives the archive can run the same path without GitHub
 access:

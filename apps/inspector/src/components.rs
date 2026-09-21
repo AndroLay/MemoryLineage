@@ -79,7 +79,7 @@ pub fn TopNavigation(route: Route) -> Element {
                 Link { class: active(Route::Verify), to: AppRoute::Verify {}, "Verify" }
             }
             div { class: "topbar-meta",
-                a { class: "topbar-muted topbar-link", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noreferrer", "GITHUB / PRIVATE REPO" }
+                a { class: "topbar-muted topbar-link", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noreferrer", "GITHUB / PUBLIC SOURCE" }
             }
         }
     }

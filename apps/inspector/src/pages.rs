@@ -176,20 +176,30 @@ pub fn HomePage(data: UiData) -> Element {
                 div { class: "judge-path", aria_label: "Judge path",
                     div { class: "judge-step",
                         span { class: "judge-step-number", "01" }
-                        div { strong { "Inspect" }, span { "Choose a snapshot and see how it compares with the recorded head." }, Link { class: "judge-step-link", to: AppRoute::Inspect {}, "Open Inspect →" } }
+                        div { strong { "Inspect" }, span { "See the current canonical head and the older snapshot." }, Link { class: "judge-step-link", to: AppRoute::Inspect {}, "Open Inspect →" } }
                     }
                     div { class: "judge-step-arrow", "→" }
                     div { class: "judge-step",
                         span { class: "judge-step-number", "02" }
-                        div { strong { "Test" }, span { "Try to continue from an older snapshot." }, Link { class: "judge-step-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Open Tampering Lab →" } }
+                        div { strong { "Rollback" }, span { "Try to continue from the older snapshot." }, Link { class: "judge-step-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Run Rollback →" } }
                     }
                     div { class: "judge-step-arrow", "→" }
                     div { class: "judge-step",
-                        span { class: "judge-step-number judge-step-number-danger", "03" }
-                        div { strong { "Verify" }, span { "Export, tamper, restore, and replay the evidence." }, Link { class: "judge-step-link", to: AppRoute::Verify {}, "Open Verify →" } }
+                        span { class: "judge-step-number", "03" }
+                        div { strong { "Tamper" }, span { "Change one commitment in a copy of the bundle." }, Link { class: "judge-step-link", to: AppRoute::Verify {}, "Open Tamper →" } }
+                    }
+                    div { class: "judge-step-arrow", "→" }
+                    div { class: "judge-step",
+                        span { class: "judge-step-number judge-step-number-danger", "04" }
+                        div { strong { "Verify" }, span { "Restore the original and get a verified result." }, Link { class: "judge-step-link", to: AppRoute::Verify {}, "Open Verify →" } }
+                    }
+                    div { class: "judge-step-arrow", "→" }
+                    div { class: "judge-step",
+                        span { class: "judge-step-number", "05" }
+                        div { strong { "Reproduce" }, span { "Run the same checks with the independent Rust CLI." }, Link { class: "judge-step-link", to: AppRoute::Reproduce {}, "Open Reproduce →" } }
                     }
                 }
-                p { class: "home-judge-note", "You do not need to understand the cryptography first. Start with Inspect, try the older snapshot in the Lab, then use Verify to check the same result outside the page." }
+                p { class: "home-judge-note", "You do not need to understand the cryptography first. Follow the five steps: inspect the head, try the old restore, tamper the bundle, restore it, then reproduce the result with the Rust CLI." }
             }
             section { class: "section-wrap home-evidence-note",
                 SourceLine { source: "DEMO SPACE V2 / LOCAL REVM".to_owned(), note: format!("{} committed states / {} mutation cases", data.v2.transitions.len(), data.mutation_count) }
@@ -1567,7 +1577,7 @@ pub fn PriorWorkPage(data: UiData) -> Element {
             }
             section { class: "section-wrap content-panel provenance-ledger",
                 div { class: "panel-title-row", div { p { class: "panel-kicker", "SUBMISSION IDENTITY" }, h2 { "Only finalized values are listed." } }, StatusBadge { label: "TRANSPARENT".to_owned(), tone: "warning".to_owned() } }
-                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "private repository / configured".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "NOT YET CREATED".to_owned(), detail: "release identity remains pending".to_owned() } }
+                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "public repository / configured".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "v1.0.1".to_owned(), detail: "final release identity".to_owned() } }
                 p { class: "small-note", "MemoryLineage does not claim to have invented ERC-8350 or to be the first AI memory lineage system. Its distinction is the independent, authorization-bound audit surface and reproducible evidence around the pinned semantics." }
             }
             section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", Link { to: AppRoute::Architecture {}, "Architecture →" }, Link { to: AppRoute::Evidence {}, "Public evidence →" }, Link { to: AppRoute::Security {}, "Security boundary →" }, Link { to: AppRoute::Reproduce {}, "Reproduce →" }, Link { to: AppRoute::PriorWork {}, "Prior work →" } } }

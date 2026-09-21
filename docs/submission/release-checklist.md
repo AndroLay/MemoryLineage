@@ -46,17 +46,15 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
 | GitHub Actions remote PASS | BLOCKED BY PLATFORM | Push run [`35537419699`](https://github.com/AndroLay/MemoryLineage/actions/runs/35537419699) and manual dispatch [`35537502288`](https://github.com/AndroLay/MemoryLineage/actions/runs/35537502288) both ended in `startup_failure` with `jobs: []`; no repository step started |
-| Release candidate tag | CREATED | `v1.0.1-rc.3` points to the locally verified release candidate; this is not the final submission tag |
-| GitHub Release | PUBLISHED | [MemoryLineage v1.0.1-rc.3](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1-rc.3) contains release notes and review artifacts |
-| Final submission tag | NOT YET CREATED | Create only after the release candidate and external evidence are frozen |
+| Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
+| Final release tag | PENDING FINAL CI | Create `v1.0.1` only after the final commit passes remote CI |
+| GitHub Release | PENDING FINAL CI | Publish [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) from the final tag |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
 | Demo video | OUT OF SCOPE | Explicitly excluded from the current work |
 
 ## Finalization rule
 
-Do not create a final submission tag or describe the submission as externally
-reproduced until the human report and final remote CI result exist. The local
-repository can be released as a review candidate before those external gates,
-but the distinction must remain visible in the website, README, and Devpost
-copy.
+Do not describe the submission as externally reproduced until the human report
+exists. The final release identifies the code and evidence baseline; external
+reproduction remains a separate evidence gate.

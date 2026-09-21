@@ -36,7 +36,7 @@ if [[ "$MODE" == "--release" ]]; then
   else
     # A reviewer archive created by `git archive` intentionally has no `.git`
     # directory. Inspect the extracted filesystem in that case; every file in
-    # the archive is already a release candidate, so a tracked-file query is
+    # the archive is already a tagged release, so a tracked-file query is
     # neither available nor necessary.
     # The source archive was checked before the reproduction build. During the
     # gate, target/.next and similar directories are generated intentionally;
