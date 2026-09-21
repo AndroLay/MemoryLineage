@@ -45,10 +45,10 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| GitHub Actions remote PASS | BLOCKED BY HOSTED RUNNER | Final-commit runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), and [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420) ended before the first step with `runner_id: 0`; local release verification remains PASS |
+| GitHub Actions remote PASS | BLOCKED BY HOSTED RUNNER | Final-commit runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0`; local release verification remains PASS |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
-| Final release tag | PENDING FINAL CI | Create `v1.0.1` only after the final commit passes remote CI |
-| GitHub Release | PENDING FINAL CI | Publish [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) from the final tag |
+| Final release tag | CREATED | `v1.0.1` points to the locally verified final release commit |
+| GitHub Release | PUBLISHED | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) contains the final tag; remote CI remains blocked before runner startup |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
 | Demo video | OUT OF SCOPE | Explicitly excluded from the current work |

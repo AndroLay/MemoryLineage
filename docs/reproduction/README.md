@@ -80,8 +80,8 @@ python3 -m http.server 4173 \
   --directory target/dx/memorylineage-inspector/release/web/public
 ```
 
-The archive is the source/evidence transport surface; it does not expose the
-private GitHub repository or create a public website.
+The archive is the source/evidence transport surface; it does not change
+GitHub repository visibility or create a public website.
 
 The owner can verify that the transportable packet is runnable without Git
 metadata by running:
