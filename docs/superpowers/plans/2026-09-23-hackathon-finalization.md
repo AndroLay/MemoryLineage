@@ -8,10 +8,10 @@
 
 ## Milestone 1 — Stable contribution and privacy story
 
-- [ ] Add a concise provenance record showing the repository baseline, the work created for the hackathon, third-party standards, and exact evidence for each claim.
-- [ ] Update stale research status that still lists the fixed V2 snapshot encoding ambiguity as current.
-- [ ] Add a versioned secret-blinded commitment API and focused regression tests, without changing the pinned V2 fixture or claiming production privacy.
-- [ ] Make the README, Devpost copy, claim matrix, and Inspector language consistent with the resulting scope.
+- [x] Add a concise provenance record showing the repository baseline, the work created for the hackathon, third-party standards, and exact evidence for each claim.
+- [x] Update stale research status that still lists the fixed V2 snapshot encoding ambiguity as current.
+- [x] Add a versioned secret-blinded commitment API and focused regression tests, without changing the pinned V2 fixture or claiming production privacy.
+- [x] Make the README, Devpost copy, claim matrix, and Inspector language consistent with the resulting scope.
 
 **Files:** `crates/ml-memory-store/src/lib.rs`, its focused tests, `docs/product/`, `docs/research/`, `docs/submission/`, `README.md`.
 
@@ -19,9 +19,9 @@
 
 ## Milestone 2 — Judge-ready presentation and demo
 
-- [ ] Export a concise presentation from `docs/submission/pitch-deck.md` as a viewable slide artifact with no unsupported claims.
-- [ ] Produce a short local-screen demo or a deterministic live-demo package showing restore selection, `BAD_PREVIOUS_STATE`, evidence tamper/restore, and CLI replay.
-- [ ] Record the exact artifact source revision and state whether the public site contains it.
+- [x] Export a concise presentation from `docs/submission/pitch-deck.md` as a viewable slide artifact with no unsupported claims.
+- [x] Produce a short local-screen demo or a deterministic live-demo package showing restore selection, `BAD_PREVIOUS_STATE`, evidence tamper/restore, and CLI replay.
+- [x] Record the exact artifact source revision and state whether the public site contains it.
 
 **Files:** `docs/submission/` and a bounded demo script under `scripts/` only if existing browser smoke cannot produce the needed screen evidence.
 
@@ -29,10 +29,10 @@
 
 ## Milestone 3 — Reviewer and publication handoff
 
-- [ ] Produce a clean, reproducible release candidate without swallowing unrelated workspace changes.
-- [ ] Run the repository release, legacy compatibility, submission-bundle, and reviewer-archive gates on the exact candidate revision.
-- [ ] Prepare an exact publication checklist for GitHub, hosted Inspector, and any optional same-space testnet transaction. Do not present a local replay as a public transaction.
-- [ ] Keep human comprehension/reproduction and Devpost account submission pending until real external evidence exists.
+- [x] Produce a clean, reproducible release candidate without swallowing unrelated workspace changes.
+- [x] Run the repository release, legacy compatibility, submission-bundle, and reviewer-archive gates on the exact candidate revision.
+- [x] Prepare an exact publication checklist for GitHub, hosted Inspector, and any optional same-space testnet transaction. Do not present a local replay as a public transaction.
+- [x] Keep human comprehension/reproduction and Devpost account submission pending until real external evidence exists.
 
 **Files:** `docs/submission/release-checklist.md`, `docs/submission/README.md`, evidence metadata, and existing release tooling if a concrete gap is found.
 
@@ -41,3 +41,14 @@
 ## Current decision
 
 The official event accepts a short video **or** a live demonstration and asks for a brief presentation. The presentation and demo are submission deliverables; new protocol features are secondary. Publication and public-chain transactions remain distinct external operations after local artifacts are reviewable.
+
+## Local completion record
+
+The committed local candidate is `1c15dc89d434943319bca1234c783ab421636906`.
+`cargo xtask release --quiet`, `npm run verify --silent`,
+`cargo xtask reviewer-package`, and `cargo xtask reviewer-reproduce` passed.
+The eight-page PDF and 45-second video were inspected and are reproducible from
+this source revision. The candidate has not been pushed or tagged; the last
+recorded hosted release is `v1.0.1`, and current Pages content could not be
+rechecked in this session. Devpost upload and external human
+comprehension/reproduction remain pending.

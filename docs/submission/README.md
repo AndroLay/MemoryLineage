@@ -15,13 +15,14 @@ local Demo Space V2 evidence separate from the existing Sepolia observation.
 | [Release checklist](release-checklist.md) | Finalization state and remaining external gates |
 | [Local incident envelope](../../evidence/submission/README.md) | Hashed Demo Space V2 artifacts and offline verification command |
 | [Current claim audit](claim-audit-report.md) | Local evidence results and unresolved external gates |
-| [Final release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) | Tagged source, evidence, and reviewer artifacts |
+| [Previous public release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) | The hosted `v1.0.1` baseline; it predates this local candidate |
 
-The pitch deck is a source document. The public static website is live at
-[memorylineage.pages.dev](https://memorylineage.pages.dev). The current review
-release is published as [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
-A newer local submission envelope and Inspector labels are still uncommitted;
-the hosted release does not yet contain those changes.
-The local video and pitch PDF are present here; they are not uploaded to
-Devpost. A separate staging environment and external human reproduction are
-not claimed.
+The pitch deck is a source document. The last recorded public site URL is
+[memorylineage.pages.dev](https://memorylineage.pages.dev). The locally verified
+source candidate is committed as
+`1c15dc89d434943319bca1234c783ab421636906`, but it is not tagged or published
+to GitHub. The last recorded hosted release is `v1.0.1`; this workflow did not
+deploy the candidate, and the live Pages content could not be rechecked in this
+session. The local video and pitch PDF were built from that source revision and
+are not uploaded to Devpost. A separate staging environment and external human
+reproduction are not claimed.

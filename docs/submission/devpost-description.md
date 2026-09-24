@@ -1,10 +1,10 @@
 # Devpost description draft
 
 This draft is the short judge-facing description for MemoryLineage. It keeps
-the same wording as the repository and claim matrix. The static Inspector is
-available at [memorylineage.pages.dev](https://memorylineage.pages.dev). This
-draft does not claim external adoption, semantic memory safety, or authorship
-of ERC-8350.
+the same wording as the repository and claim matrix. The last recorded public
+Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev);
+current page content was not rechecked. This draft does not claim external
+adoption, semantic memory safety, or authorship of ERC-8350.
 
 ## Problem
 
@@ -96,9 +96,11 @@ that memory, or whether an external runtime obeys the reference recovery gate.
 
 The next evidence step is external developer reproduction. The repository now
 contains an eight-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) and a
-45-second [captioned local demo](MemoryLineage-local-demo.mp4). The public static
-Inspector is available at [memorylineage.pages.dev](https://memorylineage.pages.dev),
-but that hosted release predates these local changes. `VERIFIED` in the CLI
+45-second [captioned local demo](MemoryLineage-local-demo.mp4). The last
+recorded public Inspector URL is
+[memorylineage.pages.dev](https://memorylineage.pages.dev); this workflow did
+not deploy candidate commit `1c15dc89d434943319bca1234c783ab421636906`, and
+current page content was not rechecked. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete
 history recovery requires retained event logs or bundles; historical ERC-1271

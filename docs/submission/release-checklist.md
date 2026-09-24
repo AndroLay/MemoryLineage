@@ -11,6 +11,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
+| Local source candidate | COMMITTED / LOCAL ONLY | `1c15dc89d434943319bca1234c783ab421636906`; the source and local artifacts are committed but not tagged or published |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
 | Dioxus Inspector routes | PASS | 11 routes in `apps/inspector/src/main.rs` and static browser smoke |
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
@@ -20,8 +21,8 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Local submission envelope | PASS / local only | `evidence/submission/manifest.json` and `ml-cli submission verify` bind source labels, hashes, incident roots, fresh Rust/revm execution, and receipts; `submissionCommit` is `null` because the exact commit must be recorded outside its own content |
 | Polkadot Hub portability rehearsal | PASS / local only | Nested Ethereum and target-context bundles replayed by the independent Rust verifier; deployment and public RPC remain `NOT_PERFORMED` |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
-| Reviewer archive tooling | PASS | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` |
-| Public static website | LIVE / prior release | [memorylineage.pages.dev](https://memorylineage.pages.dev) hosts the earlier `v1.0.1` surface; the new local submission envelope and labels are not deployed |
+| Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
+| Public static website | LAST RECORDED `v1.0.1` / LIVE STATUS UNVERIFIED | This workflow did not deploy the candidate; the live Pages surface could not be rechecked with the available browser tool |
 | Pitch deck | PASS / local only | Eight-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf), editable [HTML source](pitch-deck.html), and visual page inspection |
 | Demo video | PASS / local only | 45-second [captioned video](demo-video.md) from five static-browser states; not uploaded to Devpost |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
@@ -52,13 +53,16 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| GitHub Actions remote PASS | BLOCKED BY HOSTED RUNNER | Final-commit runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0`; local release verification remains PASS |
+| Remote CI for local candidate | NOT RUN | Commit `1c15dc89d434943319bca1234c783ab421636906` has not been pushed to `origin` |
+| GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
-| Final release tag | CREATED | `v1.0.1` points to the locally verified final release commit |
-| GitHub Release | PUBLISHED | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) contains the final tag; remote CI remains blocked before runner startup |
+| Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this local source candidate |
+| Previous GitHub Release | PUBLISHED / prior candidate | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1); remote CI for that release ended before runner startup |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
-| Devpost media upload / live-demo update | NOT YET PERFORMED | Local pitch PDF and demo MP4 exist, but the hosted site remains the earlier release and no Devpost account submission is recorded |
+| GitHub source push / new release | NOT PERFORMED / AUTH MISSING | The exact candidate commit exists locally; `gh auth status` reports no authenticated session |
+| Cloudflare Pages deployment | NOT PERFORMED / TOOLING MISSING | `wrangler` and a repository deployment configuration are unavailable; no deployment was attempted |
+| Devpost media upload / live-demo update | NOT YET PERFORMED | Local pitch PDF and demo MP4 exist; no account submission or site deployment was performed, and current Pages content was not rechecked |
 
 ## Finalization rule
 

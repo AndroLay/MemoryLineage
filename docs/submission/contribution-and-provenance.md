@@ -12,7 +12,7 @@ able to attest to authorship and eligibility in the Devpost account.
 | --- | --- | --- |
 | 19 September 2026, 03:06 UTC+8 | Initial Git commit `2c36366` | A substantial code and research baseline entered this repository at once. The commit alone does not date when each file was written. |
 | 22 September 2026, 02:48 UTC+8 | `v1.0.1` commit `44a5751` | Public release baseline for the previously hosted Inspector. |
-| 23 September 2026 | Current working tree and `evidence/submission/manifest.json` | The local incident envelope, direct restore action, and protected-resume example are later work. They have no public revision identity until committed and published. |
+| 24 September 2026 | Local candidate commit `1c15dc89d434943319bca1234c783ab421636906` | The local incident envelope, direct restore action, protected-resume example, pitch PDF, and demo video are committed locally but not published. |
 
 The older research notes under [`docs/research/`](../research/README.md) are
 historical source material. Their dates and internal scores are not hackathon
@@ -35,7 +35,7 @@ or first-in-field status. Third-party license information is in
 | Rust and Rust/WASM replay verify ordered state, predecessor, authority, and evidence integrity | `crates/ml-verifier-independent/`, `/verify`, `ml-cli verify` | A bundle's source label is a declaration without external provenance |
 | Solidity behavior and Silent Rollback are executed against checked-in bytecode | `contracts/`, `crates/ml-local-evm/`, `evidence/submission/` | Demo Space V2 is local Rust/revm, not a Sepolia transaction history |
 | A separate earlier Sepolia deployment and reread demonstrate public registry observation | `evidence/sepolia/` | Different space from Demo Space V2; never combine the two as one incident |
-| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | Hosted `v1.0.1` predates the current working-tree updates |
+| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The last recorded hosted `v1.0.1` release predates local source commit `1c15dc8`; this workflow did not deploy it |
 
 The narrow product contribution is a verifiable recovery decision when the
 runtime operator must not be the only party trusted to preserve the canonical
@@ -54,6 +54,7 @@ cargo xtask release
 ```
 
 The manifest's `submissionCommit: null` avoids a self-referential Git hash.
-The actual submitted commit belongs in the release metadata and external
-reviewer report. Two independent human reports, a new public Demo Space V2
-deployment, and production adoption remain unclaimed until they occur.
+The local source revision is recorded in the release checklist and reproduction
+runbook; any later public submission should use that exact SHA. Two independent
+human reports, a new public Demo Space V2 deployment, and production adoption
+remain unclaimed until they occur.

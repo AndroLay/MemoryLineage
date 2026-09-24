@@ -18,19 +18,21 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
-The earlier tagged release is
-[`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
-It predates the local submission envelope. This newer package currently has
-`submissionCommit: null`; the exact submitted SHA must be recorded in the
-reviewer packet and reports outside the self-referential manifest. Record the
-exact new commit before sending this runbook to an external reviewer; `v1.0.1` must
-not be presented as containing the new package or website labels.
+The current local source candidate is
+`1c15dc89d434943319bca1234c783ab421636906`. It is committed on local `main` but
+has not been pushed or tagged. The earlier public release
+[`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
+predates the submission envelope and new website labels. The manifest keeps
+`submissionCommit: null` to avoid a self-referential hash; use the exact SHA
+above in any reviewer packet and report. Before asking an external reviewer to
+clone from GitHub, publish this commit or provide the clean reviewer archive.
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
-tree. The static Inspector is also available at
-[memorylineage.pages.dev](https://memorylineage.pages.dev), but this
-reproduction does not depend on the hosted site or a new Sepolia deployment.
+tree. The last recorded public Inspector is at
+[memorylineage.pages.dev](https://memorylineage.pages.dev). This workflow did
+not update it, and its current content was not rechecked here. Reproduction does
+not depend on the hosted site or a new Sepolia deployment.
 
 ## Automated path
 
@@ -49,7 +51,7 @@ unproven.
 
 ## Reviewer archive
 
-After checking out the exact tagged release, create a clean source/evidence
+After checking out the exact candidate commit, create a clean source/evidence
 archive:
 
 ```bash

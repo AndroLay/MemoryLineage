@@ -94,7 +94,8 @@ protocol intentionally does not evaluate it.
 | Remote CI green | — | NOT_YET_DEMONSTRATED | A hosted runner executes the workflow past its first step |
 | Production agent-runtime adoption | — | NOT_YET_DEMONSTRATED | A real external runtime is integrated and recorded |
 | New Sepolia deployment of Demo Space V2 | — | OUT_OF_SCOPE | Only if separately authorized; not part of this slice |
-| Demo video / staging environment | — | OUT_OF_SCOPE | Explicitly deferred submission work |
+| Local pitch PDF and demo video | `DEMO_SPACE_V2_LOCAL` | VERIFIED_LOCAL_PACKAGE | The checked-in PDF/video fail to render or no longer show the claimed local replay states |
+| Public Devpost upload / staging environment | — | NOT_YET_DEMONSTRATED / NOT_PROVIDED | A real upload or separately hosted staging environment is provided |
 | Semantic memory truth / poisoning detection | — | OUT_OF_SCOPE | The protocol does not evaluate semantic meaning |
 | Formal third-party security audit | — | OUT_OF_SCOPE | Not performed; bounded assurance is not an audit |
 
@@ -118,16 +119,20 @@ resume example checks five loader outcomes: signed current head, missing
 authorization, historical, diverged, and invalid evidence. The current local
 `cargo xtask release` and `npm run verify` pass, including the 11-route
 Chromium smoke and legacy compatibility lane.
-This moves **public incident coherence** to `VERIFIED_LOCAL_PACKAGE` for the
-working tree. `submissionCommit` is `null` because a commit cannot include its
-own final SHA; the exact submitted SHA must be recorded in release metadata
-and reviewer reports after commit. The prior `v1.0.1` tag and hosted site do
-not contain this update. External
-human reproduction and remote CI remain `NOT_YET_DEMONSTRATED`.
+The source tree is committed as local candidate
+`1c15dc89d434943319bca1234c783ab421636906`. This moves **public incident
+coherence** to `VERIFIED_LOCAL_PACKAGE` for that source revision.
+`submissionCommit` remains `null` because the manifest cannot contain its own
+final Git SHA; the exact revision is recorded in the release checklist and
+reproduction runbook. The prior `v1.0.1` tag and last recorded hosted release
+predate this update; live Pages content was not independently verified here.
+External human reproduction and remote CI remain
+`NOT_YET_DEMONSTRATED`.
 
 The later finalization work adds a printable eight-slide pitch PDF, a 45-second
 captioned video assembled from actual static-browser states, a contribution and
-provenance record, and an opt-in secret-blinded commitment helper. These are
-local candidate artifacts. No Devpost upload, public site refresh, same-space
-Sepolia deployment, production secret lifecycle, or external human report is
-implied by their presence.
+provenance record, and an opt-in secret-blinded commitment helper. The PDF and
+video are reproducible from candidate commit `1c15dc89d434943319bca1234c783ab421636906`.
+No Devpost upload or public site refresh was performed; current Pages content
+was not independently verified. No same-space Sepolia deployment, production
+secret lifecycle, or external human report is implied by their presence.

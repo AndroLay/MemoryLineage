@@ -1,9 +1,11 @@
-# Claim and evidence audit — local working tree
+# Claim and evidence audit — local candidate
 
-Reviewed on 24 September 2026. This report describes the current uncommitted
-tree, not the earlier `v1.0.1` tag or the hosted site. The exact submitted
-commit will be recorded outside the self-referential submission manifest when
-the change is committed.
+Reviewed on 24 September 2026 against source commit
+`1c15dc89d434943319bca1234c783ab421636906`. This local candidate is separate
+from the earlier `v1.0.1` tag; current live Pages content was not rechecked.
+The submission manifest keeps `submissionCommit: null` to avoid a
+self-referential hash; this report, release checklist, and reproduction runbook
+record the exact source revision.
 
 | Claim | Evidence | Source class | Recheck | Status |
 | --- | --- | --- | --- | --- |
@@ -37,24 +39,30 @@ bundles and a separate replay-versus-trusted-head check.
 
 ## Checks run
 
-- `cargo xtask release`: PASS, including workspace tests, Clippy, WASM,
-  submission package, static browser smoke, and release package boundary.
+- `cargo xtask release --quiet`: PASS on this candidate, including workspace
+  tests, Clippy, WASM, submission package, static browser smoke, and release
+  package boundary.
 - `npm run verify`: PASS after `npm ci --offline` installed the pinned legacy
   compatibility dependencies; this covered the Node EVM, Python, old Inspector,
   architecture, and package lanes.
 - `cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json`:
   `VERIFIED_LOCAL_PACKAGE`.
-- `cargo xtask release-manifest /tmp/memorylineage-release-manifest-current.json`:
-  PASS; it reports `workingTreeClean: false` and `submissionRevision: null`,
-  with the local incident and protocol-corpus assurance in separate sections.
+- `cargo xtask release-manifest`: PASS on the clean candidate; it reports
+  `workingTreeClean: true` and the exact `submissionRevision` above.
 - A temporary manifest with a changed SHA-256 returned exit code 1 and
   `SUBMISSION_ARTIFACT_HASH_MISMATCH`.
-- `git diff --check`: PASS; root README remains 299 lines.
+- `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce`: PASS; the
+  clean source archive passed the automated release path and its temporary
+  checkout was removed. This is not an external human reproduction.
+- `cargo fmt --all -- --check`, `git diff --check`, and the static browser smoke
+  with desktop/mobile captures: PASS; all routes passed and the 390px viewport
+  had no page-level horizontal overflow.
+- Root README is 300 lines in the final local tree, within the 300-line cap.
 - A repository search for `tamper-proof`, `unhackable`, `prevents all`,
   `detects memory poisoning`, `formally verified`, `security audited`,
   `production adoption`, and `consensus proven` found only explicit negations,
   status labels, or historical/internal discussion in current product surfaces.
 
-`cargo xtask reviewer-package` and `reviewer-reproduce` require a clean
-committed tree, so they cannot validate this uncommitted change yet. No remote
-CI result, new hosted deployment, or external human report is claimed here.
+No remote CI result for this candidate, new hosted deployment, Devpost upload,
+or external human report is claimed here. The last recorded hosted release is
+`v1.0.1`; current Pages content was not independently verified in this session.
