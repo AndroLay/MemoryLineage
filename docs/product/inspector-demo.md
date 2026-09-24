@@ -63,21 +63,25 @@ space and is labeled as a separate observation. An unavailable or unexpected
 RPC result does not replace or change the local result. No transaction is
 broadcast.
 
+The Home and Inspect primary buttons, **Check an old restore**, open the local
+Silent Rollback scenario directly. The Inspector still offers a separate
+Restore Preflight view for selecting a current, historical, or divergent
+snapshot.
+
 ## Judge flow
 
-1. Open `/inspect` to see the local Demo Space V2 head and the separate
-   Sepolia observation.
-2. Open `/history` to trace transitions 1–3 and the authority rotation before
-   transition 3.
-3. Open `/lab/silent-rollback` and run the local evidence replay. The separate
+1. On Home, choose **Check an old restore** to open `/lab/silent-rollback`
+   and run the local evidence replay. The separate
    Sepolia probe is optional and visibly labeled as a different observation.
-4. Open `/verify`, export the bundle, tamper with `locatorCommitment`, and
+2. Open `/inspect` to compare the local Demo Space V2 head and restored
+   candidate, then `/history` to trace transitions 1–3 and authority rotation.
+3. Open `/verify`, export the bundle, tamper with `locatorCommitment`, and
    restore the original. Expected results are `TRANSITION_ID_MISMATCH` and
    `VERIFIED`.
-5. In the Recovery Decision Receipt panel, export the current-head decision,
+4. In the Recovery Decision Receipt panel, export the current-head decision,
    tamper its reason code, and restore it. Expected results are
    `RECOVERY_DECISION_MISMATCH` and `RECEIPT VERIFIED`.
-6. Verify the same exported bundle and receipt with the independent Rust CLI.
+5. Verify the same exported bundle and receipt with the independent Rust CLI.
 
 The repository also exposes the runtime and assurance surfaces directly:
 
@@ -86,8 +90,10 @@ cargo run -q -p ml-cli -- agent reference-demo
 cargo run -q -p ml-cli -- security bounded-audit
 ```
 
-The first command exercises a real local loader boundary: only the current
-head is loaded, while historical, diverged, and invalid candidates are held.
+The first command exercises a real local loader boundary: a current head is
+loaded only with verified transition signatures and a bound authority timeline;
+missing authorization, historical, and diverged candidates are held, and
+invalid evidence fails closed.
 The second executes the bounded Rust/revm assurance report. Neither command is
 an external adoption report or a formal third-party security audit.
 

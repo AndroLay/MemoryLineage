@@ -33,7 +33,7 @@ The judge-facing incident is The Silent Rollback:
 ```text
 private snapshot 1 restored locally
 canonical committed history already at state 3
-attempted transition 4 uses snapshot 1's actual root
+attempted transition 4 uses the state root after transition 1
 Solidity result: BAD_PREVIOUS_STATE
 ```
 
@@ -94,7 +94,13 @@ evidence. It does not determine whether private memory is semantically true or
 safe, whether an AI reasoned correctly, whether an agent's action was caused by
 that memory, or whether an external runtime obeys the reference recovery gate.
 
-The next evidence step is external developer reproduction. The public static
-Inspector is available at [memorylineage.pages.dev](https://memorylineage.pages.dev);
-separate staging and demo video remain outside this repository's local
-release-preparation path.
+The next evidence step is external developer reproduction. The repository now
+contains an eight-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) and a
+45-second [captioned local demo](MemoryLineage-local-demo.mp4). The public static
+Inspector is available at [memorylineage.pages.dev](https://memorylineage.pages.dev),
+but that hosted release predates these local changes. `VERIFIED` in the CLI
+report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
+consistency and address syntax, not canonical registry provenance. Complete
+history recovery requires retained event logs or bundles; historical ERC-1271
+replay is unsupported, and the interactive Sepolia probe uses one RPC endpoint.
+Media upload, hosted-site update, and separate staging are not claimed here.

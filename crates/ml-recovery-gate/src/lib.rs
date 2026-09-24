@@ -180,6 +180,47 @@ mod tests {
         assert_eq!(result.loaded, 3);
         assert!(called.load(Ordering::SeqCst));
         assert_eq!(result.receipt.decision.recommended_action, "RESUME_ALLOWED");
+        assert_eq!(
+            result.receipt.schema_version,
+            ml_spec_types::RECOVERY_RECEIPT_V2
+        );
+        assert_eq!(
+            result.receipt.policy_id,
+            ml_spec_types::RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2
+        );
+    }
+
+    #[test]
+    fn current_head_without_authorization_proofs_is_held_before_loader() {
+        let mut unsigned = evidence();
+        unsigned.authorization_proofs.clear();
+        let called = Arc::new(AtomicBool::new(false));
+        let marker = called.clone();
+        let result = protected_resume_with_profile(
+            snapshot(3),
+            &unsigned,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            SNAPSHOT_PROFILE_V2,
+            move |_| {
+                marker.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+        );
+
+        match result {
+            Err(ProtectedResumeError::ResumeHeld { receipt, .. }) => {
+                assert_eq!(receipt.decision.classification, "CURRENT_HEAD");
+                assert_eq!(
+                    receipt.decision.reason_code,
+                    "TRANSITION_AUTHORIZATION_NOT_VERIFIED"
+                );
+                assert_eq!(receipt.decision.recommended_action, "BLOCK_UNVERIFIED");
+                assert_eq!(receipt.assurance.authority_history, "STRUCTURE_ONLY");
+                assert_eq!(receipt.assurance.transition_authorization, "NOT_INCLUDED");
+            }
+            other => panic!("expected an authorization hold, got {other:?}"),
+        }
+        assert!(!called.load(Ordering::SeqCst));
     }
 
     #[test]

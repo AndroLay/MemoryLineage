@@ -16,6 +16,9 @@ results from CI, a previous report, or a private walkthrough.
 - Cargo version (`cargo --version`):
 - Dioxus CLI version (`dx --version`):
 - Browser and version:
+- Session start time with timezone:
+- First correct explanation time (or `NOT_REACHED`):
+- First point of confusion (unedited note):
 
 ## Commands
 
@@ -24,6 +27,7 @@ Record the exact commands and whether each completed successfully.
 | Command | Result | Notes |
 | --- | --- | --- |
 | `cargo xtask reproduce` | `PASS / FAIL` | |
+| `cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json` | `PASS / FAIL` | Record the `VERIFIED_LOCAL_PACKAGE` verdict and any failed row |
 | static release server command | `PASS / FAIL` | |
 | `/lab/silent-rollback` browser flow | `PASS / FAIL` | |
 | `/verify` original bundle | `PASS / FAIL` | |
@@ -31,23 +35,37 @@ Record the exact commands and whether each completed successfully.
 | `/verify` restored bundle | `PASS / FAIL` | |
 | independent CLI verification | `PASS / FAIL` | |
 
+Record each task without a private prompt.
+
+| Task | Completed `YES / NO` | First confusion or failure |
+| --- | --- | --- |
+| Open Home and explain the problem | | |
+| Find the current canonical head | | |
+| Use **Check an old restore** | | |
+| Observe `BAD_PREVIOUS_STATE` | | |
+| Open Verify and observe `VERIFIED` | | |
+| Tamper one commitment and observe `TRANSITION_ID_MISMATCH` | | |
+| Restore the original and observe `VERIFIED` | | |
+| Run the independent CLI and package verification | | |
+
 ## Expected observations
 
 - Silent Rollback terminal reason:
 - Tampered evidence result:
 - Restored evidence result:
 - Independent CLI verdict:
+- Submission package verdict and incident ID:
 - Any unexpected live/fallback source label:
 
 ## Comprehension
 
 Answer in your own words before reading another reviewer report.
 
-### What does MemoryLineage prove?
+### What does MemoryLineage check before an agent resumes from a private snapshot?
 
 Answer:
 
-### What does MemoryLineage explicitly not prove?
+### What does MemoryLineage explicitly not prove about the memory or the agent?
 
 Answer:
 

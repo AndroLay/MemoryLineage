@@ -6,8 +6,9 @@ use crate::browser::{
 };
 use crate::components::*;
 use crate::data::{
-    RestoreAssessment, Scenario, UiData, classify_restore_candidate, short_hash, tamper_commitment,
-    verify_evidence_json, verify_recovery_receipt_json,
+    MAX_IMPORT_FILE_BYTES, RestoreAssessment, Scenario, UiData, classify_restore_candidate,
+    short_hash, tamper_commitment, validate_json_import_metadata, verify_evidence_json,
+    verify_recovery_receipt_json,
 };
 use dioxus::prelude::*;
 
@@ -22,20 +23,23 @@ enum RollbackUiState {
     UnexpectedLive,
 }
 
+fn import_metadata_error_message(reason: &str) -> String {
+    match reason {
+        "IMPORT_FILE_TOO_LARGE" => format!(
+            "The file exceeds the {} KiB import limit.",
+            MAX_IMPORT_FILE_BYTES / 1024
+        ),
+        _ => "Choose a file with a .json extension.".to_owned(),
+    }
+}
+
 #[component]
 pub fn HomePage(data: UiData) -> Element {
     let head = data.head();
-    let attack = data.v2.attack.as_ref();
-    let restored_sequence = data.restored_snapshot().sequence;
-    let attempted_sequence = attack
-        .and_then(|value| value.attempted_sequence)
-        .unwrap_or(head.delta.sequence.saturating_add(1));
-    let stale_root = attack
-        .and_then(|value| value.stale_predecessor.as_deref())
-        .unwrap_or("NOT AVAILABLE");
-    let contract_reason = attack
-        .and_then(|value| value.reason.as_deref())
-        .unwrap_or("BAD_PREVIOUS_STATE");
+    let restored_sequence = data.incident.restored_snapshot.sequence;
+    let attempted_sequence = data.rollback.attempted_sequence;
+    let stale_root = data.rollback.stale_predecessor.as_str();
+    let contract_reason = data.rollback.revert_reason.as_str();
     rsx! {
         div { class: "page page-home",
             section { class: "home-hero",
@@ -45,8 +49,8 @@ pub fn HomePage(data: UiData) -> Element {
                     h1 { "An old AI-memory backup can look current." }
                     p { class: "home-lede", "The file still opens and the agent can still start. MemoryLineage checks whether that restored private state is the authorized continuation of the shared history before anyone treats it as current, without publishing the private memory itself." }
                     div { class: "action-row",
-                        Link { class: "button button-primary", to: AppRoute::Inspect {}, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
-                        Link { class: "button button-secondary", to: AppRoute::Verify {}, "Verify Evidence" }
+                        Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
+                        Link { class: "button button-secondary", to: AppRoute::Inspect {}, "Inspect the head" }
                     }
                     section { class: "home-metrics",
                         div { class: "home-metric", Icon { name: IconName::Database, size: 27 }, div { strong { "{data.fixture.snapshots.len()}" }, span { "private snapshots in the demo" } } }
@@ -56,7 +60,7 @@ pub fn HomePage(data: UiData) -> Element {
                 }
                 div { class: "home-hero-trust content-panel",
                     div { class: "home-trust-heading",
-                        div { p { class: "panel-kicker", "THE INCIDENT / ONE EVIDENCE PATH" } strong { "Old restore vs canonical head" } }
+                        div { p { class: "panel-kicker", "THE INCIDENT / {data.submission.incident_id}" } strong { "Old restore vs canonical head" } }
                         span { class: "home-trust-status", "LOCAL DEMO SPACE V2" }
                     }
                     div { class: "incident-rail", aria_label: "Demo Space V2 canonical snapshots",
@@ -74,7 +78,7 @@ pub fn HomePage(data: UiData) -> Element {
                         div { class: "incident-arrow", "→" }
                         div { span { "ATTEMPTED CONTINUATION" } strong { "Transition {attempted_sequence}" } code { "{contract_reason}" } }
                     }
-                    div { class: "incident-result", span { "EXACT MACHINE RESULT" }, StatusBadge { label: "BAD_PREVIOUS_STATE".to_owned(), tone: "danger".to_owned() } }
+                    div { class: "incident-result", span { "EXACT MACHINE RESULT" }, StatusBadge { label: contract_reason.to_owned(), tone: "danger".to_owned() } }
                     div { class: "trust-list",
                         div { class: "trust-item", Icon { name: IconName::Lock, size: 24 }, div { strong { "Memory stays local" }, span { "Only commitments cross the boundary." } } }
                         div { class: "trust-item", Icon { name: IconName::History, size: 24 }, div { strong { "The checkpoint is shared" }, span { "Anyone can replay the committed succession." } } }
@@ -322,7 +326,7 @@ pub fn InspectPage(data: UiData) -> Element {
                 kicker: "INSPECT / MEMORY SPACE".to_owned(),
                 title: "Inspect Memory Space".to_owned(),
                 description: "Choose a snapshot below. MemoryLineage will tell you whether it is current, an older checkpoint, or a state it cannot verify.".to_owned(),
-                source: "DEMO SPACE V2 / LOCAL REVM".to_owned(),
+                source: format!("{} / LOCAL REVM", data.submission.incident_id),
             }
             div { class: "inspect-context-bar",
                 span { class: "inspect-context-label", "SPACE" }
@@ -334,14 +338,15 @@ pub fn InspectPage(data: UiData) -> Element {
                 div { class: "field-readout", span { "NETWORK" }, strong { "{data.v2.network.name}" }, code { "CHAIN {data.v2.network.chain_id}" } }
                 div { class: "field-readout", span { "REGISTRY ADDRESS" }, strong { "{short_hash(&data.v2.registry.address, 14, 8)}" }, code { "LOCAL SOLIDITY INSTANCE" } }
                 div { class: "field-readout", span { "SPACE ID" }, strong { "{short_hash(&data.v2.registry.space_id, 14, 8)}" }, code { "DEMO SPACE V2" } }
-                Link { class: "button button-primary", to: AppRoute::History {}, "View history ", Icon { name: IconName::Arrow, size: 16 } }
+                Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
+                Link { class: "button button-secondary", to: AppRoute::History {}, "View history" }
             }
             div { class: "inspect-layout",
                 main {
                     section { class: "content-panel inspect-lineage-panel",
                         div { class: "panel-title-row",
                             div { p { class: "panel-kicker", "COMMITTED PRIVATE-MEMORY LINEAGE" } h2 { "{data.v2.transitions.len()} observed states" } }
-                            div { class: "inspect-view-controls", span { "View" }, button { class: "view-control view-control-active", r#type: "button", "Linear" }, button { class: "view-control", r#type: "button", "Tree" } }
+                            div { class: "inspect-view-controls", span { "View" }, span { class: "view-control view-control-active", "Linear" } }
                         }
                         LineageRail { data: data.clone(), compact: false }
                         div { class: "inspect-lineage-footer", span { "{data.v2.transitions.len()} observed states" }, span { "|" }, span { "head sequence {head.delta.sequence}" }, span { "|" }, span { "local Demo Space V2" }, Link { class: "text-link", to: AppRoute::History {}, "View full history ", Icon { name: IconName::Arrow, size: 14 } } }
@@ -352,11 +357,11 @@ pub fn InspectPage(data: UiData) -> Element {
                         div { class: "content-panel inspect-summary-card", Icon { name: IconName::Shield, size: 24 }, div { p { class: "panel-kicker", "MISSING STEPS" } h2 { "0" } span { "History is continuous" } } }
                     }
                     section { class: "content-panel inspect-boundary-panel",
-                        div { class: "boundary-half", div { class: "panel-kicker", "ON CHAIN" }, p { "What's public and verifiable" }, div { class: "boundary-tags", span { "state commitments" }, span { "transition metadata" }, span { "authorizations" }, span { "timestamps" } } }
+                        div { class: "boundary-half", div { class: "panel-kicker", "LOCAL REGISTRY REHEARSAL" }, p { "What the published local bundle exposes" }, div { class: "boundary-tags", span { "state commitments" }, span { "transition metadata" }, span { "authorizations" }, span { "timestamps" } } }
                         div { class: "boundary-half", div { class: "panel-kicker", "PRIVATE / OFF-CHAIN" }, p { "What stays private" }, div { class: "boundary-tags", span { "raw memory content" }, span { "agent thoughts" }, span { "sensitive data" }, span { "intermediate context" } } }
                     }
                     section { class: "inspect-scope-grid",
-                        div { class: "content-panel scope-panel scope-panel-positive", div { class: "panel-kicker", "WHAT WE VERIFY" }, for item in ["State transitions and lineage integrity", "Authorizations and authority rotation", "On-chain commitments and registry records", "Consistency between proofs and committed state"] { div { class: "scope-row", key: "{item}", span { class: "scope-symbol", "✓" }, span { "{item}" } } } }
+                        div { class: "content-panel scope-panel scope-panel-positive", div { class: "panel-kicker", "WHAT WE VERIFY" }, for item in ["State transitions and lineage integrity", "Authorizations and authority rotation", "Local registry commitments and records", "Consistency between proofs and committed state"] { div { class: "scope-row", key: "{item}", span { class: "scope-symbol", "✓" }, span { "{item}" } } } }
                         div { class: "content-panel scope-panel scope-panel-muted", div { class: "panel-kicker", "WHAT WE DO NOT VERIFY" }, for item in ["The content of private memory", "Correctness or truthfulness of agent outputs", "Off-chain computation or model behavior", "Real-world actions taken by the agent"] { div { class: "scope-row", key: "{item}", span { class: "scope-symbol scope-symbol-muted", "×" }, span { "{item}" } } } }
                     }
                 }
@@ -431,7 +436,7 @@ pub fn InspectPage(data: UiData) -> Element {
                                 disabled: !receipt_available,
                                 onclick: move |_| {
                                     if let Some(json) = receipt_download.clone() {
-                                        let _ = download_json("memorylineage-recovery-receipt-v1.json", &json);
+                                        let _ = download_json("memorylineage-recovery-receipt-v2.json", &json);
                                     }
                                 },
                                 "Download decision receipt"
@@ -473,21 +478,21 @@ pub fn HistoryPage(data: UiData) -> Element {
     rsx! {
         div { class: "page workspace-page",
             div { class: "history-context-bar", span { class: "context-icon", Icon { name: IconName::Database, size: 18 } }, span { class: "context-label", "SPACE" }, code { "{short_hash(&data.v2.registry.space_id, 10, 6)}" }, span { "•" }, span { "{data.v2.transitions.len()} committed states" }, span { "•" }, span { "local evidence head" } }
-            PageHeader { kicker: "HISTORY".to_owned(), title: "Canonical committed lineage and authority events.".to_owned(), description: "Each accepted transition has a predecessor, an authority record, and an evidence source.".to_owned(), source: "DEMO SPACE V2 / LOCAL REVM".to_owned() }
+            PageHeader { kicker: "HISTORY".to_owned(), title: "Canonical committed lineage and authority events.".to_owned(), description: "Each accepted transition has a predecessor, an authority record, and an evidence source.".to_owned(), source: format!("{} / LOCAL REVM", data.submission.incident_id) }
             div { class: "history-workspace",
                 main { class: "history-main-column",
                     section { class: "content-panel history-main-panel history-lineage-panel",
-                        div { class: "panel-title-row history-panel-heading", div { p { class: "panel-kicker", "CANONICAL MEMORY LINEAGE" } h2 { "{data.v2.transitions.len()} observed states" } }, div { class: "history-view-controls", span { "View" }, span { class: "view-control view-control-active", "Linear" }, span { class: "view-control", "Tree" }, span { class: "view-control", "Fit" }, span { class: "view-control", "Filters" } } }
+                        div { class: "panel-title-row history-panel-heading", div { p { class: "panel-kicker", "CANONICAL MEMORY LINEAGE" } h2 { "{data.v2.transitions.len()} observed states" } }, div { class: "history-view-controls", span { "View" }, span { class: "view-control view-control-active", "Linear" } } }
                         div { class: "history-lineage-wrap", LineageRail { data: data.clone(), compact: true } }
                         Link { class: "text-link", to: AppRoute::History {}, "View full lineage ", Icon { name: IconName::Arrow, size: 14 } }
                     }
                     section { class: "content-panel history-event-panel",
                         div { class: "history-event-log-heading",
-                            div { p { class: "panel-kicker", "EVENT LOG" } p { class: "panel-subtitle", "Canonical events for this space, latest evidence first." } }
-                            Link { class: "text-link", to: AppRoute::History {}, "View all events ", Icon { name: IconName::Arrow, size: 14 } }
+                            div { p { class: "panel-kicker", "EVENT LOG" } p { class: "panel-subtitle", "Committed events represented in the local evidence bundle, latest first." } }
+                            Link { class: "text-link", to: AppRoute::History {}, "View bundle events ", Icon { name: IconName::Arrow, size: 14 } }
                         }
                         HistoryEventTable { events: data.history_ledger() }
-                        div { class: "source-note", "Raw memory, provenance content, and locator content are intentionally absent from this public bundle." }
+                        div { class: "source-note", "This table replays the supplied bundle; the registry does not return complete history from its head. Preserve event logs or evidence bundles for history recovery. Raw memory, provenance content, and locator content are absent from this public bundle." }
                     }
                 }
                 aside { class: "history-sidebar",
@@ -620,30 +625,21 @@ pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
 
 #[component]
 pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
+    let local_reason = data.rollback.revert_reason.clone();
     let mut selected = use_signal(|| initial_scenario);
     let mut attempted = use_signal(|| false);
     let busy = use_signal(|| false);
     let mut state = use_signal(|| RollbackUiState::Ready);
     let mut source = use_signal(|| "PUBLISHED LOCAL REVM".to_owned());
-    let detail = use_signal(|| "PUBLISHED EVIDENCE / BAD_PREVIOUS_STATE".to_owned());
+    let detail = use_signal(|| format!("PUBLISHED EVIDENCE / {local_reason}"));
     let selected_scenario = selected();
     let was_attempted = attempted();
     let is_busy = busy();
     let current_state = state();
     let result_detail = detail();
     let current_source = source();
-    let stale_predecessor = data
-        .v2
-        .attack
-        .as_ref()
-        .and_then(|attack| attack.stale_predecessor.clone())
-        .unwrap_or_else(|| data.restored_snapshot().snapshot_commitment.clone());
-    let attempt_sequence = data
-        .v2
-        .attack
-        .as_ref()
-        .and_then(|attack| attack.attempted_sequence)
-        .unwrap_or(4);
+    let stale_predecessor = data.rollback.stale_predecessor.clone();
+    let attempt_sequence = data.rollback.attempted_sequence;
     let local_evidence = data.evidence_json();
     let run_rollback = {
         let mut attempted = attempted;
@@ -660,7 +656,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     let mut source = source_signal;
                     let mut detail = detail_signal;
                     detail.set(format!(
-                        "PUBLISHED LOCAL REVM / BAD_PREVIOUS_STATE / attempted sequence {attempt_sequence} / stale root {} from transition 1",
+                        "PUBLISHED LOCAL REVM / {} / attempted sequence {attempt_sequence} / stale root {} from transition 1",
+                        local_reason,
                         short_hash(&stale_root, 10, 8)
                     ));
                     source.set("PUBLISHED LOCAL REVM / RUST-WASM VERIFIED".to_owned());
@@ -808,7 +805,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
     };
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Tampering Lab".to_owned(), description: "Restore an older snapshot, then try to continue the newer history. The result explains exactly what the registry accepts or rejects.".to_owned(), source: page_source.to_owned() }
+            PageHeader { kicker: "TAMPERING LAB / FALSIFICATION WORKSPACE".to_owned(), title: "Tampering Lab".to_owned(), description: "Restore an older snapshot, then try to continue the newer history. The result explains exactly what the registry accepts or rejects.".to_owned(), source: if selected_scenario == Scenario::SilentRollback { format!("{page_source} / {}", data.submission.incident_id) } else { page_source.to_owned() } }
             section { class: "audit-path", aria_label: "Silent Rollback audit path",
                 div { class: "audit-path-step audit-path-step-complete", span { "01" }, div { strong { "Restore" }, small { "Snapshot {data.restored_snapshot().sequence}" } } }
                 span { class: "audit-path-arrow", aria_hidden: "true", "→" }
@@ -921,7 +918,7 @@ pub fn VerifyPage(data: UiData) -> Element {
     let tampered_receipt_json = data.tampered_recovery_receipt_json();
     let report = use_signal(|| data.report.clone());
     let error = use_signal(|| None::<String>);
-    let source = use_signal(|| "PUBLISHED V2 EVIDENCE".to_owned());
+    let source = use_signal(|| "PUBLISHED LOCAL V2 EVIDENCE".to_owned());
     let imported_name = use_signal(|| None::<String>);
     let announcement =
         use_signal(|| "Published evidence is loaded in the Rust/WASM verifier.".to_owned());
@@ -943,11 +940,18 @@ pub fn VerifyPage(data: UiData) -> Element {
     let current_receipt_verified =
         current_receipt_error.is_none() && current_receipt_report.is_some();
     let is_verified = current_error.is_none() && current_report.is_some();
+    let pinned_bundle_hash = data
+        .submission
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.path == "evidence/local/demo_space_v2_evidence.json")
+        .map(|artifact| artifact.sha256.clone())
+        .unwrap_or_else(|| "MISSING FROM SUBMISSION ENVELOPE".to_owned());
     let verification_summary = if let Some(reason) = current_error.as_deref() {
         format!("Independent Rust verification rejected the bundle: {reason}.")
     } else if let Some(current_report) = current_report.as_ref() {
         format!(
-            "{} transitions replayed; final root {}.",
+            "{} transitions replayed; final root {}. This confirms the supplied bundle's internal consistency; it does not authenticate the registry address, deployed code, or canonical chain state.",
             current_report.transition_count,
             short_hash(&current_report.final_root, 16, 12)
         )
@@ -958,7 +962,7 @@ pub fn VerifyPage(data: UiData) -> Element {
         format!("Independent Rust receipt verification rejected the decision: {reason}.")
     } else if let Some(receipt_report) = current_receipt_report.as_ref() {
         format!(
-            "{} / {} / decision {}.",
+            "Local receipt replay: {} / {} / decision {}.",
             receipt_report.classification,
             receipt_report.recommended_action,
             short_hash(&receipt_report.decision_id, 14, 8)
@@ -980,7 +984,9 @@ pub fn VerifyPage(data: UiData) -> Element {
             source.set("EXPORTED V2 EVIDENCE".to_owned());
             imported_name.set(None);
             announcement.set(match result {
-                Ok(()) => "Evidence exported; the same bundle is verified in Rust/WASM.".to_owned(),
+                Ok(()) => {
+                    "Evidence exported; the same bundle passes local Rust/WASM replay.".to_owned()
+                }
                 Err(reason) => {
                     format!("Evidence is ready; browser download unavailable: {reason}.")
                 }
@@ -1018,8 +1024,8 @@ pub fn VerifyPage(data: UiData) -> Element {
         move |_| {
             report.set(data_report.clone());
             error.set(None);
-            source.set("PUBLISHED V2 EVIDENCE".to_owned());
-            announcement.set("Original evidence restored and verified.".to_owned());
+            source.set("PUBLISHED LOCAL V2 EVIDENCE".to_owned());
+            announcement.set("Original evidence restored; local replay passed.".to_owned());
         }
     };
     let import_action = {
@@ -1032,6 +1038,16 @@ pub fn VerifyPage(data: UiData) -> Element {
             if let Some(file) = event.files().into_iter().next() {
                 let name = file.name();
                 imported_name.set(Some(name.clone()));
+                if let Err(reason) = validate_json_import_metadata(&name, file.size()) {
+                    report.set(None);
+                    error.set(Some(reason.to_owned()));
+                    source.set("IMPORTED EVIDENCE".to_owned());
+                    announcement.set(format!(
+                        "Imported {name}: {}",
+                        import_metadata_error_message(reason)
+                    ));
+                    return;
+                }
                 spawn(async move {
                     match file.read_string().await {
                         Ok(json) => match verify_evidence_json(&json) {
@@ -1039,7 +1055,8 @@ pub fn VerifyPage(data: UiData) -> Element {
                                 report.set(Some(value));
                                 error.set(None);
                                 source.set("IMPORTED EVIDENCE".to_owned());
-                                announcement.set(format!("Imported {name}: VERIFIED."));
+                                announcement
+                                    .set(format!("Imported {name}: BUNDLE REPLAY VERIFIED."));
                             }
                             Err(reason) => {
                                 report.set(None);
@@ -1067,7 +1084,7 @@ pub fn VerifyPage(data: UiData) -> Element {
         let mut receipt_announcement = receipt_announcement;
         let evidence_json = default_json.clone();
         move |_| {
-            let result = download_json("memorylineage-recovery-receipt-v1.json", &receipt_json);
+            let result = download_json("memorylineage-recovery-receipt-v2.json", &receipt_json);
             match verify_recovery_receipt_json(&receipt_json, &evidence_json) {
                 Ok(value) => {
                     receipt_report.set(Some(value));
@@ -1127,7 +1144,8 @@ pub fn VerifyPage(data: UiData) -> Element {
             receipt_error.set(None);
             receipt_source.set("PUBLISHED RECOVERY RECEIPT".to_owned());
             receipt_file.set(None);
-            receipt_announcement.set("Original recovery receipt restored and verified.".to_owned());
+            receipt_announcement
+                .set("Original recovery receipt restored; local receipt replay passed.".to_owned());
         }
     };
     let import_receipt_action = {
@@ -1141,6 +1159,16 @@ pub fn VerifyPage(data: UiData) -> Element {
             if let Some(file) = event.files().into_iter().next() {
                 let name = file.name();
                 receipt_file.set(Some(name.clone()));
+                if let Err(reason) = validate_json_import_metadata(&name, file.size()) {
+                    receipt_report.set(None);
+                    receipt_error.set(Some(reason.to_owned()));
+                    receipt_source.set("IMPORTED RECOVERY RECEIPT".to_owned());
+                    receipt_announcement.set(format!(
+                        "Imported {name}: {}",
+                        import_metadata_error_message(reason)
+                    ));
+                    return;
+                }
                 let evidence_json = evidence_json.clone();
                 spawn(async move {
                     match file.read_string().await {
@@ -1149,7 +1177,8 @@ pub fn VerifyPage(data: UiData) -> Element {
                                 receipt_report.set(Some(value));
                                 receipt_error.set(None);
                                 receipt_source.set("IMPORTED RECOVERY RECEIPT".to_owned());
-                                receipt_announcement.set(format!("Imported {name}: VERIFIED."));
+                                receipt_announcement
+                                    .set(format!("Imported {name}: LOCAL RECEIPT VERIFIED."));
                             }
                             Err(reason) => {
                                 receipt_report.set(None);
@@ -1172,6 +1201,18 @@ pub fn VerifyPage(data: UiData) -> Element {
     rsx! {
         div { class: "page workspace-page",
             PageHeader { kicker: "VERIFY / PORTABLE EVIDENCE".to_owned(), title: "Verify Evidence".to_owned(), description: "Export a bundle, change one commitment, and confirm that verification catches the change.".to_owned(), source: current_source.clone() }
+            section { class: "content-panel verification-detail-panel",
+                div { class: "panel-kicker", "PUBLISHED LOCAL SUBMISSION ENVELOPE" }
+                h2 { "{data.submission.incident_id}" }
+                div { class: "check-table",
+                    CheckRow { label: "Source class".to_owned(), value: data.v2.source_class.clone(), tone: "observed".to_owned() }
+                    CheckRow { label: "Artifact count".to_owned(), value: data.submission.artifacts.len().to_string(), tone: "neutral".to_owned() }
+                    CheckRow { label: "Browser replay".to_owned(), value: if is_verified { "BUNDLE REPLAY VERIFIED".to_owned() } else { "REPLAY REJECTED".to_owned() }, tone: if is_verified { "verified".to_owned() } else { "danger".to_owned() } }
+                }
+                CopyValue { label: "published V2 bundle SHA-256".to_owned(), value: pinned_bundle_hash, compact: true }
+                code { class: "command-block", "cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json" }
+                p { class: "small-note", "Browser replay checks the loaded bundle internally. It does not authenticate the registry address, deployed code, or canonical chain state. The CLI also checks package hashes, incident references, local Rust/revm execution, and receipts; imported files have their own replay result." }
+            }
             div { class: "verify-workspace",
                 aside { class: "content-panel evidence-actions-panel",
                     div { class: "panel-kicker", "EVIDENCE WORKBENCH" }
@@ -1179,19 +1220,20 @@ pub fn VerifyPage(data: UiData) -> Element {
                     p { "It contains the history fingerprints and approval records needed for replay. It never contains raw memory." }
                     div { class: "evidence-facts", div { span { "TRANSITIONS" }, strong { "{data.v2.transitions.len()}" } }, div { span { "SCHEMA" }, strong { "V2" } }, div { span { "RAW MEMORY" }, strong { "OFF-CHAIN" } } }
                     button { class: "button button-primary button-wide", onclick: export_action, "Export evidence.json" }
-                    label { class: "file-drop", strong { "Import a saved evidence bundle" }, span { "V1 or V2 public evidence bundle" }, input { r#type: "file", accept: "application/json,.json", onchange: import_action } }
+                    label { class: "file-drop", strong { "Import a saved evidence bundle" }, span { "V1 or V2 JSON, maximum 1 MiB" }, input { r#type: "file", accept: "application/json,.json", onchange: import_action } }
                     div { class: "source-line source-line-vertical", span { class: "source-dot source-dot-blue" }, strong { "{current_source}" }, if let Some(name) = current_file.as_deref() { span { "{name}" } } }
                     div { class: "verify-guide", aria_label: "How to verify evidence",
                         div { span { "1" }, strong { "Load" }, small { "use the published or imported bundle" } }
                         div { span { "2" }, strong { "Tamper" }, small { "change one commitment" } }
-                        div { span { "3" }, strong { "Restore" }, small { "confirm the original is VERIFIED" } }
+                        div { span { "3" }, strong { "Restore" }, small { "confirm the original replays successfully" } }
                     }
                 }
                 section { class: "content-panel verification-panel",
-                    div { class: "panel-title-row", div { p { class: "panel-kicker", "VERIFICATION SUMMARY" }, h2 { "Independent replay" } }, StatusBadge { label: if is_verified { "VERIFIED".to_owned() } else { "REJECTED".to_owned() }, tone: if is_verified { "verified".to_owned() } else { "danger".to_owned() } } }
-                    div { class: if is_verified { "verification-banner verification-banner-pass" } else { "verification-banner verification-banner-fail" }, aria_live: "polite", span { class: "verification-icon", if is_verified { "✓" } else { "×" } }, div { strong { if is_verified { "VERIFIED" } else { "REJECTED" } }, p { "{verification_summary}" } } }
+                    div { class: "panel-title-row", div { p { class: "panel-kicker", "VERIFICATION SUMMARY" }, h2 { "Independent bundle replay" } }, StatusBadge { label: if is_verified { "BUNDLE REPLAY VERIFIED".to_owned() } else { "REPLAY REJECTED".to_owned() }, tone: if is_verified { "verified".to_owned() } else { "danger".to_owned() } } }
+                    div { class: if is_verified { "verification-banner verification-banner-pass" } else { "verification-banner verification-banner-fail" }, aria_live: "polite", span { class: "verification-icon", if is_verified { "✓" } else { "×" } }, div { strong { if is_verified { "BUNDLE REPLAY VERIFIED" } else { "REPLAY REJECTED" } }, p { "{verification_summary}" } } }
                     div { class: "check-table",
                         if let Some(current_report) = current_report.as_ref() {
+                            CheckRow { label: "Verification scope".to_owned(), value: current_report.verification_scope.clone(), tone: "observed".to_owned() }
                             CheckRow { label: "Schema".to_owned(), value: current_report.schema.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Privacy boundary".to_owned(), value: current_report.privacy_boundary.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Attack evidence".to_owned(), value: current_report.attack_evidence.clone(), tone: if current_report.attack_evidence == "PASS" { "verified".to_owned() } else { "neutral".to_owned() } }
@@ -1206,7 +1248,7 @@ pub fn VerifyPage(data: UiData) -> Element {
                     div { class: "check-table",
                         if let Some(current_report) = current_report.as_ref() {
                             CheckRow { label: "Schema".to_owned(), value: current_report.schema.clone(), tone: "verified".to_owned() }
-                            CheckRow { label: "Registry identity".to_owned(), value: current_report.registry_identity.clone(), tone: "verified".to_owned() }
+                            CheckRow { label: "Registry address".to_owned(), value: current_report.registry_identity.clone(), tone: "observed".to_owned() }
                             CheckRow { label: "Transition IDs".to_owned(), value: current_report.transition_ids.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "State roots".to_owned(), value: current_report.state_roots.clone(), tone: "verified".to_owned() }
                             CheckRow { label: "Sequence continuity".to_owned(), value: current_report.sequence_continuity.clone(), tone: "verified".to_owned() }
@@ -1231,7 +1273,7 @@ pub fn VerifyPage(data: UiData) -> Element {
                 if let Some(reason) = current_error.as_deref() {
                     div { class: "verification-banner verification-banner-fail", aria_live: "polite", span { class: "verification-icon", "×" }, div { strong { "VERIFICATION FAILED" }, p { "{reason}" } } }
                 } else {
-                    div { class: "verification-banner verification-banner-pass", aria_live: "polite", span { class: "verification-icon", "✓" }, div { strong { "VERIFIED" }, p { "The original bundle remains valid in the Rust/WASM verifier." } } }
+                    div { class: "verification-banner verification-banner-pass", aria_live: "polite", span { class: "verification-icon", "✓" }, div { strong { "BUNDLE REPLAY VERIFIED" }, p { "The original bundle passes the Rust/WASM replay checks." } } }
                 }
                 p { "The browser verifier recomputes the bundle. A changed commitment cannot silently preserve the original transition identity." }
                 Link { class: "button button-secondary button-full", to: AppRoute::Evidence {}, "Open Public Evidence ", Icon { name: IconName::Arrow, size: 15 } }
@@ -1241,9 +1283,9 @@ pub fn VerifyPage(data: UiData) -> Element {
             section { class: "section-wrap recovery-receipt-workbench",
                 div { class: "panel-title-row",
                     div { p { class: "panel-kicker", "RECOVERY DECISION RECEIPT" }, h2 { "Can another process verify the resume decision?" } }
-                    StatusBadge { label: if current_receipt_verified { "VERIFIED".to_owned() } else { "REJECTED".to_owned() }, tone: if current_receipt_verified { "verified".to_owned() } else { "danger".to_owned() } }
+                    StatusBadge { label: if current_receipt_verified { "LOCAL RECEIPT VERIFIED".to_owned() } else { "RECEIPT REJECTED".to_owned() }, tone: if current_receipt_verified { "verified".to_owned() } else { "danger".to_owned() } }
                 }
-                p { "A Recovery Decision Receipt binds one private snapshot commitment to the replayed canonical head and records the safe action. It contains no raw memory and does not claim to enforce a production runtime." }
+                p { "A Recovery Decision Receipt binds one private snapshot commitment to the head reconstructed from the supplied bundle and records the decision. It contains no raw memory and does not claim to enforce a production runtime." }
                 div { class: "recovery-receipt-grid",
                     div { class: "content-panel recovery-receipt-summary",
                         div { class: "panel-kicker", "DECISION READOUT" }
@@ -1272,7 +1314,7 @@ pub fn VerifyPage(data: UiData) -> Element {
                             button { class: "button button-danger", onclick: tamper_receipt_action, "Tamper decision" }
                             button { class: "button button-secondary", onclick: restore_receipt_action, "Restore" }
                         }
-                        label { class: "file-drop", strong { "Import recovery receipt" }, span { "Must match the loaded Demo Space V2 bundle" }, input { r#type: "file", accept: "application/json,.json", onchange: import_receipt_action } }
+                        label { class: "file-drop", strong { "Import recovery receipt" }, span { "Must match the loaded bundle; JSON up to 1 MiB" }, input { r#type: "file", accept: "application/json,.json", onchange: import_receipt_action } }
                         div { class: "source-line source-line-vertical", span { class: "source-dot source-dot-blue" }, strong { "{current_receipt_source}" }, if let Some(name) = current_receipt_file.as_deref() { span { "{name}" } } }
                         p { class: "announcement", "{receipt_announcement}" }
                     }
@@ -1302,7 +1344,7 @@ pub fn EvidencePage(data: UiData) -> Element {
                 div { class: "content-panel evidence-observation-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "CURRENT OBSERVATION" }, h2 { "Second RPC reread" } }, StatusBadge { label: data.reread.verdict.clone(), tone: "verified".to_owned() } }
                     dl { class: "readout-list", ReadoutRow { label: "Provider".to_owned(), value: data.reread.rpc_url.clone(), detail: "published observation".to_owned() }, ReadoutRow { label: "Block".to_owned(), value: data.reread.block_number.to_string(), detail: "observed head block".to_owned() }, ReadoutRow { label: "Observed sequence".to_owned(), value: data.reread.head.sequence.to_string(), detail: "Sepolia reread".to_owned() }, ReadoutRow { label: "Head root".to_owned(), value: short_hash(&data.reread.head.state_root, 14, 8), detail: "headMatches = true".to_owned() } }
-                    p { class: "small-note", "This page does not claim provider consensus; it labels the independent reread that is actually published." }
+                    p { class: "small-note", "This is the independent endpoint reread in the published artifacts. The interactive stale-root probe pins its calls to one configured RPC endpoint. Neither is a consensus proof." }
                 }
                 div { class: "content-panel evidence-rpc-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "RPC OBSERVATION" } h2 { "Read-only source" } }, StatusBadge { label: "MATCH".to_owned(), tone: "verified".to_owned() } }
@@ -1310,7 +1352,7 @@ pub fn EvidencePage(data: UiData) -> Element {
                         div { class: "rpc-observation-row", strong { "Published reread" }, code { "{short_hash(&data.reread.rpc_url, 18, 8)}" }, span { "head {data.reread.head.sequence}" }, StatusBadge { label: data.reread.verdict.clone(), tone: "verified".to_owned() } }
                         div { class: "rpc-observation-row", strong { "Observed block" }, code { "{data.reread.block_number}" }, span { "sequence {data.reread.head.sequence}" }, StatusBadge { label: "OBSERVED".to_owned(), tone: "observed".to_owned() } }
                     }
-                    p { class: "small-note", "One published reread is shown here. Multiple-provider consensus is not claimed." }
+                    p { class: "small-note", "The interactive probe uses one RPC endpoint. Multiple-provider consensus is not claimed." }
                 }
             }
             div { class: "section-wrap evidence-middle-grid",
@@ -1363,8 +1405,8 @@ pub fn EvidencePage(data: UiData) -> Element {
             section { class: "section-wrap evidence-grid",
                 div { class: "content-panel",
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "REFERENCE AGENT RUNTIME" }, h2 { "A real loader boundary, exercised locally" } }, StatusBadge { label: if data.reference_runtime.all_expected { "VERIFIED".to_owned() } else { "FAILED".to_owned() }, tone: if data.reference_runtime.all_expected { "verified".to_owned() } else { "danger".to_owned() } } }
-                    p { "The reference runtime loads the current head into an actual in-memory session, holds a historical checkpoint before the loader, holds a diverged snapshot for review, and fails closed on invalid evidence." }
-                    dl { class: "readout-list", ReadoutRow { label: "Current head".to_owned(), value: format!("{} / loader {}", data.reference_runtime.cases.current_head.status, if data.reference_runtime.cases.current_head.loader_invoked { "invoked" } else { "not invoked" }), detail: "snapshot 3 / RESUME_ALLOWED".to_owned() }, ReadoutRow { label: "Historical checkpoint".to_owned(), value: format!("{} / {}", data.reference_runtime.cases.historical_checkpoint.status, data.reference_runtime.cases.historical_checkpoint.recommended_action.as_deref().unwrap_or("HOLD")), detail: "snapshot 1 is not loaded".to_owned() }, ReadoutRow { label: "Diverged snapshot".to_owned(), value: format!("{} / {}", data.reference_runtime.cases.diverged_snapshot.status, data.reference_runtime.cases.diverged_snapshot.recommended_action.as_deref().unwrap_or("HOLD")), detail: "unknown commitment is held".to_owned() }, ReadoutRow { label: "Invalid evidence".to_owned(), value: data.reference_runtime.cases.invalid_evidence.status.clone(), detail: "loader not invoked".to_owned() }, ReadoutRow { label: "Raw memory export".to_owned(), value: data.reference_runtime.raw_memory_exported.to_string(), detail: "runtime report contains outcomes, not private values".to_owned() } }
+                    p { "The reference runtime loads the current head only when its transition signatures and authority timeline verify. It holds a current head with missing authorization proof, historical checkpoints, and diverged snapshots before the loader; invalid evidence fails closed." }
+                    dl { class: "readout-list", ReadoutRow { label: "Current head".to_owned(), value: format!("{} / loader {}", data.reference_runtime.cases.current_head.status, if data.reference_runtime.cases.current_head.loader_invoked { "invoked" } else { "not invoked" }), detail: "snapshot 3 / RESUME_ALLOWED".to_owned() }, if let Some(case) = data.reference_runtime.cases.missing_authorization_proof.as_ref() { ReadoutRow { label: "Missing authorization proof".to_owned(), value: format!("{} / {}", case.status, case.recommended_action.as_deref().unwrap_or("BLOCKED")), detail: if case.loader_invoked { "unexpected loader invocation".to_owned() } else { "current head held before loader".to_owned() } } }, ReadoutRow { label: "Historical checkpoint".to_owned(), value: format!("{} / {}", data.reference_runtime.cases.historical_checkpoint.status, data.reference_runtime.cases.historical_checkpoint.recommended_action.as_deref().unwrap_or("HOLD")), detail: "snapshot 1 is not loaded".to_owned() }, ReadoutRow { label: "Diverged snapshot".to_owned(), value: format!("{} / {}", data.reference_runtime.cases.diverged_snapshot.status, data.reference_runtime.cases.diverged_snapshot.recommended_action.as_deref().unwrap_or("HOLD")), detail: "unknown commitment is held".to_owned() }, ReadoutRow { label: "Invalid evidence".to_owned(), value: data.reference_runtime.cases.invalid_evidence.status.clone(), detail: "loader not invoked".to_owned() }, ReadoutRow { label: "Raw memory export".to_owned(), value: data.reference_runtime.raw_memory_exported.to_string(), detail: "runtime report contains outcomes, not private values".to_owned() } }
                     p { class: "small-note", "This proves a framework-neutral local reference integration. It is not evidence of external developer adoption or a production agent framework integration." }
                 }
                 div { class: "content-panel",
@@ -1381,6 +1423,7 @@ pub fn EvidencePage(data: UiData) -> Element {
             }
             section { class: "section-wrap artifact-list content-panel",
                 div { class: "panel-kicker", "AVAILABLE ARTIFACTS" }
+                div { class: "artifact-row", span { "evidence/submission/manifest.json" }, StatusBadge { label: "LOCAL PACKAGE".to_owned(), tone: "verified".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/rust_revm_conformance.json" }, StatusBadge { label: "PUBLISHED".to_owned(), tone: "observed".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/demo_space_v2_evidence.json" }, StatusBadge { label: "DEMO V2".to_owned(), tone: "verified".to_owned() } }
                 div { class: "artifact-row", span { "evidence/local/demo_space_v2_recovery_receipt.json" }, StatusBadge { label: "RECEIPT".to_owned(), tone: "verified".to_owned() } }
@@ -1447,10 +1490,14 @@ pub fn SecurityPage(data: UiData) -> Element {
         "authority rotation behavior in the Rust/revm evidence",
         "commitment integrity",
         "deterministic state derivation",
-        "replayable evidence",
-        "canonical committed head",
+        "internal consistency of supplied replayable evidence",
+        "head reconstructed from the supplied evidence bundle",
     ];
     let not_verified = [
+        "whether a bundle came from the canonical deployed registry or chain state",
+        "full history recovery from a head alone when event logs or bundles are unavailable",
+        "historical ERC-1271 signer state for offline replay",
+        "Ethereum consensus from a single RPC endpoint response",
         "semantic truth",
         "semantic memory safety",
         "AI reasoning correctness",
@@ -1468,11 +1515,13 @@ pub fn SecurityPage(data: UiData) -> Element {
                 main {
                     section { class: "security-scope-grid",
                         div { class: "content-panel scope-panel scope-panel-positive", div { class: "panel-kicker", "WHAT MEMORYLINEAGE VERIFIES" }, h2 { "Committed history integrity" }, for item in verified { div { class: "scope-row", key: "{item}", span { class: "scope-symbol", "✓" }, span { "{item}" } } } }
-                        div { class: "content-panel scope-panel scope-panel-muted", div { class: "panel-kicker", "WHAT MEMORYLINEAGE DOES NOT VERIFY" }, h2 { "Semantic or behavioral truth" }, for item in not_verified { div { class: "scope-row", key: "{item}", span { class: "scope-symbol scope-symbol-muted", "×" }, span { "{item}" } } } }
+                        div { class: "content-panel scope-panel scope-panel-muted", div { class: "panel-kicker", "WHAT MEMORYLINEAGE DOES NOT VERIFY" }, h2 { "External provenance or semantic truth" }, for item in not_verified { div { class: "scope-row", key: "{item}", span { class: "scope-symbol scope-symbol-muted", "×" }, span { "{item}" } } }
+                            p { class: "small-note", "VERIFIED means the named deterministic checks passed for the supplied evidence. It does not prove where that evidence originated." }
+                        }
                     }
                     section { class: "section-wrap content-panel threat-model-panel", div { class: "panel-kicker", "THREAT MODEL" }, p { class: "panel-subtitle", "Adversarial scenarios we test and the expected system boundary." }, div { class: "threat-table", div { class: "threat-table-head", span { "THREAT" }, span { "INVARIANT TESTED" }, span { "EXPECTED RESULT" } }, div { class: "threat-row", span { "Stale restored snapshot" }, span { "Predecessor continuity" }, StatusBadge { label: "REJECT".to_owned(), tone: "danger".to_owned() } }, div { class: "threat-row", span { "Skipped sequence" }, span { "Sequence continuity" }, StatusBadge { label: "REJECT".to_owned(), tone: "danger".to_owned() } }, div { class: "threat-row", span { "Parallel successor" }, span { "Canonical uniqueness" }, StatusBadge { label: "REJECT".to_owned(), tone: "danger".to_owned() } }, div { class: "threat-row", span { "Wrong authorizer" }, span { "Authorization" }, StatusBadge { label: "REJECT".to_owned(), tone: "danger".to_owned() } }, div { class: "threat-row", span { "Modified committed field" }, span { "Commitment integrity" }, StatusBadge { label: "REJECT".to_owned(), tone: "danger".to_owned() } }, div { class: "threat-row", span { "Malicious semantic content" }, span { "Semantic scope" }, StatusBadge { label: "OUT OF SCOPE".to_owned(), tone: "warning".to_owned() } } } }
                     section { class: "section-wrap content-panel security-assurance-panel", div { class: "panel-title-row", div { p { class: "panel-kicker", "BOUNDED ASSURANCE / ACTUAL ARTIFACT" } h2 { "Executable negative-path coverage" } }, StatusBadge { label: data.security_assurance.status.clone(), tone: if data.security_assurance.status == "BOUNDED_ASSURANCE_PASS" { "verified".to_owned() } else { "danger".to_owned() } } }, p { "The published Solidity creation artifact was exercised through an independent Rust/revm lane across valid histories, stale predecessors, sequence gaps, signature boundaries, ERC-1271, and authority rotation." }, div { class: "security-assurance-grid", ReadoutRow { label: "Execution".to_owned(), value: "Rust/revm".to_owned(), detail: "published Solidity bytecode".to_owned() } ReadoutRow { label: "Formal verification".to_owned(), value: data.security_assurance.formal_status.clone(), detail: "not claimed".to_owned() } ReadoutRow { label: "Third-party audit".to_owned(), value: "NOT CLAIMED".to_owned(), detail: "no external auditor report".to_owned() } ReadoutRow { label: "Production adoption".to_owned(), value: "NOT YET DEMONSTRATED".to_owned(), detail: "reference runtime is local".to_owned() } } }
-                    section { class: "section-wrap content-panel", div { class: "panel-kicker", "STATUS VOCABULARY" }, div { class: "status-vocabulary", StatusBadge { label: "VERIFIED".to_owned(), tone: "verified".to_owned() }, span { "relevant deterministic checks passed" }, StatusBadge { label: "OBSERVED".to_owned(), tone: "observed".to_owned() }, span { "read from a public source" }, StatusBadge { label: "REJECTED".to_owned(), tone: "danger".to_owned() }, span { "actual verification/simulation failed as expected" }, StatusBadge { label: "OUT OF SCOPE".to_owned(), tone: "warning".to_owned() }, span { "not evaluated by this product" }, StatusBadge { label: "NOT YET DEMONSTRATED".to_owned(), tone: "neutral".to_owned() }, span { "no evidence is being implied" } } }
+                    section { class: "section-wrap content-panel", div { class: "panel-kicker", "STATUS VOCABULARY" }, div { class: "status-vocabulary", StatusBadge { label: "VERIFIED".to_owned(), tone: "verified".to_owned() }, span { "named checks passed for the supplied evidence; provenance is not implied" }, StatusBadge { label: "OBSERVED".to_owned(), tone: "observed".to_owned() }, span { "read from a named public source" }, StatusBadge { label: "REJECTED".to_owned(), tone: "danger".to_owned() }, span { "actual verification/simulation failed as expected" }, StatusBadge { label: "OUT OF SCOPE".to_owned(), tone: "warning".to_owned() }, span { "not evaluated by this product" }, StatusBadge { label: "NOT YET DEMONSTRATED".to_owned(), tone: "neutral".to_owned() }, span { "no evidence is being implied" } } }
                 }
                 aside { class: "security-sidebar",
                     section { class: "security-trust-list", p { class: "panel-kicker", "PUBLIC CHECKPOINT" }, div { class: "trust-item", Icon { name: IconName::Lock, size: 24 }, div { strong { "Private memory stays out" }, span { "Raw memory never enters the registry." } } } div { class: "trust-item", Icon { name: IconName::History, size: 24 }, div { strong { "Succession is recorded" }, span { "Each accepted state names its predecessor." } } } div { class: "trust-item", Icon { name: IconName::Authority, size: 24 }, div { strong { "Authority changes are visible" }, span { "Rotation is part of the recorded configuration." } } } div { class: "trust-item", Icon { name: IconName::Open, size: 24 }, div { strong { "Evidence is replayable" }, span { "The bundle can be checked independently." } } } }
@@ -1557,6 +1606,7 @@ pub fn ReproducePage(data: UiData) -> Element {
             section { class: "section-wrap content-panel",
                 div { class: "panel-kicker", "LOCAL COMMANDS" }
                 CommandRow { command: "cargo xtask verify".to_owned(), note: "complete deterministic verification gate".to_owned() }
+                CommandRow { command: "cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json".to_owned(), note: "incident references, artifact hashes, Rust/revm replay, and recovery receipts".to_owned() }
                 CommandRow { command: "cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json".to_owned(), note: "independent Demo Space V2 evidence replay".to_owned() }
                 CommandRow { command: "cargo xtask reviewer-reproduce".to_owned(), note: "clean archive reproduction path".to_owned() }
                 p { class: "small-note", "Current Demo Space bundle: {data.v2.evidence_type}. Automated reproduction is recorded locally; an independent human clean-checkout result remains NOT YET DEMONSTRATED." }
@@ -1569,15 +1619,15 @@ pub fn ReproducePage(data: UiData) -> Element {
 pub fn PriorWorkPage(data: UiData) -> Element {
     rsx! {
         div { class: "page workspace-page",
-            PageHeader { kicker: "PROVENANCE / SUBMISSION RECORD".to_owned(), title: "What existed before the hackathon?".to_owned(), description: "A clear boundary between prior standards and the evidence-backed work in this repository.".to_owned(), source: "PROVENANCE LEDGER".to_owned() }
+            PageHeader { kicker: "PROVENANCE / SUBMISSION RECORD".to_owned(), title: "Standards and project contribution".to_owned(), description: "External foundations and the evidence-backed work in this repository. Git dates alone do not establish when each component was created.".to_owned(), source: "PROVENANCE LEDGER".to_owned() }
             section { class: "section-wrap provenance-grid",
-                div { class: "content-panel provenance-column", div { class: "panel-kicker", "BEFORE 3RD-WEB-HACK" }, h2 { "Standards and primitives" }, ProvenanceRow { label: "ERC-8350 draft semantics".to_owned(), detail: "pinned as an external standard snapshot".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "EIP-712".to_owned(), detail: "Ethereum typed-data authorization primitive".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "ERC-1271".to_owned(), detail: "contract-based signature validation boundary".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "Ethereum Sepolia".to_owned(), detail: "public testnet used as trust anchor".to_owned(), tone: "observed".to_owned() } }
+                div { class: "content-panel provenance-column", div { class: "panel-kicker", "EXTERNAL FOUNDATIONS" }, h2 { "Standards and primitives" }, ProvenanceRow { label: "ERC-8350 draft semantics".to_owned(), detail: "pinned as an external standard snapshot".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "EIP-712".to_owned(), detail: "Ethereum typed-data authorization primitive".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "ERC-1271".to_owned(), detail: "contract-based signature validation boundary".to_owned(), tone: "observed".to_owned() }, ProvenanceRow { label: "Ethereum Sepolia".to_owned(), detail: "public testnet used for a separate registry observation".to_owned(), tone: "observed".to_owned() } }
                 div { class: "provenance-divider", "→" }
-                    div { class: "content-panel provenance-column provenance-column-built", div { class: "panel-kicker", "BUILT / EVIDENCED FOR THIS SUBMISSION" }, h2 { "Independent audit product" }, ProvenanceRow { label: "MemoryLineage Inspector".to_owned(), detail: "Rust/WASM evidence workspace".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Rust reference + verifier".to_owned(), detail: "separate deterministic replay paths".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Silent Rollback fixture".to_owned(), detail: format!("synthetic SQLite snapshots {} / {} / {}", data.fixture.snapshots[0].sequence, data.fixture.snapshots[1].sequence, data.fixture.snapshots[2].sequence), tone: "verified".to_owned() }, ProvenanceRow { label: "Tampering corpus".to_owned(), detail: format!("{}/{} expected rejection cases", data.mutation_rejected, data.mutation_count), tone: "verified".to_owned() }, ProvenanceRow { label: "Sepolia evidence".to_owned(), detail: "deployment + second RPC reread".to_owned(), tone: "verified".to_owned() } }
+                    div { class: "content-panel provenance-column provenance-column-built", div { class: "panel-kicker", "BUILT / EVIDENCED IN THIS REPOSITORY" }, h2 { "Independent audit product" }, ProvenanceRow { label: "MemoryLineage Inspector".to_owned(), detail: "Rust/WASM evidence workspace".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Rust reference + verifier".to_owned(), detail: "separate deterministic replay paths".to_owned(), tone: "verified".to_owned() }, ProvenanceRow { label: "Silent Rollback fixture".to_owned(), detail: format!("synthetic SQLite snapshots {} / {} / {}", data.fixture.snapshots[0].sequence, data.fixture.snapshots[1].sequence, data.fixture.snapshots[2].sequence), tone: "verified".to_owned() }, ProvenanceRow { label: "Tampering corpus".to_owned(), detail: format!("{}/{} expected rejection cases", data.mutation_rejected, data.mutation_count), tone: "verified".to_owned() }, ProvenanceRow { label: "Sepolia evidence".to_owned(), detail: "separate deployment + second RPC reread".to_owned(), tone: "verified".to_owned() } }
             }
             section { class: "section-wrap content-panel provenance-ledger",
-                div { class: "panel-title-row", div { p { class: "panel-kicker", "SUBMISSION IDENTITY" }, h2 { "Only finalized values are listed." } }, StatusBadge { label: "TRANSPARENT".to_owned(), tone: "warning".to_owned() } }
-                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "workspace-owned Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "public repository / configured".to_owned() }, ReadoutRow { label: "Submission tag".to_owned(), value: "v1.0.1".to_owned(), detail: "final release identity".to_owned() } }
+                div { class: "panel-title-row", div { p { class: "panel-kicker", "SOURCE IDENTITY" }, h2 { "Public baseline and local candidate stay distinct." } }, StatusBadge { label: "TRANSPARENT".to_owned(), tone: "warning".to_owned() } }
+                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "separate Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "public repository / configured".to_owned() }, ReadoutRow { label: "Public baseline tag".to_owned(), value: "v1.0.1".to_owned(), detail: "new local work needs a later revision".to_owned() } }
                 p { class: "small-note", "MemoryLineage does not claim to have invented ERC-8350 or to be the first AI memory lineage system. Its distinction is the independent, authorization-bound audit surface and reproducible evidence around the pinned semantics." }
             }
             section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", Link { to: AppRoute::Architecture {}, "Architecture →" }, Link { to: AppRoute::Evidence {}, "Public evidence →" }, Link { to: AppRoute::Security {}, "Security boundary →" }, Link { to: AppRoute::Reproduce {}, "Reproduce →" }, Link { to: AppRoute::PriorWork {}, "Prior work →" } } }

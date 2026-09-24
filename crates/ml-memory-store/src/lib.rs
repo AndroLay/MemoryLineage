@@ -40,6 +40,8 @@ pub enum MemoryStoreError {
     InconsistentSequence,
     #[error("snapshot user_version is {actual}, expected {expected}")]
     SchemaVersion { actual: i64, expected: i64 },
+    #[error("snapshot blinding secret must not be all zeroes")]
+    ZeroBlindingSecret,
 }
 
 const SCHEMA: &str = r#"
@@ -164,6 +166,32 @@ pub fn snapshot_commitment(snapshot: &MemorySnapshot) -> String {
 /// This is a fixture commitment, not a claim that the raw SQLite state is a
 /// semantic memory root.
 pub fn snapshot_commitment_v2(snapshot: &MemorySnapshot) -> String {
+    ml_core::format_hex(&ml_core::keccak256(&canonical_snapshot_v2_bytes(snapshot)))
+}
+
+/// Prepare a space-bound, secret-blinded commitment for a private snapshot.
+///
+/// The caller must generate a fresh, high-entropy 32-byte secret and retain it
+/// privately for later recomputation. This helper does not manage secrets or
+/// change the published, reproducible Demo Space V2 evidence profile.
+pub fn snapshot_commitment_blinded_v1(
+    snapshot: &MemorySnapshot,
+    space_id: &[u8; 32],
+    blinding_secret: &[u8; 32],
+) -> Result<String, MemoryStoreError> {
+    if blinding_secret.iter().all(|byte| *byte == 0) {
+        return Err(MemoryStoreError::ZeroBlindingSecret);
+    }
+    let mut input = Vec::new();
+    input.extend_from_slice(ml_spec_types::SNAPSHOT_PROFILE_BLINDED_V1.as_bytes());
+    input.push(0);
+    input.extend_from_slice(space_id);
+    input.extend_from_slice(blinding_secret);
+    input.extend_from_slice(&canonical_snapshot_v2_bytes(snapshot));
+    Ok(ml_core::format_hex(&ml_core::keccak256(&input)))
+}
+
+fn canonical_snapshot_v2_bytes(snapshot: &MemorySnapshot) -> Vec<u8> {
     let mut canonical = Vec::new();
     canonical.extend_from_slice(ml_spec_types::SNAPSHOT_PROFILE_V2.as_bytes());
     canonical.extend_from_slice(&snapshot.sequence.to_be_bytes());
@@ -178,7 +206,7 @@ pub fn snapshot_commitment_v2(snapshot: &MemorySnapshot) -> String {
         append_length_prefixed(&mut canonical, value.as_bytes());
     }
 
-    ml_core::format_hex(&ml_core::keccak256(&canonical))
+    canonical
 }
 
 fn append_length_prefixed(output: &mut Vec<u8>, value: &[u8]) {
@@ -419,6 +447,35 @@ mod tests {
             snapshot_commitment_v2(&first),
             snapshot_commitment_v2(&second)
         );
+    }
+
+    #[test]
+    fn blinded_commitment_binds_secret_and_space_and_rejects_zero_secret() {
+        let snapshot = MemorySnapshot {
+            sequence: 1,
+            values: [("language".to_owned(), "Indonesian".to_owned())]
+                .into_iter()
+                .collect(),
+        };
+        let first = snapshot_commitment_blinded_v1(&snapshot, &[1; 32], &[7; 32])
+            .expect("nonzero blinding secret");
+        assert_eq!(
+            first,
+            snapshot_commitment_blinded_v1(&snapshot, &[1; 32], &[7; 32]).unwrap()
+        );
+        assert_ne!(
+            first,
+            snapshot_commitment_blinded_v1(&snapshot, &[1; 32], &[8; 32]).unwrap()
+        );
+        assert_ne!(
+            first,
+            snapshot_commitment_blinded_v1(&snapshot, &[2; 32], &[7; 32]).unwrap()
+        );
+        assert_ne!(first, snapshot_commitment_v2(&snapshot));
+        assert!(matches!(
+            snapshot_commitment_blinded_v1(&snapshot, &[1; 32], &[0; 32]),
+            Err(MemoryStoreError::ZeroBlindingSecret)
+        ));
     }
 
     #[test]

@@ -83,7 +83,7 @@ flowchart TD
     V --> T[Tamper one commitment]
     T --> X[TRANSITION_ID_MISMATCH]
     X --> R[Restore original bundle]
-    R --> P[VERIFIED]
+    R --> P[OFFLINE BUNDLE REPLAY VERIFIED]
     P --> C[Replay with independent Rust CLI]
 ```
 
@@ -115,8 +115,9 @@ flowchart LR
     M -. local derivation only .-> C
 ```
 
-Raw memory remains outside the chain and portable evidence. Demo Space V2 is
-synthetic test data, not user data. The repository includes a separate Sepolia
+Raw memory remains outside the chain and portable evidence; see the
+[privacy profile boundary](docs/product/commitment-privacy-profile.md). Demo Space V2 is
+synthetic test data. The repository includes a separate Sepolia
 readback observation; Demo Space V2 is not claimed as deployed to Sepolia.
 
 ### 7. Portability boundary
@@ -136,7 +137,7 @@ This is local portability preparation, not a public Polkadot deployment or cross
 - sequence and predecessor continuity;
 - configured EOA authorization and authority rotation;
 - commitment and deterministic state-root integrity;
-- replayable evidence and canonical committed head;
+- replayable bundle internals and a head reconstructed from that bundle;
 - the published Solidity behavior through Rust/revm and read-only observations.
 
 ## What it does not verify
@@ -153,6 +154,17 @@ MemoryLineage does not determine:
 The bounded security report is not a formal proof or a third-party security
 audit. ERC-1271 results distinguish on-chain acceptance from full historical
 offline signer-contract reexecution.
+
+`VERIFIED` in the verifier report means that the named replay checks passed
+for the supplied bundle; `verification_scope` is `OFFLINE_BUNDLE_REPLAY`. The
+Inspector labels this result `BUNDLE REPLAY VERIFIED`. The verifier labels registry identity
+`ADDRESS_FORMAT_ONLY`; it does not authenticate deployed code or prove that the
+bundle came from canonical chain state. Full history recovery also depends on
+retained event logs or evidence bundles; a head alone is not enough, and this
+repository does not yet provide a history indexer/rebuilder. Offline
+authorization proof currently covers EOA EIP-712 signatures; ERC-1271 is tested
+for contract execution behavior only. The interactive Sepolia probe observes
+one RPC endpoint and is not consensus proof.
 
 ## Technology
 
@@ -280,7 +292,7 @@ Still intentionally outside this repository release:
 - [Testing and evidence](docs/testing.md)
 - [Security assurance](docs/security/security-assurance.md)
 - [Dependency audit](docs/security/dependency-audit.md)
-- [Submission claim matrix](docs/submission/claim-matrix.md)
+- [Submission claim matrix](docs/submission/claim-matrix.md) · [Contribution and provenance](docs/submission/contribution-and-provenance.md) · [Local incident envelope](evidence/submission/README.md)
 - [Prior research](docs/research/README.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 

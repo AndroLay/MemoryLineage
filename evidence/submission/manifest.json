@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "memorylineage-submission-v1",
+  "submissionCommit": null,
+  "incidentId": "demo-space-v2-silent-rollback",
+  "sourceClasses": [
+    "DEMO_SPACE_V2_LOCAL",
+    "PROTOCOL_CORPUS_LOCAL",
+    "EXTERNAL_REPRODUCTION"
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/submission/demo-space-v2/manifest.json",
+      "sha256": "261f15e5d90bb4e65fe0e203fb279d24dab1092943901b93fdabcd5d5c8d7754",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "scripts/build_submission_bundle.py",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/submission/demo-space-v2/rollback-rehearsal.json",
+      "sha256": "2fc031a65dbdb3758c5c2022617909832aa81c10aac5ebc91e16a7fbb24a97c4",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "scripts/build_submission_bundle.py",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/submission/demo-space-v2/revm-observation.json",
+      "sha256": "9d133816a57f564cf5acb39224fe69b08f213ba5eb105fd151cd6dc465db152e",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli revm demo-space-v2",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "fixtures/silent-rollback-v2/manifest.json",
+      "sha256": "ed79324b6a3ca0642712c94ad1a00fd243f8dfd224507e45526014e8c73011ca",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli fixture demo-manifest",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "fixtures/silent-rollback-v2/snapshot-1.db",
+      "sha256": "197bf1d1edadb40519ab13b6f89970d7331119fed481b68270b160a187d5bea0",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli fixture demo-create",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "fixtures/silent-rollback-v2/snapshot-2.db",
+      "sha256": "a5479f94f4ccd56dcaba488ab5b7f61f11c576fbc476ac86b1370e36992689f5",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli fixture demo-create",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "fixtures/silent-rollback-v2/snapshot-3.db",
+      "sha256": "5632572622242f4e097b9924f533064334a0670fd5ae9ef9a227fb8004f26697",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli fixture demo-create",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/demo_space_v2_evidence.json",
+      "sha256": "9d133816a57f564cf5acb39224fe69b08f213ba5eb105fd151cd6dc465db152e",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli evidence demo-v2",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/demo_space_v2_recovery_receipt.json",
+      "sha256": "94520c50e7c954caf0acf669116ce84bfdc39a40339d071f4f518fbad6a04a90",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli recover preflight",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/demo_space_v2_historical_recovery_receipt.json",
+      "sha256": "202d671514b73b88002994e573ae2bd6fc462cad5922d095f52629914523a3ed",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli recover preflight",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/memory_lineage_evm_evidence.json",
+      "sha256": "4875819aefe2fd128f90d11703fe6265de47254c4a499dc6f91820207c9e26ae",
+      "sourceClass": "PROTOCOL_CORPUS_LOCAL",
+      "generatedBy": "published local Rust/revm protocol corpus",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/reference_agent_runtime.json",
+      "sha256": "bae29b12b9200c733d3feb2408dcef2608a6bba20faff110ff295bbad1e1cf22",
+      "sourceClass": "DEMO_SPACE_V2_LOCAL",
+      "generatedBy": "ml-cli agent reference-demo",
+      "status": "VERIFIED_LOCAL"
+    },
+    {
+      "path": "evidence/local/security_assurance_report.json",
+      "sha256": "a7eef325fe043627451f774962326a10c075645fe433035068e06b020bef5aab",
+      "sourceClass": "PROTOCOL_CORPUS_LOCAL",
+      "generatedBy": "ml-cli security bounded-audit",
+      "status": "VERIFIED_LOCAL"
+    }
+  ],
+  "claims": [
+    {
+      "id": "silent-rollback",
+      "status": "VERIFIED_LOCAL",
+      "artifactPaths": [
+        "evidence/submission/demo-space-v2/manifest.json",
+        "evidence/submission/demo-space-v2/rollback-rehearsal.json",
+        "evidence/local/demo_space_v2_evidence.json"
+      ]
+    },
+    {
+      "id": "recovery-decision",
+      "status": "VERIFIED_LOCAL",
+      "artifactPaths": [
+        "evidence/local/demo_space_v2_recovery_receipt.json",
+        "evidence/local/demo_space_v2_historical_recovery_receipt.json"
+      ]
+    },
+    {
+      "id": "protocol-corpus",
+      "status": "VERIFIED_LOCAL",
+      "artifactPaths": [
+        "evidence/local/memory_lineage_evm_evidence.json"
+      ]
+    },
+    {
+      "id": "reference-runtime",
+      "status": "VERIFIED_LOCAL",
+      "artifactPaths": [
+        "evidence/local/reference_agent_runtime.json"
+      ]
+    },
+    {
+      "id": "bounded-assurance",
+      "status": "BOUNDED_LOCAL",
+      "artifactPaths": [
+        "evidence/local/security_assurance_report.json"
+      ]
+    },
+    {
+      "id": "external-reproduction",
+      "status": "NOT_YET_DEMONSTRATED",
+      "artifactPaths": []
+    }
+  ],
+  "verificationCommands": [
+    "cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json",
+    "cargo xtask verify",
+    "cargo xtask smoke-web"
+  ],
+  "limitations": [
+    "Local Rust/revm execution is not a public network transaction.",
+    "The V2 source class is a declared scope; public RPC provenance is separate.",
+    "External human reproduction has not been demonstrated.",
+    "The bounded security report is not a formal audit.",
+    "The reference runtime is local and framework neutral."
+  ],
+  "demoIncident": {
+    "sourceClass": "DEMO_SPACE_V2_LOCAL",
+    "status": "VERIFIED_LOCAL",
+    "artifactPath": "evidence/submission/demo-space-v2/manifest.json"
+  },
+  "protocolCorpus": {
+    "sourceClass": "PROTOCOL_CORPUS_LOCAL",
+    "status": "VERIFIED_LOCAL",
+    "artifactPath": "evidence/local/memory_lineage_evm_evidence.json"
+  },
+  "runtimeIntegration": {
+    "sourceClass": "DEMO_SPACE_V2_LOCAL",
+    "status": "VERIFIED_LOCAL",
+    "artifactPath": "evidence/local/reference_agent_runtime.json"
+  },
+  "boundedAssurance": {
+    "sourceClass": "PROTOCOL_CORPUS_LOCAL",
+    "status": "BOUNDED_LOCAL",
+    "artifactPath": "evidence/local/security_assurance_report.json"
+  },
+  "externalReproduction": {
+    "sourceClass": "EXTERNAL_REPRODUCTION",
+    "status": "NOT_YET_DEMONSTRATED",
+    "artifactPath": null
+  }
+}

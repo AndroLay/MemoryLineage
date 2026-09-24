@@ -57,7 +57,7 @@ The implementation therefore uses four readiness claims rather than a judge-scor
 | --- | --- | --- |
 | A reviewer understands the problem | one plain-language sentence, one visible incident, comprehension check | reviewer describes it as semantic poisoning or generic backup integrity |
 | The incident is one coherent proof | Snapshot 1 root, canonical head 3, attempt 4, exact rejection, one bundle | website, bundle, and CLI use different roots or source classes |
-| Real agent integration has an operational effect | protected agent runtime opens its loader only for `RESUME_ALLOWED` | loader can run before a verified receipt |
+| Real agent integration has an operational effect | protected agent runtime opens its loader only for an authorized V2 `RESUME_ALLOWED` decision | loader can run before a verified receipt with transition signatures and a bound authority timeline |
 | The evidence is independently verifiable | Rust/WASM, independent Rust verifier/CLI, clean checkout, two independent reports | any report requires hidden files, personal paths, or verbal instructions |
 
 ## File and Responsibility Map
@@ -221,7 +221,10 @@ Expected: no whitespace errors and README remains at or below 300 lines.
 The check must reject a submission bundle unless all relationships hold:
 
 ```text
-snapshot-1 commitment = rollbackRehearsal.stalePredecessor
+snapshot-1 commitment = rollbackRehearsal.snapshotCommitment
+snapshot-1 commitment = evidence.transitions[0].deltaCommitment
+evidence.transitions[0].nextStateRoot = rollbackRehearsal.stalePredecessor
+snapshot-1 commitment != rollbackRehearsal.stalePredecessor
 demo evidence head.sequence = 3
 demo evidence head.stateRoot = rollbackRehearsal.canonicalHead
 rollbackRehearsal.attemptedSequence = 4
@@ -258,7 +261,8 @@ canonical.headStateRoot       = EvidenceBundleV2.head.stateRoot
 canonical.evidence            = evidence/local/demo_space_v2_evidence.json
 restoredSnapshot.sequence     = 1
 restoredSnapshot.snapshot     = fixtures/silent-rollback-v2/snapshot-1.db
-restoredSnapshot.staleRoot    = snapshot_commitment_v2(snapshot-1.db)
+restoredSnapshot.snapshotCommitment = snapshot_commitment_v2(snapshot-1.db)
+restoredSnapshot.staleRoot    = EvidenceBundleV2.transitions[0].nextStateRoot
 attempt.sequence              = 4
 attempt.revertReason          = BAD_PREVIOUS_STATE
 attempt.transactionBroadcast  = false
@@ -998,13 +1002,13 @@ The readiness plan is complete when all of these are true:
 
 - [ ] A first-time reviewer can explain the problem from Home without learning ERC-8350 first.
 - [ ] Home, Inspect, History, Lab, Verify, and CLI refer to the same named Demo Space V2 incident.
-- [ ] Snapshot 1's actual V2 commitment is the stale predecessor used by the incident.
+- [ ] Snapshot 1's actual V2 commitment binds transition 1; transition 1's resulting state root is the stale predecessor used by the incident.
 - [ ] Canonical head 3 and attempted transition 4 are recorded in one source-labeled bundle.
 - [ ] The stale attempt returns the exact BAD_PREVIOUS_STATE result.
 - [ ] An evidence commitment edit returns the exact TRANSITION_ID_MISMATCH result.
 - [ ] Restoring the original bundle returns VERIFIED in browser/WASM and CLI paths.
 - [ ] The protected runtime invokes its loader only for RESUME_ALLOWED.
-- [ ] The bundle contains hashes and commands and excludes raw memory.
+- [ ] The submission envelope contains hashes and commands without raw private memory; the separately referenced SQLite fixtures contain only public synthetic sample data.
 - [ ] Public observations, if present, remain clearly separate from local proof.
 - [ ] Two independent developers complete the recorded clean-checkout flow, or the claim remains NOT_YET_DEMONSTRATED.
 - [ ] The release gate output matches the claims in the docs.

@@ -12,7 +12,7 @@
     "test:evm": "node --test evm/test/memory_lineage_registry.test.mjs",
     "test:python:core": "python3 -m unittest discover -s verifier/python -p 'test_*.py'",
     "test:research": "python3 -m unittest discover -s research/spikes -p 'test_*.py'",
-    "test:python": "npm run test:python:core && npm run test:research",
+    "test:python": "npm run test:python:core && npm run test:research && python3 -m unittest scripts.test_smoke_web",
     "test": "npm run test:evm && npm run test:python",
     "check:boundaries": "bash scripts/check-architecture-boundaries.sh",
     "check:package": "bash scripts/check-public-package.sh",

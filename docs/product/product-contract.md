@@ -60,26 +60,33 @@ the browser's SQLite database, or gate an actual agent runtime. The status
 
 ## Recovery Decision Receipt and protected resume gate
 
-The current Rust implementation also emits a versioned
-`memorylineage-recovery-receipt-v1`. The receipt binds the selected snapshot
+The current Rust implementation emits
+`memorylineage-recovery-receipt-v2`. The receipt binds the selected snapshot
 commitment, snapshot sequence, named evidence bundle, replayed head, decision
 classification, recommended action, assurance levels, and explicit limitations.
-It also binds the named `strict-current-head-only-v1` policy. It contains no
+It also binds the named `strict-authorized-current-head-v2` policy. It contains no
 raw memory, private locator contents, or signing material. Its `decisionId` is
 recomputed from the receipt body, and the independent Rust verifier rejects
 changes to the candidate, policy, evidence context, decision, assurance, or
 limitations.
 
 The generic `ml-recovery-gate` adapter runs the same receipt through independent
-verification before deciding whether a protected resume may continue. Its
-loader callback is invoked only after the decision is `RESUME_ALLOWED`:
+verification before deciding whether a protected resume may continue. A current
+head is resumable only when every transition signature verifies and the
+authority timeline is bound. Its loader callback is invoked only after the
+decision is `RESUME_ALLOWED`:
 
 ```text
-CURRENT_HEAD                 -> RESUME_ALLOWED
-KNOWN_HISTORICAL_CHECKPOINT  -> REHEARSE_ONLY
-UNKNOWN_OR_DIVERGED          -> HOLD_FOR_REVIEW
-UNVERIFIED                   -> BLOCK_UNVERIFIED
+CURRENT_HEAD + EOA proof + bound authority timeline -> RESUME_ALLOWED
+CURRENT_HEAD + missing/unbound authorization       -> BLOCK_UNVERIFIED
+KNOWN_HISTORICAL_CHECKPOINT                        -> REHEARSE_ONLY
+UNKNOWN_OR_DIVERGED                                -> HOLD_FOR_REVIEW
+UNVERIFIED                                         -> BLOCK_UNVERIFIED
 ```
+
+Receipt V1 remains readable for compatibility when its resume authorization is
+present and verifiable. A V1 receipt cannot authorize resume when the proof is
+missing; the protected gate creates and requires the V2 policy.
 
 This is an executable recovery-decision surface and a useful integration
 boundary. It is not yet a production agent loader, does not read an arbitrary
@@ -140,12 +147,20 @@ still a separate evidence requirement.
 
 The portable verifier independently recomputes commitment IDs, roots, sequence,
 predecessor, head, and privacy-boundary checks available in the bundle. The
+V2 report labels its scope `OFFLINE_BUNDLE_REPLAY`; its
+`registry_identity: ADDRESS_FORMAT_ONLY` result checks address syntax, not
+deployed bytecode, authenticated chain state, or the bundle's provenance. The
 protocol-corpus projection reports authority history as `STRUCTURE_ONLY` and
 transition authorization proof as `NOT_INCLUDED`. Demo Space V2 additionally
 contains the typed-data domain, digest, and EOA signature for every transition;
 the independent verifier recovers the declared signer and reports
 `EOA_SIGNATURES_VERIFIED`. ERC-1271 remains execution evidence rather than
 historical offline signer-contract reexecution.
+
+The registry can report its current head, look up a transition when its ID is
+known, and emit transition events. It cannot enumerate a space's full history
+from the head. Complete-history recovery therefore depends on retained event
+logs or evidence bundles; this release has no indexer or history rebuilder.
 
 For ERC-1271, registry acceptance at execution time is distinct from a full
 historical offline re-execution of the signer contract. A standalone bundle

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "memorylineage-recovery-receipt-v1",
-  "decisionId": "0xbd12c89be278ddaf300b81ce24cecc4da4297227662089914b286498b3382ba3",
-  "policyId": "strict-current-head-only-v1",
+  "schemaVersion": "memorylineage-recovery-receipt-v2",
+  "decisionId": "0x50e3622e8295a804bc3dc014fb7b0679c8774803b732a91b62075171f6189eee",
+  "policyId": "strict-authorized-current-head-v2",
   "candidate": {
     "snapshotProfile": "memorylineage/private-snapshot/v2",
     "candidateCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",

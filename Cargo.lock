@@ -3843,6 +3843,7 @@ dependencies = [
  "ml-recovery-gate",
  "ml-spec-types",
  "ml-verifier-independent",
+ "serde",
  "serde_json",
  "tokio",
 ]
@@ -3889,6 +3890,7 @@ dependencies = [
  "ml-spec-types",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "thiserror 2.0.20",
 ]
 

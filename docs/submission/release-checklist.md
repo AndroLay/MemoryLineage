@@ -4,6 +4,9 @@ This checklist is deliberately evidence-based. `PASS` means the repository
 contains a reproducible artifact or a completed local gate. Missing external
 evidence remains `NOT YET DEMONSTRATED`.
 
+The frozen evidence baseline, source classes, and per-claim readiness statuses
+are recorded in the [Top-1 readiness register](readiness-register.md).
+
 ## Repository and product
 
 | Gate | Status | Evidence |
@@ -13,11 +16,15 @@ evidence remains `NOT YET DEMONSTRATED`.
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
 | Evidence tamper/restore | PASS | `TRANSITION_ID_MISMATCH` then `VERIFIED` in browser smoke |
 | Recovery Decision Receipt | PASS | Current and historical receipts plus Rust/WASM/CLI checks |
+| Protected resume example | PASS / local only | `cargo run -q -p ml-agent-runtime --example protected-resume-flow` permits a signed current head, holds a current head missing authorization and historical/divergent snapshots, and rejects invalid evidence before the loader |
+| Local submission envelope | PASS / local only | `evidence/submission/manifest.json` and `ml-cli submission verify` bind source labels, hashes, incident roots, fresh Rust/revm execution, and receipts; `submissionCommit` is `null` because the exact commit must be recorded outside its own content |
 | Polkadot Hub portability rehearsal | PASS / local only | Nested Ethereum and target-context bundles replayed by the independent Rust verifier; deployment and public RPC remain `NOT_PERFORMED` |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` |
-| Public static website | LIVE | [memorylineage.pages.dev](https://memorylineage.pages.dev), hosted on Cloudflare Pages |
-| Pitch deck source | PASS | [`pitch-deck.md`](pitch-deck.md) |
+| Public static website | LIVE / prior release | [memorylineage.pages.dev](https://memorylineage.pages.dev) hosts the earlier `v1.0.1` surface; the new local submission envelope and labels are not deployed |
+| Pitch deck | PASS / local only | Eight-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf), editable [HTML source](pitch-deck.html), and visual page inspection |
+| Demo video | PASS / local only | 45-second [captioned video](demo-video.md) from five static-browser states; not uploaded to Devpost |
+| Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
 
 ## Automated verification
 
@@ -51,7 +58,7 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | GitHub Release | PUBLISHED | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1) contains the final tag; remote CI remains blocked before runner startup |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
-| Demo video | OUT OF SCOPE | Explicitly excluded from the current work |
+| Devpost media upload / live-demo update | NOT YET PERFORMED | Local pitch PDF and demo MP4 exist, but the hosted site remains the earlier release and no Devpost account submission is recorded |
 
 ## Finalization rule
 

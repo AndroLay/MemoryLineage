@@ -5,12 +5,13 @@ use ml_spec_types::{
     AuthorizationProof, EVIDENCE_V2, EvidenceBundleV2, PortabilityRehearsalReport,
     PublicReplayBundle, RECOVERY_BLOCK_UNVERIFIED, RECOVERY_CURRENT_HEAD,
     RECOVERY_HISTORICAL_CHECKPOINT, RECOVERY_HOLD_FOR_REVIEW,
-    RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1, RECOVERY_RECEIPT_V1, RECOVERY_REHEARSE_ONLY,
-    RECOVERY_RESUME_ALLOWED, RECOVERY_UNKNOWN_OR_DIVERGED, RECOVERY_UNVERIFIED, RecoveryAssurance,
-    RecoveryBlockContext, RecoveryCandidate, RecoveryDecision, RecoveryDecisionReceipt,
-    RecoveryEvidence, SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL,
-    SOURCE_LEGACY_UNDECLARED, SOURCE_PROTOCOL_CORPUS_LOCAL, SOURCE_SEPOLIA_REFERENCE_OBSERVATION,
-    SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
+    RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1,
+    RECOVERY_RECEIPT_V1, RECOVERY_RECEIPT_V2, RECOVERY_REHEARSE_ONLY, RECOVERY_RESUME_ALLOWED,
+    RECOVERY_UNKNOWN_OR_DIVERGED, RECOVERY_UNVERIFIED, RecoveryAssurance, RecoveryBlockContext,
+    RecoveryCandidate, RecoveryDecision, RecoveryDecisionReceipt, RecoveryEvidence,
+    SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_LEGACY_UNDECLARED,
+    SOURCE_PROTOCOL_CORPUS_LOCAL, SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME, SPEC_SNAPSHOT,
+    TransitionRecord,
 };
 use serde::Serialize;
 use std::path::Path;
@@ -48,6 +49,7 @@ pub enum VerificationError {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct VerificationReport {
     pub verdict: String,
+    pub verification_scope: String,
     pub schema: String,
     pub registry_identity: String,
     pub spec_snapshot: String,
@@ -134,6 +136,25 @@ fn validate_source_class(source_class: &str) -> Result<(), VerificationError> {
     } else {
         Err(reject("RECOVERY_SOURCE_CLASS_UNSUPPORTED"))
     }
+}
+
+fn validate_v2_source_scope(bundle: &EvidenceBundleV2) -> Result<(), VerificationError> {
+    match bundle.source_class.as_str() {
+        SOURCE_DEMO_SPACE_V2_LOCAL if bundle.network.name == "local-revm-demo-space-v2" => {
+            if !bundle.observations.is_empty() {
+                return Err(reject("SOURCE_CLASS_CONTEXT_MISMATCH"));
+            }
+        }
+        SOURCE_PROTOCOL_CORPUS_LOCAL if bundle.network.name == "published-local-evidence" => {}
+        SOURCE_SEPOLIA_REFERENCE_OBSERVATION => {
+            // A V2 replay bundle has no authenticated RPC/block proof. Sepolia
+            // observations belong in the separate read-only observation format.
+            return Err(reject("SEPOLIA_SOURCE_REQUIRES_EXTERNAL_PROOF"));
+        }
+        SOURCE_LEGACY_UNDECLARED => {}
+        _ => return Err(reject("SOURCE_CLASS_CONTEXT_MISMATCH")),
+    }
+    Ok(())
 }
 
 fn parse_hex(value: &str) -> Result<Vec<u8>, VerificationError> {
@@ -594,8 +615,9 @@ pub fn verify_bundle(bundle: &PublicReplayBundle) -> Result<VerificationReport, 
 
     Ok(VerificationReport {
         verdict: "VERIFIED".to_owned(),
+        verification_scope: "OFFLINE_BUNDLE_REPLAY".to_owned(),
         schema: "PASS".to_owned(),
-        registry_identity: "PASS".to_owned(),
+        registry_identity: "ADDRESS_FORMAT_ONLY".to_owned(),
         spec_snapshot: "PASS".to_owned(),
         transition_ids: "PASS".to_owned(),
         state_roots: "PASS".to_owned(),
@@ -622,6 +644,7 @@ pub fn verify_v2_bundle(
         return Err(reject("SPEC_SNAPSHOT_MISMATCH"));
     }
     validate_source_class(&bundle.source_class)?;
+    validate_v2_source_scope(bundle)?;
     if bundle.privacy.raw_memory_on_chain {
         return Err(reject("PRIVACY_BOUNDARY_VIOLATION"));
     }
@@ -698,8 +721,9 @@ pub fn verify_v2_bundle(
 
     Ok(VerificationReport {
         verdict: "VERIFIED".to_owned(),
+        verification_scope: "OFFLINE_BUNDLE_REPLAY".to_owned(),
         schema: "PASS".to_owned(),
-        registry_identity: "PASS".to_owned(),
+        registry_identity: "ADDRESS_FORMAT_ONLY".to_owned(),
         spec_snapshot: "PASS".to_owned(),
         transition_ids: "PASS".to_owned(),
         state_roots: "PASS".to_owned(),
@@ -893,6 +917,8 @@ pub fn evidence_bundle_hash(bundle: &EvidenceBundleV2) -> Result<String, Verific
 fn recovery_decision_for_candidate(
     candidate: &RecoveryCandidate,
     bundle: &EvidenceBundleV2,
+    require_authorization: bool,
+    verification: &VerificationReport,
 ) -> Result<RecoveryDecision, VerificationError> {
     if !matches!(
         candidate.snapshot_profile.as_str(),
@@ -935,6 +961,21 @@ fn recovery_decision_for_candidate(
     }
 
     if sequence == bundle.head.sequence {
+        if require_authorization
+            && (verification.authorization_proof != "EOA_SIGNATURES_VERIFIED"
+                || verification.authority_history != "TIMELINE_BOUND")
+        {
+            let reason_code = if verification.authorization_proof != "EOA_SIGNATURES_VERIFIED" {
+                "TRANSITION_AUTHORIZATION_NOT_VERIFIED"
+            } else {
+                "AUTHORITY_TIMELINE_NOT_BOUND"
+            };
+            return Ok(RecoveryDecision {
+                classification: RECOVERY_CURRENT_HEAD.to_owned(),
+                reason_code: reason_code.to_owned(),
+                recommended_action: RECOVERY_BLOCK_UNVERIFIED.to_owned(),
+            });
+        }
         return Ok(RecoveryDecision {
             classification: RECOVERY_CURRENT_HEAD.to_owned(),
             reason_code: "CANDIDATE_MATCHES_EVIDENCE_HEAD".to_owned(),
@@ -1012,13 +1053,12 @@ pub fn build_recovery_receipt_with_snapshot_profile(
     if !matches!(snapshot_profile, SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2) {
         return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
     }
-    verify_v2_bundle(bundle)?;
+    let verification = verify_v2_bundle(bundle)?;
     validate_source_class(source_class)?;
     if bundle.source_class == SOURCE_LEGACY_UNDECLARED || bundle.source_class != source_class {
         return Err(reject("RECOVERY_SOURCE_CLASS_MISMATCH"));
     }
 
-    let verification = verify_v2_bundle(bundle)?;
     let authorization_proof = verification.authorization_proof.clone();
     let authority_history = verification.authority_history.clone();
     let candidate = RecoveryCandidate {
@@ -1026,11 +1066,11 @@ pub fn build_recovery_receipt_with_snapshot_profile(
         candidate_commitment: candidate_commitment.to_owned(),
         snapshot_sequence,
     };
-    let decision = recovery_decision_for_candidate(&candidate, bundle)?;
+    let decision = recovery_decision_for_candidate(&candidate, bundle, true, &verification)?;
     let receipt = RecoveryDecisionReceipt {
-        schema_version: RECOVERY_RECEIPT_V1.to_owned(),
+        schema_version: RECOVERY_RECEIPT_V2.to_owned(),
         decision_id: String::new(),
-        policy_id: RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1.to_owned(),
+        policy_id: RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2.to_owned(),
         candidate,
         evidence: RecoveryEvidence {
             source_class: source_class.to_owned(),
@@ -1059,13 +1099,19 @@ pub fn verify_recovery_receipt(
     receipt: &RecoveryDecisionReceipt,
     bundle: &EvidenceBundleV2,
 ) -> Result<RecoveryVerificationReport, VerificationError> {
-    if receipt.schema_version != RECOVERY_RECEIPT_V1 {
+    if !matches!(
+        receipt.schema_version.as_str(),
+        RECOVERY_RECEIPT_V1 | RECOVERY_RECEIPT_V2
+    ) {
         return Err(reject("RECOVERY_RECEIPT_SCHEMA_MISMATCH"));
     }
-    verify_v2_bundle(bundle)?;
-    if receipt.policy_id != RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1 {
-        return Err(reject("RECOVERY_POLICY_MISMATCH"));
-    }
+    let verification = verify_v2_bundle(bundle)?;
+    let require_authorization = match (receipt.schema_version.as_str(), receipt.policy_id.as_str())
+    {
+        (RECOVERY_RECEIPT_V1, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1) => false,
+        (RECOVERY_RECEIPT_V2, RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2) => true,
+        _ => return Err(reject("RECOVERY_POLICY_MISMATCH")),
+    };
     validate_source_class(&receipt.evidence.source_class)?;
     if receipt.evidence.source_class != bundle.source_class {
         return Err(reject("RECOVERY_SOURCE_CLASS_MISMATCH"));
@@ -1086,11 +1132,20 @@ pub fn verify_recovery_receipt(
     ) {
         return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
     }
-    let expected_decision = recovery_decision_for_candidate(&receipt.candidate, bundle)?;
+    let authorization_verified = verification.authorization_proof == "EOA_SIGNATURES_VERIFIED"
+        && verification.authority_history == "TIMELINE_BOUND";
+    if receipt.decision.recommended_action == RECOVERY_RESUME_ALLOWED && !authorization_verified {
+        return Err(reject("RECOVERY_AUTHORIZATION_NOT_VERIFIED"));
+    }
+    let expected_decision = recovery_decision_for_candidate(
+        &receipt.candidate,
+        bundle,
+        require_authorization,
+        &verification,
+    )?;
     if receipt.decision != expected_decision {
         return Err(reject("RECOVERY_DECISION_MISMATCH"));
     }
-    let verification = verify_v2_bundle(bundle)?;
     let expected_assurance = recovery_assurance(
         &receipt.evidence.source_class,
         &verification.authority_history,
@@ -1159,8 +1214,14 @@ mod tests {
     use ml_spec_types::{
         AttackObservation, EVIDENCE_V2, EvidenceNetwork, Head, PrivacyBoundary,
         RegistryObservation, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL,
-        SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
+        SOURCE_PROTOCOL_CORPUS_LOCAL, SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME,
+        SPEC_SNAPSHOT, SpecSnapshot, VerificationMetadata,
     };
+
+    const DEMO_RECOVERY_EVIDENCE: &str =
+        include_str!("../../../evidence/local/demo_space_v2_evidence.json");
+    const DEMO_RECOVERY_RECEIPT: &str =
+        include_str!("../tests/fixtures/demo_space_v2_recovery_receipt_v1_compat.json");
 
     fn current_bundle() -> PublicReplayBundle {
         let path = concat!(
@@ -1217,10 +1278,12 @@ mod tests {
     fn current_bundle_is_verified() {
         let report = verify_bundle(&current_bundle()).expect("published corpus should verify");
         assert_eq!(report.verdict, "VERIFIED");
+        assert_eq!(report.verification_scope, "OFFLINE_BUNDLE_REPLAY");
         assert_eq!(report.transition_count, 4);
         assert_eq!(report.rejected_mutation_count, 20);
         assert_eq!(report.authority_history, "STRUCTURE_ONLY");
         assert_eq!(report.authorization_proof, "NOT_INCLUDED");
+        assert_eq!(report.registry_identity, "ADDRESS_FORMAT_ONLY");
     }
 
     #[test]
@@ -1238,6 +1301,7 @@ mod tests {
     fn v2_projection_is_verified_independently() {
         let report = verify_v2_bundle(&current_v2_bundle()).expect("v2 bundle should verify");
         assert_eq!(report.verdict, "VERIFIED");
+        assert_eq!(report.verification_scope, "OFFLINE_BUNDLE_REPLAY");
         assert_eq!(report.transition_count, 4);
         assert_eq!(report.rejected_mutation_count, 0);
         assert_eq!(report.attack_evidence, "NOT PRESENT");
@@ -1258,6 +1322,39 @@ mod tests {
         assert_eq!(report.authority_history, "TIMELINE_BOUND");
         assert_eq!(report.authorization_proof, "EOA_SIGNATURES_VERIFIED");
         assert_eq!(bundle.authorization_proofs.len(), bundle.transitions.len());
+    }
+
+    #[test]
+    fn local_demo_cannot_be_relabelled_as_a_sepolia_observation() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/demo_space_v2_evidence.json"
+        );
+        let bytes = std::fs::read(path).expect("Demo Space V2 evidence exists");
+        let mut bundle: EvidenceBundleV2 = serde_json::from_slice(&bytes).expect("typed V2 bundle");
+        bundle.source_class = SOURCE_SEPOLIA_REFERENCE_OBSERVATION.to_owned();
+        let error =
+            verify_v2_bundle(&bundle).expect_err("local replay is not a public observation");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "SEPOLIA_SOURCE_REQUIRES_EXTERNAL_PROOF"
+        ));
+    }
+
+    #[test]
+    fn local_demo_cannot_be_relabelled_as_protocol_corpus() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../evidence/local/demo_space_v2_evidence.json"
+        );
+        let bytes = std::fs::read(path).expect("Demo Space V2 evidence exists");
+        let mut bundle: EvidenceBundleV2 = serde_json::from_slice(&bytes).expect("typed V2 bundle");
+        bundle.source_class = SOURCE_PROTOCOL_CORPUS_LOCAL.to_owned();
+        let error = verify_v2_bundle(&bundle).expect_err("Demo data is not the protocol corpus");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message) if message == "SOURCE_CLASS_CONTEXT_MISMATCH"
+        ));
     }
 
     #[test]
@@ -1316,7 +1413,10 @@ mod tests {
         )
         .expect("current candidate should produce a receipt");
         assert_eq!(current.decision.classification, RECOVERY_CURRENT_HEAD);
-        assert_eq!(current.decision.recommended_action, RECOVERY_RESUME_ALLOWED);
+        assert_eq!(
+            current.decision.recommended_action,
+            RECOVERY_BLOCK_UNVERIFIED
+        );
         assert_eq!(
             verify_recovery_receipt(&current, &bundle)
                 .expect("current receipt should verify")
@@ -1358,6 +1458,93 @@ mod tests {
             unknown.decision.recommended_action,
             RECOVERY_HOLD_FOR_REVIEW
         );
+    }
+
+    #[test]
+    fn current_head_without_authorization_proof_is_not_resume_allowed() {
+        let bundle = current_v2_bundle();
+        assert!(bundle.authorization_proofs.is_empty());
+        let current_commitment = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+
+        let receipt = build_recovery_receipt(
+            &bundle,
+            &current_commitment,
+            bundle.head.sequence,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+        )
+        .expect("current candidate should still produce a hold receipt");
+
+        assert_eq!(receipt.decision.classification, RECOVERY_CURRENT_HEAD);
+        assert_eq!(
+            receipt.decision.reason_code,
+            "TRANSITION_AUTHORIZATION_NOT_VERIFIED"
+        );
+        assert_eq!(
+            receipt.decision.recommended_action,
+            RECOVERY_BLOCK_UNVERIFIED
+        );
+        let report = verify_recovery_receipt(&receipt, &bundle)
+            .expect("the blocked decision receipt should verify");
+        assert_eq!(report.verdict, "VERIFIED");
+        assert_eq!(report.transition_authorization, "NOT_INCLUDED");
+        assert_eq!(report.recommended_action, RECOVERY_BLOCK_UNVERIFIED);
+    }
+
+    #[test]
+    fn legacy_v1_signed_current_head_receipt_remains_verifiable() {
+        let bundle: EvidenceBundleV2 = serde_json::from_str(DEMO_RECOVERY_EVIDENCE)
+            .expect("published Demo Space V2 evidence should parse");
+        let receipt: RecoveryDecisionReceipt =
+            serde_json::from_str(DEMO_RECOVERY_RECEIPT).expect("published V1 receipt should parse");
+
+        let report = verify_recovery_receipt(&receipt, &bundle)
+            .expect("a signed legacy V1 receipt should remain verifiable");
+
+        assert_eq!(receipt.schema_version, RECOVERY_RECEIPT_V1);
+        assert_eq!(receipt.policy_id, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1);
+        assert_eq!(report.verdict, "VERIFIED");
+        assert_eq!(report.transition_authorization, "EOA_SIGNATURES_VERIFIED");
+        assert_eq!(report.recommended_action, RECOVERY_RESUME_ALLOWED);
+    }
+
+    #[test]
+    fn legacy_v1_unsigned_resume_receipt_is_rejected() {
+        let bundle = current_v2_bundle();
+        let current_commitment = bundle
+            .transitions
+            .last()
+            .expect("history is non-empty")
+            .delta
+            .delta_commitment
+            .clone();
+        let mut receipt = build_recovery_receipt(
+            &bundle,
+            &current_commitment,
+            bundle.head.sequence,
+            "PROTOCOL_CORPUS_LOCAL",
+            None,
+        )
+        .expect("current candidate should produce a blocked V2 receipt");
+        receipt.schema_version = RECOVERY_RECEIPT_V1.to_owned();
+        receipt.policy_id = RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1.to_owned();
+        receipt.decision.reason_code = "CANDIDATE_MATCHES_EVIDENCE_HEAD".to_owned();
+        receipt.decision.recommended_action = RECOVERY_RESUME_ALLOWED.to_owned();
+        receipt.decision_id = recovery_digest(&receipt).expect("legacy receipt should hash");
+
+        let error = verify_recovery_receipt(&receipt, &bundle)
+            .expect_err("an unsigned V1 receipt must never present a resume action");
+        assert!(matches!(
+            error,
+            VerificationError::Rejected(message)
+                if message == "RECOVERY_AUTHORIZATION_NOT_VERIFIED"
+        ));
     }
 
     #[test]
@@ -1405,7 +1592,7 @@ mod tests {
             }),
         )
         .expect("receipt should build");
-        receipt.decision.recommended_action = RECOVERY_RESUME_ALLOWED.to_owned();
+        receipt.decision.recommended_action = RECOVERY_HOLD_FOR_REVIEW.to_owned();
         let error = verify_recovery_receipt(&receipt, &bundle)
             .expect_err("a changed recovery action must fail closed");
         assert!(matches!(

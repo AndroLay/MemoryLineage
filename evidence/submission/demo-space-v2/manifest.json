@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "memorylineage-submission-incident-v1",
+  "incidentId": "demo-space-v2-silent-rollback",
+  "sourceClass": "DEMO_SPACE_V2_LOCAL",
+  "fixtureId": "silent-rollback-v2",
+  "canonical": {
+    "headSequence": 3,
+    "headStateRoot": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+    "evidence": "evidence/local/demo_space_v2_evidence.json"
+  },
+  "restoredSnapshot": {
+    "sequence": 1,
+    "snapshot": "fixtures/silent-rollback-v2/snapshot-1.db",
+    "snapshotCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
+    "staleRoot": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6"
+  },
+  "attempt": {
+    "sequence": 4,
+    "revertReason": "BAD_PREVIOUS_STATE",
+    "transactionBroadcast": false,
+    "execution": "Rust/revm local execution"
+  },
+  "artifacts": [
+    "fixtures/silent-rollback-v2/manifest.json",
+    "fixtures/silent-rollback-v2/snapshot-1.db",
+    "fixtures/silent-rollback-v2/snapshot-2.db",
+    "fixtures/silent-rollback-v2/snapshot-3.db",
+    "evidence/local/demo_space_v2_evidence.json",
+    "evidence/submission/demo-space-v2/revm-observation.json",
+    "evidence/submission/demo-space-v2/rollback-rehearsal.json",
+    "evidence/local/demo_space_v2_recovery_receipt.json",
+    "evidence/local/demo_space_v2_historical_recovery_receipt.json"
+  ]
+}

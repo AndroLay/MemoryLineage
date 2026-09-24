@@ -4,6 +4,12 @@
 **Purpose:** maintain a source-backed record of publicly discoverable projects
 that may compete with MemoryLineage.
 
+**23 September status correction:** the V2 demo fixture now uses a
+length-prefixed snapshot commitment and a regression test for the delimiter
+ambiguity. The older serializer concern in the historical comparison below
+applies to the retained V1 compatibility profile. V2 remains unsalted synthetic
+evidence; see the [privacy profile note](../product/commitment-privacy-profile.md).
+
 ## Coverage boundary
 
 The official project gallery is currently unpublished. Devpost shows the
@@ -258,8 +264,8 @@ Current limitations that affect competitive confidence:
   observation;
 - external human reproduction is not yet demonstrated;
 - the reference agent runtime is fixture-scoped, not production adoption;
-- the fixture commitment serializer should use unambiguous length-prefixed or
-  ABI encoding before the product is called fully hardened;
+- V2 encoding is unambiguous, while a production privacy profile still needs
+  private blinding-secret management and an independently reviewed migration;
 - the official gallery is unpublished, so hidden competitors remain possible.
 
 This file is an audit record, not a claim that MemoryLineage will win or that

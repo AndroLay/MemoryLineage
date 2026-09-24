@@ -34,6 +34,16 @@
     "invalidEvidence": {
       "loaderInvoked": false,
       "status": "FAIL_CLOSED"
+    },
+    "missingAuthorizationProof": {
+      "candidate_commitment": "0x17069cac5b96a074dc1f3efc8aec5c094bb6ac6acdfd73d071388f66b383aef7",
+      "classification": "CURRENT_HEAD",
+      "loader_invoked": false,
+      "raw_memory_exported": false,
+      "recommended_action": "BLOCK_UNVERIFIED",
+      "runtime": "memorylineage-reference-agent-runtime-v1",
+      "snapshot_sequence": 3,
+      "status": "HELD"
     }
   },
   "evidenceSource": "DEMO_SPACE_V2_LOCAL",
@@ -41,7 +51,8 @@
     "currentHead": "RESUME_ALLOWED / loader invoked",
     "divergedSnapshot": "HOLD_FOR_REVIEW / loader not invoked",
     "historicalCheckpoint": "REHEARSE_ONLY / loader not invoked",
-    "invalidEvidence": "FAIL_CLOSED"
+    "invalidEvidence": "FAIL_CLOSED",
+    "missingAuthorizationProof": "BLOCK_UNVERIFIED / loader not invoked"
   },
   "rawMemoryExported": false,
   "reportType": "memorylineage-reference-agent-runtime-v1",

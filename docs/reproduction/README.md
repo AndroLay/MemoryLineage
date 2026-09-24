@@ -18,13 +18,13 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
-The current tagged release is
+The earlier tagged release is
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
-For an exact checkout, use:
-
-```bash
-git checkout v1.0.1
-```
+It predates the local submission envelope. This newer package currently has
+`submissionCommit: null`; the exact submitted SHA must be recorded in the
+reviewer packet and reports outside the self-referential manifest. Record the
+exact new commit before sending this runbook to an external reviewer; `v1.0.1` must
+not be presented as containing the new package or website labels.
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
@@ -38,6 +38,7 @@ From a clean checkout:
 
 ```bash
 cargo xtask reproduce
+cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json
 ```
 
 The command checks the pinned Rust toolchain, workspace and independent
@@ -96,6 +97,9 @@ automated owner-side check; it does not become an external human report.
 
 ## Human comprehension path
 
+Use the [controlled comprehension protocol](comprehension-protocol.md). Keep
+the participant's first answers and confusion notes unedited.
+
 After the automated command passes:
 
 1. Open the static release artifact with an SPA fallback server.
@@ -107,6 +111,8 @@ After the automated command passes:
 7. Tamper the tested commitment and confirm `TRANSITION_ID_MISMATCH`.
 8. Restore the original bundle and confirm `VERIFIED`.
 9. Run the independent CLI verification command shown by the page.
+10. Run the submission package command and check that its verdict is
+    `VERIFIED_LOCAL_PACKAGE`; record the exact commit used.
 
 Do not use the screenshot references in `internal/`; they are private design
 references and are not part of the reviewer packet.
@@ -125,8 +131,8 @@ placeholder, or self-authored reports must stay out of the release evidence.
 
 The two comprehension questions are deliberately required:
 
-- What does MemoryLineage prove?
-- What does MemoryLineage explicitly not prove?
+- What does MemoryLineage check before an agent resumes from a private snapshot?
+- What does MemoryLineage explicitly not prove about the memory or the agent?
 
 If the reviewer describes semantic memory poisoning detection, the report is a
 product-clarity failure to fix, not a successful adoption result.

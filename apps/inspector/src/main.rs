@@ -67,7 +67,9 @@ fn AppShell() -> Element {
         AppRoute::History {} => NavRoute::History,
         AppRoute::Transition { sequence } => NavRoute::Transition(*sequence),
         AppRoute::Lab {} => NavRoute::Lab(Scenario::SilentRollback),
-        AppRoute::LabScenario { scenario } => NavRoute::Lab(Scenario::from_id(scenario)),
+        AppRoute::LabScenario { scenario } => Scenario::from_id(scenario)
+            .map(NavRoute::Lab)
+            .unwrap_or(NavRoute::Home),
         AppRoute::Verify {} => NavRoute::Verify,
         AppRoute::Evidence {} => NavRoute::Evidence,
         AppRoute::Architecture {} => NavRoute::Architecture,
@@ -121,8 +123,20 @@ fn Lab() -> Element {
 #[component]
 fn LabScenario(scenario: String) -> Element {
     let data = use_context::<UiData>();
-    let initial_scenario = Scenario::from_id(&scenario);
-    rsx! { LabPage { data, initial_scenario } }
+    match Scenario::from_id(&scenario) {
+        Some(initial_scenario) => rsx! { LabPage { data, initial_scenario } },
+        None => rsx! {
+            div { class: "page workspace-page",
+                PageHeader {
+                    kicker: "TAMPERING LAB / NOT FOUND".to_owned(),
+                    title: "Unknown tampering scenario".to_owned(),
+                    description: format!("No lab scenario is registered for the slug '{scenario}'."),
+                    source: "UNKNOWN SCENARIO".to_owned(),
+                }
+                Link { class: "button button-primary", to: AppRoute::Lab {}, "Open the Tampering Lab →" }
+            }
+        },
+    }
 }
 
 #[component]
@@ -232,6 +246,12 @@ mod route_tests {
                     scenario: "semantic-poisoning".to_owned(),
                 },
             ),
+            (
+                "/lab/unknown-case",
+                AppRoute::LabScenario {
+                    scenario: "unknown-case".to_owned(),
+                },
+            ),
             ("/verify", AppRoute::Verify {}),
             ("/evidence", AppRoute::Evidence {}),
             ("/architecture", AppRoute::Architecture {}),
@@ -249,7 +269,7 @@ mod route_tests {
     fn semantic_poisoning_route_stays_out_of_scope_scenario() {
         assert_eq!(
             Scenario::from_id("semantic-poisoning"),
-            Scenario::SemanticPoisoning
+            Some(Scenario::SemanticPoisoning)
         );
     }
 }

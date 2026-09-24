@@ -1,6 +1,9 @@
 #![forbid(unsafe_code)]
 
 use ml_evidence::public_replay_to_v2;
+use ml_evidence::submission::{
+    IncidentManifest, RollbackRehearsal, SubmissionManifest, artifact_sha256,
+};
 use ml_spec_types::{
     EvidenceBundleV2, PortabilityRehearsalReport, PublicReplayBundle, RecoveryDecisionReceipt,
     SNAPSHOT_PROFILE_V2, TransitionRecord,
@@ -14,6 +17,11 @@ use serde::Deserialize;
 pub const LOCAL_EVIDENCE: &str =
     include_str!("../../../evidence/local/memory_lineage_evm_evidence.json");
 pub const DEMO_EVIDENCE: &str = include_str!("../../../evidence/local/demo_space_v2_evidence.json");
+pub const SUBMISSION_MANIFEST: &str = include_str!("../../../evidence/submission/manifest.json");
+pub const INCIDENT_MANIFEST: &str =
+    include_str!("../../../evidence/submission/demo-space-v2/manifest.json");
+pub const ROLLBACK_REHEARSAL: &str =
+    include_str!("../../../evidence/submission/demo-space-v2/rollback-rehearsal.json");
 pub const SILENT_ROLLBACK_MANIFEST: &str =
     include_str!("../../../fixtures/silent-rollback-v2/manifest.json");
 pub const DEMO_RECOVERY_RECEIPT: &str =
@@ -27,6 +35,21 @@ const SECURITY_ASSURANCE_REPORT: &str =
     include_str!("../../../evidence/local/security_assurance_report.json");
 const POLKADOT_PORTABILITY_REPORT: &str =
     include_str!("../../../evidence/local/polkadot_hub_portability_rehearsal.json");
+
+pub(crate) const MAX_IMPORT_FILE_BYTES: u64 = 1024 * 1024;
+
+pub(crate) fn validate_json_import_metadata(name: &str, size: u64) -> Result<(), &'static str> {
+    if !name
+        .rsplit_once('.')
+        .is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("json"))
+    {
+        return Err("IMPORT_FILE_TYPE_UNSUPPORTED");
+    }
+    if size > MAX_IMPORT_FILE_BYTES {
+        return Err("IMPORT_FILE_TOO_LARGE");
+    }
+    Ok(())
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Scenario {
@@ -94,16 +117,16 @@ impl Scenario {
         }
     }
 
-    pub fn from_id(value: &str) -> Self {
+    pub fn from_id(value: &str) -> Option<Self> {
         match value {
-            "silent-rollback" => Self::SilentRollback,
-            "sequence-gap" => Self::SequenceGap,
-            "parallel-history" => Self::ParallelHistory,
-            "wrong-eoa-signer" => Self::WrongEoa,
-            "locator-binding" => Self::LocatorBinding,
-            "wrong-chain-domain" => Self::WrongDomain,
-            "semantic-poisoning" => Self::SemanticPoisoning,
-            _ => Self::SilentRollback,
+            "silent-rollback" => Some(Self::SilentRollback),
+            "sequence-gap" => Some(Self::SequenceGap),
+            "parallel-history" => Some(Self::ParallelHistory),
+            "wrong-eoa-signer" => Some(Self::WrongEoa),
+            "locator-binding" => Some(Self::LocatorBinding),
+            "wrong-chain-domain" => Some(Self::WrongDomain),
+            "semantic-poisoning" => Some(Self::SemanticPoisoning),
+            _ => None,
         }
     }
 }
@@ -271,6 +294,8 @@ pub struct ReferenceRuntimeEvidence {
 pub struct ReferenceRuntimeCases {
     #[serde(rename = "currentHead")]
     pub current_head: ReferenceRuntimeCase,
+    #[serde(default, rename = "missingAuthorizationProof")]
+    pub missing_authorization_proof: Option<ReferenceRuntimeCase>,
     #[serde(rename = "historicalCheckpoint")]
     pub historical_checkpoint: ReferenceRuntimeCase,
     #[serde(rename = "divergedSnapshot")]
@@ -366,6 +391,9 @@ pub struct UiData {
     pub protocol_v2: EvidenceBundleV2,
     pub v2: EvidenceBundleV2,
     pub fixture: PrivateFixtureManifest,
+    pub submission: SubmissionManifest,
+    pub incident: IncidentManifest,
+    pub rollback: RollbackRehearsal,
     pub report: Option<VerificationReport>,
     pub recovery_receipt: RecoveryDecisionReceipt,
     pub deployment: DeploymentRecord,
@@ -480,6 +508,36 @@ impl UiData {
             serde_json::from_str(DEMO_EVIDENCE).expect("Demo Space V2 evidence must remain valid");
         let fixture: PrivateFixtureManifest = serde_json::from_str(SILENT_ROLLBACK_MANIFEST)
             .expect("private fixture manifest must remain valid");
+        let submission: SubmissionManifest = serde_json::from_str(SUBMISSION_MANIFEST)
+            .expect("submission envelope must remain typed");
+        let incident: IncidentManifest =
+            serde_json::from_str(INCIDENT_MANIFEST).expect("incident manifest must remain typed");
+        let rollback: RollbackRehearsal =
+            serde_json::from_str(ROLLBACK_REHEARSAL).expect("rollback rehearsal must remain typed");
+        let published_hash = submission
+            .artifacts
+            .iter()
+            .find(|artifact| artifact.path == "evidence/local/demo_space_v2_evidence.json")
+            .expect("submission envelope must include the Demo Space V2 evidence hash");
+        assert_eq!(
+            published_hash.sha256,
+            artifact_sha256(DEMO_EVIDENCE.as_bytes())
+        );
+        assert_eq!(submission.incident_id, incident.incident_id);
+        assert_eq!(submission.incident_id, rollback.incident_id);
+        assert_eq!(incident.canonical.head_state_root, v2.head.state_root);
+        assert_eq!(
+            incident.restored_snapshot.snapshot_commitment,
+            fixture.snapshots[0].snapshot_commitment
+        );
+        assert_eq!(
+            incident.restored_snapshot.stale_root,
+            v2.transitions[0].next_state_root
+        );
+        assert_eq!(
+            rollback.stale_predecessor,
+            incident.restored_snapshot.stale_root
+        );
         let report = verify_v2_bundle(&v2).ok();
         let recovery_receipt: RecoveryDecisionReceipt = serde_json::from_str(DEMO_RECOVERY_RECEIPT)
             .expect("published recovery receipt must remain valid");
@@ -513,6 +571,9 @@ impl UiData {
             protocol_v2,
             v2,
             fixture,
+            submission,
+            incident,
+            rollback,
             report,
             recovery_receipt,
             deployment,
@@ -698,8 +759,8 @@ pub fn short_hash(value: &str, head: usize, tail: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        RestoreAssessment, Scenario, UiData, classify_restore_candidate,
-        verify_recovery_receipt_json,
+        MAX_IMPORT_FILE_BYTES, RestoreAssessment, Scenario, UiData, classify_restore_candidate,
+        validate_json_import_metadata, verify_recovery_receipt_json,
     };
 
     #[test]
@@ -714,12 +775,29 @@ mod tests {
             ("semantic-poisoning", Scenario::SemanticPoisoning),
         ];
         for (slug, expected) in cases {
-            assert_eq!(Scenario::from_id(slug), expected, "{slug}");
+            assert_eq!(Scenario::from_id(slug), Some(expected), "{slug}");
         }
         assert_eq!(
             Scenario::from_id("unknown"),
-            Scenario::SilentRollback,
-            "unknown scenario slugs fail back to the hero case"
+            None,
+            "unknown scenario slugs must not select a valid case"
+        );
+    }
+
+    #[test]
+    fn json_import_metadata_rejects_unsupported_or_oversized_files_before_read() {
+        assert_eq!(
+            validate_json_import_metadata("bundle.json", MAX_IMPORT_FILE_BYTES),
+            Ok(())
+        );
+        assert_eq!(validate_json_import_metadata("bundle.JSON", 1), Ok(()));
+        assert_eq!(
+            validate_json_import_metadata("bundle.json", MAX_IMPORT_FILE_BYTES + 1),
+            Err("IMPORT_FILE_TOO_LARGE")
+        );
+        assert_eq!(
+            validate_json_import_metadata("bundle.txt", 1),
+            Err("IMPORT_FILE_TYPE_UNSUPPORTED")
         );
     }
 
@@ -838,6 +916,18 @@ mod tests {
         assert!(data.reference_runtime.all_expected);
         assert_eq!(data.reference_runtime.cases.current_head.status, "RESUMED");
         assert!(data.reference_runtime.cases.current_head.loader_invoked);
+        let missing_authorization = data
+            .reference_runtime
+            .cases
+            .missing_authorization_proof
+            .as_ref()
+            .expect("reference runtime report covers missing authorization");
+        assert_eq!(missing_authorization.status, "HELD");
+        assert_eq!(
+            missing_authorization.recommended_action.as_deref(),
+            Some("BLOCK_UNVERIFIED")
+        );
+        assert!(!missing_authorization.loader_invoked);
         assert_eq!(
             data.reference_runtime
                 .cases

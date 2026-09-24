@@ -182,6 +182,23 @@ mod tests {
     }
 
     #[test]
+    fn current_head_without_authorization_proofs_is_held_before_the_loader() {
+        let mut unsigned = evidence();
+        unsigned.authorization_proofs.clear();
+        let mut runtime = ReferenceAgentRuntime::new();
+        let outcome = runtime
+            .resume(snapshot(3), &unsigned, SOURCE_DEMO_SPACE_V2_LOCAL)
+            .expect("missing authorization should produce a held decision");
+
+        assert_eq!(outcome.status, "HELD");
+        assert_eq!(outcome.classification, "CURRENT_HEAD");
+        assert_eq!(outcome.recommended_action, "BLOCK_UNVERIFIED");
+        assert!(!outcome.loader_invoked);
+        assert!(runtime.active_sequence().is_none());
+        assert_eq!(runtime.loader_invocations(), 0);
+    }
+
+    #[test]
     fn divergent_snapshot_and_invalid_evidence_fail_closed() {
         let path = std::env::temp_dir().join(format!(
             "memorylineage-reference-runtime-diverged-{}.db",

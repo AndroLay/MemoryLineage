@@ -73,3 +73,11 @@ It joins the existing Demo Space V2 fixture, protected agent-resume gate,
 portable evidence, Inspector journey, and independent reproduction into one
 reviewable vertical slice. It is a target plan, not evidence that the listed
 gates have already been completed.
+
+The frozen baseline for that plan is recorded in
+[`docs/submission/readiness-register.md`](../submission/readiness-register.md).
+It captures the exact starting commit, the local gate result, the source
+classes, and the per-claim readiness status.
+
+The subsequent submission-media and provenance work is tracked in
+[`docs/superpowers/plans/2026-09-23-hackathon-finalization.md`](../superpowers/plans/2026-09-23-hackathon-finalization.md).

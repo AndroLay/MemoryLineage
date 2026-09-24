@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod submission;
+
 use ml_spec_types::{
     EVIDENCE_V2, EvidenceBundleV2, EvidenceNetwork, Head, PrivacyBoundary, PublicReplayBundle,
     RegistryObservation, SOURCE_PROTOCOL_CORPUS_LOCAL, SPEC_NAME, SPEC_SNAPSHOT, SpecSnapshot,

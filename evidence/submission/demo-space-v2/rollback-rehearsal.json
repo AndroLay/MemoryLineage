@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "memorylineage-rollback-rehearsal-v1",
+  "incidentId": "demo-space-v2-silent-rollback",
+  "sourceClass": "DEMO_SPACE_V2_LOCAL",
+  "snapshotCommitment": "0x2076eaf3ce2f9b102e45cb3d28d3e32cb83741db01d1b02ee135df8ffc950a86",
+  "stalePredecessor": "0x3635645aa862bab0b5f7a95b048f332961621697597ee158fc218631d14f0ee6",
+  "canonicalHead": "0xa89ff09763ac4e0bf4e62c14ba128396114ea94b023f4abaf4b412fd0666f2f0",
+  "attemptedSequence": 4,
+  "revertReason": "BAD_PREVIOUS_STATE",
+  "transactionBroadcast": false,
+  "executionSource": "Rust/revm against published Solidity bytecode"
+}

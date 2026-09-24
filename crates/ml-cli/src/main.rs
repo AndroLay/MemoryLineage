@@ -17,6 +17,8 @@ use ml_spec_types::EvidenceBundleV2;
 use ml_verifier_independent::{verify_file, verify_portability_file, verify_recovery_receipt};
 use std::path::{Path, PathBuf};
 
+mod submission;
+
 fn repository_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -39,6 +41,7 @@ fn usage() {
   cargo run -p ml-cli -- fixture demo-manifest [ROOT] [OUTPUT]\n  \
   cargo run -p ml-cli -- fixture restore <SOURCE> <DESTINATION>\n  \
   cargo run -p ml-cli -- verify <EVIDENCE.json>\n  \
+  cargo run -p ml-cli -- submission verify [MANIFEST.json]\n  \
   cargo run -p ml-cli -- conformance\n  \
   cargo run -p ml-cli -- revm silent-rollback\n  \
   cargo run -p ml-cli -- revm mutations\n  \
@@ -492,6 +495,14 @@ fn agent_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
             )?;
 
+            let mut unsigned_evidence = evidence.clone();
+            unsigned_evidence.authorization_proofs.clear();
+            let missing_authorization = runtime.resume(
+                fixture_root.join("snapshot-3.db"),
+                &unsigned_evidence,
+                ml_spec_types::SOURCE_DEMO_SPACE_V2_LOCAL,
+            )?;
+
             let diverged_path = std::env::temp_dir().join(format!(
                 "memorylineage-reference-agent-diverged-{}.db",
                 std::process::id()
@@ -523,6 +534,7 @@ fn agent_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 "cases": {
                     "currentHead": current,
                     "historicalCheckpoint": historical,
+                    "missingAuthorizationProof": missing_authorization,
                     "divergedSnapshot": diverged,
                     "invalidEvidence": {
                         "status": if invalid.is_err() { "FAIL_CLOSED" } else { "UNEXPECTED_SUCCESS" },
@@ -532,6 +544,7 @@ fn agent_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                 "expected": {
                     "currentHead": "RESUME_ALLOWED / loader invoked",
                     "historicalCheckpoint": "REHEARSE_ONLY / loader not invoked",
+                    "missingAuthorizationProof": "BLOCK_UNVERIFIED / loader not invoked",
                     "divergedSnapshot": "HOLD_FOR_REVIEW / loader not invoked",
                     "invalidEvidence": "FAIL_CLOSED",
                 },
@@ -540,6 +553,9 @@ fn agent_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
                     && historical.status == "HELD"
                     && !historical.loader_invoked
                     && historical.recommended_action == "REHEARSE_ONLY"
+                    && missing_authorization.status == "HELD"
+                    && !missing_authorization.loader_invoked
+                    && missing_authorization.recommended_action == "BLOCK_UNVERIFIED"
                     && diverged.status == "HELD"
                     && !diverged.loader_invoked
                     && diverged.recommended_action == "HOLD_FOR_REVIEW"
@@ -690,6 +706,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some("conformance") => conformance_command(),
         Some("security") => security_command(&args.collect::<Vec<_>>()),
         Some("portability") => portability_command(&args.collect::<Vec<_>>()),
+        Some("submission") => submission::command(&args.collect::<Vec<_>>(), &repository_root()),
         Some("revm") => revm_command(&args.collect::<Vec<_>>()),
         Some("evidence") => evidence_command(&args.collect::<Vec<_>>()),
         Some("recover") => recover_command(&args.collect::<Vec<_>>()),

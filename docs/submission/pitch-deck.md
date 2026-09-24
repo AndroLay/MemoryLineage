@@ -1,7 +1,9 @@
 # MemoryLineage — pitch deck source
 
-This is the judge-facing eight-slide source for a future presentation export.
-It intentionally uses only evidence already present in this repository. The
+This is the judge-facing eight-slide narrative source. The printable
+[pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) and its editable
+[HTML source](pitch-deck.html) use the same claims. They intentionally use only
+evidence already present in this repository. The
 local Demo Space V2 is synthetic and deterministic; it is not presented as a
 new Sepolia deployment.
 
@@ -118,7 +120,7 @@ The Inspector lets a reviewer:
 4. export the portable evidence;
 5. change one commitment;
 6. observe `TRANSITION_ID_MISMATCH`;
-7. restore the bundle and observe `VERIFIED`;
+7. restore the bundle and observe `BUNDLE REPLAY VERIFIED`;
 8. run the independent Rust CLI verifier.
 
 The static release gate covers all 11 routes, the 390px no-overflow check,
@@ -163,6 +165,9 @@ AI reasoning correctness
 causal memory → action linkage
 off-chain availability
 every form of memory poisoning
+canonical registry provenance of the supplied bundle
+full history recovery without retained event logs or bundles
+historical ERC-1271 signer-state replay or single-RPC consensus
 ```
 
 The repository provides:
@@ -174,5 +179,6 @@ cargo xtask reviewer-reproduce
 ```
 
 These are automated local/owner-side gates. The public static Inspector is
-already hosted; external human reproduction, staging, and the demo video remain
-separate submission operations until their evidence is recorded.
+already hosted at the older release. External human reproduction and staging
+remain separate. A [captioned local demo video](demo-video.md) now exists, but
+uploading it or updating the hosted site is a separate submission operation.

@@ -66,8 +66,15 @@ expected-reason badge cannot count as a result. It does not deploy or contact a
 staging environment. `cargo xtask release` runs the same smoke after building
 the release artifact and then checks the release package boundary. These are
 browser semantics and keyboard smoke checks; they do not replace testing with
-assistive technology. The smoke also clicks the optional `Probe separate
-Sepolia` control and accepts only a truthful `LIVE RPC: REJECTED` result or a
+assistive technology. By default, the smoke skips the optional public Sepolia
+RPC probe so the local release gate does not depend on a network provider. To
+exercise that read-only browser path explicitly, run:
+
+```bash
+MEMORYLINEAGE_SMOKE_SEPOLIA_PROBE=1 cargo xtask smoke-web
+```
+
+The opt-in probe accepts only a truthful `LIVE RPC: REJECTED` result or a
 source-labeled `SEPOLIA PROBE: UNAVAILABLE` fallback.
 
 The supported development server can be started with:
@@ -163,6 +170,7 @@ The unified Demo Space V2 command is:
 ```bash
 cargo run -q -p ml-cli -- demo silent-rollback
 cargo run -q -p ml-cli -- verify evidence/local/demo_space_v2_evidence.json
+cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json
 ```
 
 It reads three actual SQLite snapshots, derives their commitments, executes
@@ -232,17 +240,22 @@ cargo run -q -p ml-cli -- recover verify \
 cargo run -q -p ml-cli -- recover enforce \
   fixtures/silent-rollback-v2/snapshot-3.db \
   evidence/local/demo_space_v2_evidence.json
+cargo run -q -p ml-agent-runtime --example protected-resume-flow
 ```
 
-The current head is permitted by the reference gate. The historical snapshot
-is deliberately held as `REHEARSE_ONLY`; it must not silently enter a protected
-resume path. The tracked current-head receipt is
+The current head is permitted only when transition signatures and the
+authority timeline verify. A current head with missing authorization is held
+as `BLOCK_UNVERIFIED`; the historical snapshot is held as `REHEARSE_ONLY`.
+The tracked current-head receipt is
 `evidence/local/demo_space_v2_recovery_receipt.json`, and its shape is described
-by `evidence/schemas/recovery-receipt-v1.schema.json`. This gate proves a
-deterministic reference decision over the supplied fixture. The receipt carries
-the `strict-current-head-only-v1` policy and the loader smoke actually reports
-the number of private keys loaded only after the gate permits it; it is not
-evidence that a production agent runtime has already integrated the adapter.
+by `evidence/schemas/recovery-receipt-v2.schema.json`. Receipt V1 remains
+verifiable for compatibility when its resume authorization is present; it
+cannot authorize a resume with missing proof. The V2 receipt binds the
+`strict-authorized-current-head-v2` policy. This gate proves a deterministic
+reference decision over the supplied fixture, not that a production agent
+runtime has integrated the adapter. The executable example prints five JSON
+cases, including the missing-authorization hold, historical and divergent
+holds, and invalid evidence failing before any loader call.
 
 The UI wording is intentionally `MATCHES DEMO EVIDENCE HEAD`, not
 `CANONICAL_HEAD`: the current browser selection is not a live observation of

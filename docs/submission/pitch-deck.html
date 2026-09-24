@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MemoryLineage · 3rd-Web-Hack pitch</title>
+  <style>
+    @page { size: 13.333in 7.5in; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #0d1825; color: #f7f9fd; font-family: Arial, Helvetica, sans-serif; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .slide { width: 13.333in; height: 7.5in; padding: .52in .64in .44in; break-after: page; position: relative; overflow: hidden; background: #0d1825; }
+    .slide:last-child { break-after: auto; }
+    .brand { display: flex; align-items: center; gap: .12in; color: #f6f9ff; text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: .18em; }
+    .brand img { width: .22in; height: .22in; }
+    .kicker { color: #8bb5ff; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: .38in 0 .1in; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 54px; line-height: 1.04; letter-spacing: -.045em; max-width: 10.8in; }
+    h2 { font-size: 35px; line-height: 1.08; letter-spacing: -.035em; max-width: 11.2in; }
+    h3 { font-size: 19px; line-height: 1.2; }
+    .lead { color: #cbd7e7; font-size: 22px; line-height: 1.38; max-width: 10.8in; margin-top: .26in; }
+    .body { color: #cbd7e7; font-size: 17px; line-height: 1.42; }
+    .muted { color: #91a4b9; }
+    .mono { font-family: 'DejaVu Sans Mono', monospace; }
+    .foot { position: absolute; bottom: .32in; left: .64in; right: .64in; display: flex; justify-content: space-between; border-top: 1px solid #2a3e55; padding-top: .12in; color: #94a7be; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .accent { color: #95bdff; }
+    .danger { color: #ff9aa2; }
+    .good { color: #83d5b0; }
+    .rule { height: 2px; background: #83aefa; width: 2.2in; margin-top: .38in; }
+    .big-quote { font-size: 43px; line-height: 1.12; max-width: 10.8in; letter-spacing: -.035em; margin-top: .62in; }
+    .timeline { display: flex; align-items: stretch; gap: .12in; margin-top: .53in; }
+    .time-item { flex: 1; border-top: 2px solid #74aaff; padding-top: .13in; }
+    .time-item.red { border-color: #ff919a; }
+    .time-item .num { font-size: 13px; letter-spacing: .08em; color: #91baff; font-weight: 700; }
+    .time-item.red .num { color: #ff9aa2; }
+    .time-item strong { display: block; font-size: 21px; margin-top: .08in; }
+    .time-item span { display: block; color: #aebed0; font-size: 15px; line-height: 1.32; margin-top: .1in; }
+    .statement { margin-top: .48in; border-left: 3px solid #ff9aa2; padding-left: .2in; font-size: 23px; line-height: 1.3; max-width: 10.8in; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: .55in; margin-top: .53in; }
+    .columns.three { grid-template-columns: repeat(3, 1fr); gap: .38in; }
+    .column { border-top: 2px solid #334e6c; padding-top: .16in; }
+    .column .label { color: #9dc0f6; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+    .column h3 { margin-top: .13in; }
+    .column p { color: #bfcddd; font-size: 16px; line-height: 1.4; margin-top: .14in; }
+    .path { display: grid; grid-template-columns: repeat(5, 1fr); gap: .14in; margin-top: .54in; }
+    .path div { border-top: 2px solid #7eafff; padding-top: .13in; }
+    .path b { color: #86b6ff; font-size: 13px; }
+    .path strong { display: block; font-size: 20px; margin-top: .1in; }
+    .path span { display: block; color: #adbed1; font-size: 15px; line-height: 1.35; margin-top: .12in; }
+    .stack { color: #a9bed5; font-size: 15px; margin-top: .58in; }
+    .demo { display: grid; grid-template-columns: 4.65in 1fr; gap: .36in; margin-top: .34in; }
+    .demo-copy { padding-top: .14in; }
+    .demo-copy .result { font-size: 32px; font-weight: 700; line-height: 1.12; margin-top: .25in; }
+    .demo-copy p { font-size: 17px; color: #c4d2e1; line-height: 1.4; margin-top: .25in; }
+    .capture { height: 4.46in; overflow: hidden; border: 1px solid #466487; background: #102032; }
+    .capture img { width: 100%; height: auto; display: block; }
+    .capture.verify img { width: 100%; }
+    .code { font-family: 'DejaVu Sans Mono', monospace; font-size: 16px; line-height: 1.5; color: #b7d0fc; background: #15283d; border-left: 3px solid #84b3ff; padding: .16in .2in; margin-top: .38in; }
+    .boundary { display: flex; gap: .44in; margin-top: .42in; }
+    .boundary section { width: 50%; border-top: 2px solid #7eafff; padding-top: .15in; }
+    .boundary section:last-child { border-color: #ff9aa2; }
+    .boundary h3 { color: #f8fbff; margin-bottom: .14in; }
+    .boundary li { color: #c5d1df; font-size: 16px; line-height: 1.42; margin-bottom: .1in; }
+    ul { margin: 0; padding-left: .23in; }
+    .close { font-size: 25px; line-height: 1.33; max-width: 10.5in; margin-top: .5in; }
+    .next { display: grid; grid-template-columns: repeat(3, 1fr); gap: .28in; margin-top: .55in; }
+    .next div { border-top: 2px solid #7eafff; padding-top: .16in; }
+    .next strong { font-size: 19px; }
+    .next p { margin-top: .12in; color: #bbcadb; font-size: 15px; line-height: 1.38; }
+    .url { color: #9bc1ff; font-size: 17px; margin-top: .42in; }
+  </style>
+</head>
+<body>
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">3rd-Web-Hack · private agent memory</div>
+    <h1>An old AI-memory backup can look current.</h1>
+    <p class="lead">MemoryLineage checks whether a restored private snapshot is the authorized continuation of shared history before a reference agent resumes.</p>
+    <div class="rule"></div>
+    <p class="big-quote">Verify the history,<br><span class="accent">not the memory.</span></p>
+    <div class="foot"><span>MemoryLineage · pitch</span><span>01 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">The silent rollback</div>
+    <h2>One restore. Two different histories.</h2>
+    <div class="timeline">
+      <div class="time-item"><span class="num">01</span><strong>Snapshot 1</strong><span>Private memory checkpoint.</span></div>
+      <div class="time-item"><span class="num">02</span><strong>Snapshot 2</strong><span>Newer state is committed.</span></div>
+      <div class="time-item"><span class="num">03</span><strong>Snapshot 3</strong><span>Canonical committed head.</span></div>
+      <div class="time-item red"><span class="num">04</span><strong>Restore 1</strong><span>Operator tries to continue from the old root.</span></div>
+    </div>
+    <p class="statement">The local database can reopen. An independent reviewer still needs to know whether that state may extend the shared history.</p>
+    <div class="foot"><span>Problem · operator / controller / auditor</span><span>02 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Why Web3 belongs here</div>
+    <h2>The runtime operator cannot be the only keeper of the checkpoint.</h2>
+    <p class="lead">A shared registry records the current predecessor and configured authority. Raw memory stays off-chain.</p>
+    <div class="columns three">
+      <div class="column"><div class="label">Private runtime</div><h3>Stores the snapshot</h3><p>The operator can restore or replace local files after a crash or migration.</p></div>
+      <div class="column"><div class="label">Registry authority</div><h3>Controls succession</h3><p>The Solidity registry checks sequence, predecessor root, and authorization.</p></div>
+      <div class="column"><div class="label">Independent reviewer</div><h3>Replays the evidence</h3><p>A separate Rust verifier checks the portable history without trusting the website.</p></div>
+    </div>
+    <div class="foot"><span>Conditional trust model · multiple parties</span><span>03 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Working MVP · one evidence path</div>
+    <h2>From a private snapshot to a replayable decision.</h2>
+    <div class="path">
+      <div><b>01</b><strong>SQLite</strong><span>Three synthetic private snapshots.</span></div>
+      <div><b>02</b><strong>Rust</strong><span>Versioned commitments and evidence.</span></div>
+      <div><b>03</b><strong>Solidity</strong><span>Ordered state and authority rules.</span></div>
+      <div><b>04</b><strong>Rust/revm</strong><span>Execute the published bytecode locally.</span></div>
+      <div><b>05</b><strong>Inspector + CLI</strong><span>Explain and independently replay the result.</span></div>
+    </div>
+    <p class="stack">Stack: Solidity 0.8.36 · Rust 1.97.1 · Dioxus/WASM · SQLite · revm · Ethereum Sepolia for a separate public observation</p>
+    <div class="foot"><span>Demo Space V2 · local Rust/revm · no transaction broadcast</span><span>04 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Falsifiable result</div>
+    <h2>Transition 4 names the old root. The registry rejects it.</h2>
+    <div class="demo">
+      <div class="demo-copy">
+        <p>Canonical head: transition 3. Attempted predecessor: actual root after transition 1.</p>
+        <div class="result danger">REJECTED<br>BAD_PREVIOUS_STATE</div>
+        <p>The local Solidity execution rejects the stale predecessor. It does not stop a local file restore or prove what an external runtime loaded.</p>
+      </div>
+      <div class="capture"><img src="assets/lab-local.png" alt="Inspector Tampering Lab showing the local BAD_PREVIOUS_STATE rollback rejection"></div>
+    </div>
+    <div class="foot"><span>Screenshot from the local static Inspector · Demo Space V2</span><span>05 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Do not trust the dashboard</div>
+    <h2>Change one commitment. Replay must fail.</h2>
+    <div class="demo">
+      <div class="demo-copy">
+        <p>Export the same evidence bundle from the Inspector and check it with the independent Rust CLI.</p>
+        <div class="code">original → BUNDLE REPLAY VERIFIED<br>tampered → TRANSITION_ID_MISMATCH<br>restored → BUNDLE REPLAY VERIFIED</div>
+        <p>Replay confirms bundle consistency, not canonical registry provenance. Receipts bind the decision to the supplied bundle and policy.</p>
+      </div>
+      <div class="capture verify"><img src="assets/verify-local.png" alt="Inspector showing BUNDLE REPLAY VERIFIED and registry identity limited to ADDRESS_FORMAT_ONLY"></div>
+    </div>
+    <div class="foot"><span>Portable evidence · Rust/WASM + independent Rust CLI</span><span>06 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Original contribution and limits</div>
+    <h2>Recovery preflight around pinned registry semantics.</h2>
+    <div class="boundary">
+      <section><h3 class="good">Built and evidenced here</h3><ul>
+        <li>Current, historical, divergent, and unverified classification.</li>
+        <li>Policy-bound recovery receipts and protected local loader.</li>
+        <li>Independent replay, authority timeline, and tamper evidence.</li>
+        <li>Rust/WASM Inspector and a reproducible local incident.</li>
+      </ul></section>
+      <section><h3 class="danger">Outside the current proof</h3><ul>
+        <li>Semantic truth or safety of the private memory.</li>
+        <li>Production agent adoption or off-chain availability.</li>
+        <li>Public deployment of this exact Demo Space V2 history.</li>
+        <li>Canonical bundle provenance, complete history recovery, historical ERC-1271 replay, or RPC consensus.</li>
+        <li>Authorship of ERC-8350, EIP-712, or ERC-1271.</li>
+      </ul></section>
+    </div>
+    <div class="foot"><span>Claim scope · inspect the repository provenance record</span><span>07 / 08</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Impact and next proof</div>
+    <h2>Make recovery reviewable before an agent resumes.</h2>
+    <p class="close">For managed agent systems with separate operators, controllers, and auditors, MemoryLineage offers a narrow shared answer to an otherwise private restore decision.</p>
+    <div class="next">
+      <div><strong>Try the incident</strong><p>Open the Inspector, check an old restore, and inspect the exact rejection.</p></div>
+      <div><strong>Replay the evidence</strong><p>Run the submission CLI verifier from the named source revision.</p></div>
+      <div><strong>Extend the proof</strong><p>Collect independent human reproduction and a public same-space deployment before making those claims.</p></div>
+    </div>
+    <p class="url">memorylineage.pages.dev · github.com/AndroLay/MemoryLineage</p>
+    <div class="foot"><span>Current hosted site may trail the local candidate revision</span><span>08 / 08</span></div>
+  </article>
+</body>
+</html>

@@ -498,8 +498,12 @@ fn verify_recovery_preflight() -> Result<(), String> {
         let receipt_text = String::from_utf8_lossy(&published);
         let receipt: serde_json::Value = serde_json::from_slice(&published)
             .map_err(|error| format!("published recovery receipt is invalid JSON: {error}"))?;
-        if receipt.get("policyId").and_then(serde_json::Value::as_str)
-            != Some("strict-current-head-only-v1")
+        if receipt
+            .get("schemaVersion")
+            .and_then(serde_json::Value::as_str)
+            != Some("memorylineage-recovery-receipt-v2")
+            || receipt.get("policyId").and_then(serde_json::Value::as_str)
+                != Some("strict-authorized-current-head-v2")
             || receipt
                 .pointer("/candidate/snapshotProfile")
                 .and_then(serde_json::Value::as_str)
@@ -551,8 +555,19 @@ fn verify_recovery_preflight() -> Result<(), String> {
                 .pointer("/decision/recommendedAction")
                 .and_then(serde_json::Value::as_str)
                 != Some("REHEARSE_ONLY")
+            || historical_receipt_value
+                .get("schemaVersion")
+                .and_then(serde_json::Value::as_str)
+                != Some("memorylineage-recovery-receipt-v2")
+            || historical_receipt_value
+                .get("policyId")
+                .and_then(serde_json::Value::as_str)
+                != Some("strict-authorized-current-head-v2")
         {
-            return Err("historical recovery receipt did not record REHEARSE_ONLY".to_owned());
+            return Err(
+                "historical recovery receipt did not record the V2 policy and REHEARSE_ONLY"
+                    .to_owned(),
+            );
         }
         run(
             "cargo",
@@ -1016,7 +1031,33 @@ fn verify() -> Result<(), String> {
     verify_polkadot_hub_portability()?;
     verify_recovery_preflight()?;
     verify_reference_agent_runtime()?;
+    step(
+        "protected resume executable example",
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-agent-runtime",
+            "--example",
+            "protected-resume-flow",
+        ],
+    )?;
     verify_security_assurance()?;
+    step(
+        "submission bundle",
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "submission",
+            "verify",
+            "evidence/submission/manifest.json",
+        ],
+    )?;
     step(
         "pinned conformance",
         "cargo",
@@ -1228,6 +1269,19 @@ fn reviewer_reproduce() -> Result<(), String> {
 }
 
 fn release_manifest(output: Option<&str>) -> Result<(), String> {
+    run(
+        "cargo",
+        &[
+            "run",
+            "-q",
+            "-p",
+            "ml-cli",
+            "--",
+            "submission",
+            "verify",
+            "evidence/submission/manifest.json",
+        ],
+    )?;
     let destination = output
         .map(PathBuf::from)
         .unwrap_or_else(|| std::env::temp_dir().join("memorylineage-release-manifest.json"));
@@ -1250,8 +1304,9 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
     let manifest = serde_json::json!({
         "manifestType": "memorylineage-release-preparation",
         "repository": "AndroLay/MemoryLineage",
-        "gitRevision": revision,
+        "gitRevision": revision.clone(),
         "workingTreeClean": working_tree_clean,
+        "submissionRevision": if working_tree_clean { Some(revision) } else { None },
         "rustToolchain": "1.97.1",
         "website": "Rust/WASM Dioxus static artifact",
         "ethereum": {
@@ -1260,6 +1315,7 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "deployment": "existing evidence; no deployment performed by this command"
         },
         "demo": {
+            "sourceClass": "DEMO_SPACE_V2_LOCAL",
             "status": "LOCAL REVM EVIDENCE / NOT DEPLOYED",
             "fixture": "fixtures/silent-rollback-v2/manifest.json",
             "evidence": "evidence/local/demo_space_v2_evidence.json",
@@ -1270,11 +1326,22 @@ fn release_manifest(output: Option<&str>) -> Result<(), String> {
             "stalePredecessorSource": "transition 1 nextStateRoot",
             "expectedReason": "BAD_PREVIOUS_STATE",
             "transactionBroadcast": false,
-            "referenceRuntime": "evidence/local/reference_agent_runtime.json",
-            "securityAssurance": "evidence/local/security_assurance_report.json"
+            "referenceRuntime": "evidence/local/reference_agent_runtime.json"
+        },
+        "protocolCorpus": {
+            "sourceClass": "PROTOCOL_CORPUS_LOCAL",
+            "evidence": "evidence/local/memory_lineage_evm_evidence.json",
+            "securityAssurance": "evidence/local/security_assurance_report.json",
+            "status": "BOUNDED_LOCAL"
+        },
+        "submissionEnvelope": {
+            "path": "evidence/submission/manifest.json",
+            "incidentId": "demo-space-v2-silent-rollback",
+            "status": "VERIFIED_LOCAL_PACKAGE"
         },
         "legacyFixture": "fixtures/silent-rollback/manifest.json",
         "evidence": [
+            "evidence/submission/manifest.json",
             "evidence/local/demo_space_v2_evidence.json",
             "evidence/local/demo_space_v2_recovery_receipt.json",
             "evidence/local/demo_space_v2_historical_recovery_receipt.json",

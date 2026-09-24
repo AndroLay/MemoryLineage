@@ -8,7 +8,9 @@ Evidence is grouped by how it is produced:
   fixture used by the hero rehearsal;
 - `conformance/` — vector and cross-implementation comparison outputs;
 - `generated/` — reproducible machine output that should not be treated as
-  hand-authored source.
+  hand-authored source;
+- `submission/` — source-labeled Demo Space V2 incident envelope with hashes,
+  local replay checks, and explicit unproven external gates.
 
 The curated `local/demo_space_v2_recovery_receipt.json` is a commitment-only
 decision artifact for the current head. Its sibling
@@ -18,8 +20,9 @@ the Demo Space V2 source class, effective authority timeline, and strict
 current-head policy to the V2 bundle and can be replayed with the Rust verifier.
 For the signed Demo Space V2 scope their assurance reports `TIMELINE_BOUND` and
 `EOA_SIGNATURES_VERIFIED`; they do not contain raw memory or assert that a
-production runtime enforced the decision. The schema is
-`schemas/recovery-receipt-v1.schema.json`.
+production runtime enforced the decision. New receipts use
+`schemas/recovery-receipt-v2.schema.json`; signed V1 receipts remain verifiable
+for compatibility, while an unsigned V1 resume decision is rejected.
 
 Every artifact should state its generating command, source revision or pinned
 vector, and whether it is a public claim or historical research output. A
@@ -31,8 +34,9 @@ registry and a commitment from snapshot 17; it does not perform a deployment
 or broadcast a transaction.
 
 `local/reference_agent_runtime.json` records the framework-neutral reference
-runtime loader outcomes for current-head, historical, diverged, and invalid
-evidence candidates. It is local integration evidence, not external adoption.
+runtime loader outcomes for signed current-head, missing authorization,
+historical, diverged, and invalid evidence candidates. It is local integration
+evidence, not external adoption.
 
 `local/security_assurance_report.json` records the bounded Rust/revm assurance
 pass over the pinned Solidity artifact. Its formal status is deliberately

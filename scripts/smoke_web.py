@@ -28,7 +28,7 @@ from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "target/dx/memorylineage-inspector/release/web/public"
-CDP_SOCKET_TIMEOUT_SECONDS = 8
+CDP_SOCKET_TIMEOUT_SECONDS = 20
 BOOT_TIMEOUT_SECONDS = 45
 INTERACTION_TIMEOUT_SECONDS = 25
 # The optional Sepolia probe performs several public-RPC reads and can be
@@ -36,6 +36,8 @@ INTERACTION_TIMEOUT_SECONDS = 25
 # provider does not make the whole release smoke flaky while preserving the
 # truthful terminal-state checks below.
 SEPOLIA_PROBE_TIMEOUT_SECONDS = 45
+SEPOLIA_PROBE_OPT_IN = "MEMORYLINEAGE_SMOKE_SEPOLIA_PROBE"
+KEYBOARD_FOCUS_MAX_TABS = 8
 DESKTOP_VIEWPORT = (1440, 1000)
 MOBILE_VIEWPORT = (390, 844)
 
@@ -44,13 +46,13 @@ ROUTES = {
     "/inspect": "Inspect Memory Space",
     "/history": "Canonical committed lineage and authority events.",
     "/history/3": "Transition #3",
-    "/lab": "Tampering Lab",
+    "/lab/not-a-real-case": "Unknown tampering scenario",
     "/verify": "Verify Evidence",
     "/evidence": "Public Evidence",
     "/architecture": "How It Works",
     "/security": "Security & Scope",
     "/reproduce": "Reproduce the Submission",
-    "/prior-work": "What existed before the hackathon?",
+    "/prior-work": "Standards and project contribution",
 }
 
 
@@ -77,11 +79,12 @@ class CdpSocket:
     def __init__(self, websocket_url: str):
         parsed = urlsplit(websocket_url)
         self.sock = socket.create_connection((parsed.hostname, parsed.port), timeout=10)
-        # A cold Dioxus/WASM page can briefly occupy the renderer while the
-        # runtime mounts. Keep individual CDP reads short so the bounded
-        # polling loops can retry instead of treating that cold start as a
-        # failed route.
+        # A slow Dioxus/WASM renderer turn can delay a single CDP response
+        # even while Chromium and the page remain alive. Allow that response
+        # to complete; route and interaction polling still use their own
+        # bounded deadlines.
         self.sock.settimeout(CDP_SOCKET_TIMEOUT_SECONDS)
+        self.current_command: str | None = None
         key = base64.b64encode(secrets.token_bytes(16)).decode("ascii")
         path = parsed.path or "/"
         if parsed.query:
@@ -115,7 +118,8 @@ class CdpSocket:
         while len(data) < size:
             chunk = self.sock.recv(size - len(data))
             if not chunk:
-                raise RuntimeError("CDP connection closed")
+                command = f" while waiting for {self.current_command}" if self.current_command else ""
+                raise RuntimeError(f"CDP connection closed{command}")
             data += chunk
         return data
 
@@ -147,6 +151,7 @@ class CdpSocket:
         return opcode, payload
 
     def command(self, method: str, params: dict | None = None) -> dict:
+        self.current_command = method
         command_id = self.next_id
         self.next_id += 1
         self._send_frame(json.dumps({"id": command_id, "method": method, "params": params or {}}).encode())
@@ -155,6 +160,13 @@ class CdpSocket:
             if opcode == 9:
                 self._send_frame(payload, opcode=10)
                 continue
+            if opcode == 8:
+                code = int.from_bytes(payload[:2], "big") if len(payload) >= 2 else None
+                reason = payload[2:].decode("utf-8", errors="replace") if len(payload) > 2 else ""
+                raise RuntimeError(
+                    f"CDP peer closed WebSocket (code={code}, reason={reason!r}) "
+                    f"during {method}"
+                )
             if opcode != 1:
                 continue
             message = json.loads(payload.decode("utf-8"))
@@ -189,6 +201,32 @@ def find_chromium() -> str:
         if path:
             return path
     raise RuntimeError("Chromium is required for smoke-web")
+
+
+def build_chromium_command(chromium: str, debug_port: int, profile: Path) -> list[str]:
+    return [
+        chromium,
+        "--headless=new",
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--disable-sync",
+        "--disable-default-apps",
+        "--remote-allow-origins=*",
+        f"--remote-debugging-port={debug_port}",
+        f"--user-data-dir={profile}",
+        "about:blank",
+    ]
+
+
+def create_chromium_profile_directory() -> str:
+    profile_parent = ROOT / "target"
+    profile_parent.mkdir(parents=True, exist_ok=True)
+    return tempfile.mkdtemp(prefix="memorylineage-smoke-", dir=profile_parent)
 
 
 def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
@@ -331,6 +369,12 @@ def verify_accessibility_and_keyboard(cdp: CdpSocket, path: str) -> None:
     if path in {"/lab", "/verify"} and not audit.get("liveRegions"):
         raise RuntimeError(f"route {path} has no aria-live result region")
 
+    if not focus_first_control_by_tab(cdp):
+        raise RuntimeError(f"route {path} did not expose a focusable control through Tab")
+    print(f"PASS accessibility {path or '/'} / h1 + named controls + keyboard Tab focus")
+
+
+def focus_first_control_by_tab(cdp: CdpSocket) -> bool:
     cdp.evaluate(
         """(() => {
           document.body?.setAttribute('data-memorylineage-focus-start', 'true');
@@ -338,52 +382,50 @@ def verify_accessibility_and_keyboard(cdp: CdpSocket, path: str) -> None:
           document.body?.focus();
         })()"""
     )
-    focused = []
-    for _ in range(40):
-        cdp.command(
-            "Input.dispatchKeyEvent",
-            {
-                "type": "keyDown",
-                "key": "Tab",
-                "code": "Tab",
-                "windowsVirtualKeyCode": 9,
-                "nativeVirtualKeyCode": 9,
-            },
-        )
-        cdp.command(
-            "Input.dispatchKeyEvent",
-            {
-                "type": "keyUp",
-                "key": "Tab",
-                "code": "Tab",
-                "windowsVirtualKeyCode": 9,
-                "nativeVirtualKeyCode": 9,
-            },
-        )
-        state = cdp.evaluate(
-            """(() => {
-              const element = document.activeElement;
-              const style = element ? getComputedStyle(element) : null;
-              const visible = Boolean(element && element.getClientRects().length
-                && style?.display !== 'none' && style?.visibility !== 'hidden');
-              return {
-                tag: element?.tagName || '',
-                name: (element?.innerText || element?.getAttribute('aria-label') || '').trim(),
-                visible,
-                tabIndex: element?.tabIndex ?? -1,
-              };
-            })()"""
-        ) or {}
-        if isinstance(state, dict) and state.get("visible") and state.get("tabIndex", -1) >= 0:
-            focused.append(state)
-    cdp.evaluate("document.body?.removeAttribute('data-memorylineage-focus-start')")
-    cdp.evaluate("document.body?.removeAttribute('tabindex')")
-    if not focused:
-        raise RuntimeError(f"route {path} did not expose a focusable control through Tab")
-    print(
-        f"PASS accessibility {path or '/'} / h1 + named controls + keyboard focus "
-        f"({len(focused)} stops)"
-    )
+    try:
+        for _ in range(KEYBOARD_FOCUS_MAX_TABS):
+            cdp.command(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyDown",
+                    "key": "Tab",
+                    "code": "Tab",
+                    "windowsVirtualKeyCode": 9,
+                    "nativeVirtualKeyCode": 9,
+                },
+            )
+            cdp.command(
+                "Input.dispatchKeyEvent",
+                {
+                    "type": "keyUp",
+                    "key": "Tab",
+                    "code": "Tab",
+                    "windowsVirtualKeyCode": 9,
+                    "nativeVirtualKeyCode": 9,
+                },
+            )
+            state = cdp.evaluate(
+                """(() => {
+                  const element = document.activeElement;
+                  const style = element ? getComputedStyle(element) : null;
+                  return {
+                    visible: Boolean(element && element.getClientRects().length
+                      && style?.display !== 'none' && style?.visibility !== 'hidden'),
+                    tabIndex: element?.tabIndex ?? -1,
+                  };
+                })()"""
+            ) or {}
+            if isinstance(state, dict) and state.get("visible") and state.get("tabIndex", -1) >= 0:
+                return True
+        return False
+    finally:
+        try:
+            cdp.evaluate(
+                "document.body?.removeAttribute('data-memorylineage-focus-start'); "
+                "document.body?.removeAttribute('tabindex')"
+            )
+        except Exception:
+            pass
 
 
 def navigate_via_internal_link(
@@ -490,6 +532,30 @@ def navigate_via_internal_link(
     )
 
 
+def navigate_via_history(cdp: CdpSocket, path: str, expected: str) -> None:
+    expression = f"""(() => {{
+      window.history.pushState([0, 0], '', {json.dumps(path)});
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      return true;
+    }})()"""
+    if cdp.evaluate(expression) is not True:
+        raise RuntimeError(f"could not dispatch a history navigation to {path}")
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        state = cdp.evaluate("""(() => ({
+          path: location.pathname,
+          body: document.body ? document.body.innerText : ''
+        }))()""") or {}
+        if (
+            isinstance(state, dict)
+            and state.get("path") == path
+            and expected in state.get("body", "")
+        ):
+            return
+        time.sleep(0.1)
+    raise RuntimeError(f"history navigation did not render {path} with {expected!r}")
+
+
 def verify_home_problem_story(cdp: CdpSocket) -> None:
     manifest = json.loads(
         (ROOT / "fixtures/silent-rollback-v2/manifest.json").read_text()
@@ -531,6 +597,13 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         body = " ".join(body.split())
         missing = [marker for marker in expected if marker not in body]
         if not missing:
+            primary = cdp.evaluate(
+                "(() => { const link = document.querySelector('.home-hero-copy a.button-primary'); "
+                "return link ? {label: link.innerText, path: new URL(link.href).pathname} : null; })()"
+            )
+            if not isinstance(primary, dict) or primary.get("path") != "/lab/silent-rollback" \
+                or "check an old restore" not in primary.get("label", "").casefold():
+                raise RuntimeError(f"Home primary restore action is missing: {primary!r}")
             print("PASS home problem story / plain-language restore flow + canonical head + fixture labels")
             return
         time.sleep(0.25)
@@ -542,6 +615,57 @@ def verify_home_problem_story(cdp: CdpSocket) -> None:
         f"home problem story is incomplete; missing source-backed context: {missing!r}; "
         f"visible body: {' '.join(body.split())[:700]!r}; note nodes: {note_nodes!r}"
     )
+
+
+def verify_submission_context(cdp: CdpSocket, path: str) -> None:
+    manifest = json.loads((ROOT / "evidence/submission/manifest.json").read_text())
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    if path != "/evidence" and manifest["incidentId"].casefold() not in body.casefold():
+        raise RuntimeError(f"{path} does not show the named submission incident; body starts with {' '.join(body.split())[:430]!r}")
+    if path == "/verify":
+        bundle_hash = next(
+            item["sha256"] for item in manifest["artifacts"]
+            if item["path"] == "evidence/local/demo_space_v2_evidence.json"
+        )
+        details = cdp.evaluate("""(() => ({
+          hashShown: Array.from(document.querySelectorAll('[title]')).some(
+            element => element.title === """ + json.dumps(bundle_hash) + """),
+          hasCommand: document.body.innerText.includes(
+            'submission verify evidence/submission/manifest.json'),
+          hasSource: document.body.innerText.includes('DEMO_SPACE_V2_LOCAL'),
+          hasReplayScope: document.body.innerText.includes('OFFLINE_BUNDLE_REPLAY'),
+          hasCount: document.body.innerText.toLowerCase().includes('artifact count')
+        }))()""") or {}
+        if not isinstance(details, dict) or not all(details.values()):
+            raise RuntimeError(f"Verify page lacks published package context: {details!r}")
+    if path in {"/inspect", "/history"}:
+        controls = cdp.evaluate(
+            "Array.from(document.querySelectorAll('.inspect-view-controls, .history-view-controls'))"
+            ".flatMap(node => Array.from(node.querySelectorAll('button, .view-control')))"
+            ".map(node => node.innerText.trim())"
+        ) or []
+        if [control.casefold() for control in controls] != ["linear"]:
+            raise RuntimeError(f"{path} exposes unsupported lineage controls: {controls!r}")
+    if path == "/evidence":
+        if not all(
+            text.casefold() in body.casefold()
+            for text in (
+                "Missing authorization proof",
+                "BLOCK_UNVERIFIED",
+                "current head held before loader",
+            )
+        ):
+            raise RuntimeError(
+                "Evidence page does not show the missing-proof runtime hold"
+            )
+    if path == "/inspect":
+        primary = cdp.evaluate(
+            "(() => { const link = document.querySelector('.inspect-query a.button-primary'); "
+            "return link ? new URL(link.href).pathname : null; })()"
+        )
+        if primary != "/lab/silent-rollback":
+            raise RuntimeError(f"Inspect primary action does not open the restore check: {primary!r}")
+    print(f"PASS submission context {path}")
 
 
 def click_and_wait(cdp: CdpSocket, text: str, expected: str) -> None:
@@ -651,6 +775,16 @@ def click_and_wait_for_sepolia_probe(cdp: CdpSocket) -> None:
     raise RuntimeError("browser Sepolia probe did not reach a truthful terminal state")
 
 
+def run_optional_sepolia_probe(cdp: CdpSocket) -> None:
+    if os.environ.get(SEPOLIA_PROBE_OPT_IN) == "1":
+        click_and_wait_for_sepolia_probe(cdp)
+    else:
+        print(
+            "SKIP optional public Sepolia RPC probe "
+            f"(set {SEPOLIA_PROBE_OPT_IN}=1 to enable)"
+        )
+
+
 def verify_history_ledger(cdp: CdpSocket) -> None:
     result = cdp.evaluate("""(() => {
       const ledger = document.querySelector('.history-event-table');
@@ -714,7 +848,7 @@ def verify_recovery_receipt(cdp: CdpSocket) -> None:
         "RECEIPT VERIFIED",
         "CURRENT_HEAD",
         "RESUME_ALLOWED",
-        "STRICT-CURRENT-HEAD-ONLY-V1",
+        "STRICT-AUTHORIZED-CURRENT-HEAD-V2",
         "EOA_SIGNATURES_VERIFIED",
         "TIMELINE_BOUND",
         "PUBLISHED RECOVERY RECEIPT",
@@ -744,6 +878,57 @@ def verify_recovery_receipt(cdp: CdpSocket) -> None:
             return
         time.sleep(0.25)
     raise RuntimeError("recovery receipt did not return to VERIFIED after restore")
+
+
+def set_file_input(cdp: CdpSocket, selector: str, path: Path) -> None:
+    root = cdp.command("DOM.getDocument", {"depth": 0}).get("root", {}).get("nodeId")
+    if not root:
+        raise RuntimeError("could not locate the document for file import smoke")
+    node = cdp.command(
+        "DOM.querySelector", {"nodeId": root, "selector": selector}
+    ).get("nodeId")
+    if not node:
+        raise RuntimeError(f"file import control was not found: {selector}")
+    cdp.command("DOM.setFileInputFiles", {"nodeId": node, "files": [str(path)]})
+
+
+def wait_for_body_text(cdp: CdpSocket, expected: str) -> None:
+    deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
+    while time.time() < deadline:
+        body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+        if expected in body:
+            return
+        time.sleep(0.1)
+    raise RuntimeError(f"Inspector did not show the expected import result: {expected!r}")
+
+
+def verify_import_guards(cdp: CdpSocket) -> None:
+    with tempfile.TemporaryDirectory(prefix="memorylineage-import-smoke-") as directory:
+        unsupported = Path(directory) / "evidence.txt"
+        unsupported.write_text("{}", encoding="utf-8")
+        oversized = Path(directory) / "evidence.json"
+        with oversized.open("wb") as evidence_file:
+            evidence_file.truncate(1024 * 1024 + 1)
+
+        set_file_input(cdp, ".evidence-actions-panel input[type=file]", unsupported)
+        wait_for_body_text(cdp, "Choose a file with a .json extension.")
+        set_file_input(cdp, ".evidence-actions-panel input[type=file]", oversized)
+        wait_for_body_text(cdp, "The file exceeds the 1024 KiB import limit.")
+        set_file_input(cdp, ".recovery-receipt-actions input[type=file]", oversized)
+        wait_for_body_text(cdp, "The file exceeds the 1024 KiB import limit.")
+        restored = cdp.evaluate("""(() => {
+          const button = Array.from(document.querySelectorAll('.recovery-receipt-actions button')).find(
+            element => element.textContent && element.textContent.trim() === 'Restore'
+          );
+          if (!button) return false;
+          button.click();
+          return true;
+        })()""")
+        if restored is not True:
+            raise RuntimeError("recovery receipt restore control was not found after import guard checks")
+        wait_for_body_text(cdp, "PUBLISHED RECOVERY RECEIPT")
+        wait_for_body_text(cdp, "RECEIPT VERIFIED")
+    print("PASS file imports / unsupported extension and oversized files rejected before read")
 
 
 def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
@@ -785,6 +970,27 @@ def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
             )
             click_and_wait(cdp, "Restore original", "VERIFIED")
 
+
+def capture_demo_frame(cdp: CdpSocket, filename: str, *, focus: str | None = None) -> None:
+    destination_text = os.environ.get("MEMORYLINEAGE_DEMO_FRAMES_DIR")
+    if not destination_text:
+        return
+    destination = Path(destination_text)
+    destination.mkdir(parents=True, exist_ok=True)
+    if focus:
+        cdp.evaluate(
+            f"document.querySelector({json.dumps(focus)})?.scrollIntoView({{block: 'center'}})"
+        )
+    else:
+        cdp.evaluate("window.scrollTo(0, 0)")
+    time.sleep(0.2)
+    payload = cdp.command(
+        "Page.captureScreenshot",
+        {"format": "png", "captureBeyondViewport": False},
+    )
+    (destination / filename).write_bytes(base64.b64decode(payload["data"]))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Run the MemoryLineage browser acceptance smoke against a static artifact or an existing server."
@@ -799,7 +1005,9 @@ def main() -> int:
     chromium = find_chromium()
     server = None
     browser = None
-    temporary = tempfile.mkdtemp(prefix="memorylineage-smoke-")
+    cdp = None
+    chosen_port = None
+    temporary = create_chromium_profile_directory()
     try:
         if args.base_url:
             base = args.base_url.rstrip("/")
@@ -816,18 +1024,7 @@ def main() -> int:
         chosen_port = debug_port.getsockname()[1]
         debug_port.close()
         browser = subprocess.Popen(
-            [
-                chromium,
-                "--headless=new",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--remote-allow-origins=*",
-                f"--remote-debugging-port={chosen_port}",
-                f"--user-data-dir={temporary}",
-                "about:blank",
-            ],
+            build_chromium_command(chromium, chosen_port, Path(temporary)),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -867,11 +1064,26 @@ def main() -> int:
         )
         wait_for_url(base, "/", ROUTES["/"], cdp)
         verify_home_problem_story(cdp)
+        capture_demo_frame(cdp, "01-home.png")
         navigate_via_internal_link(cdp, "/inspect", ROUTES["/inspect"])
         verify_restore_preflight(cdp)
+        capture_demo_frame(cdp, "02-inspect.png")
         for path, expected in ROUTES.items():
-            wait_for_url(base, path, expected, cdp)
+            if path in {"/lab/not-a-real-case", "/verify"}:
+                # Cold-load representative deep links, including the unknown
+                # parameter route. Other pages use SPA history navigation so
+                # this smoke does not repeatedly restart the WASM application.
+                wait_for_url(base, path, expected, cdp)
+            else:
+                navigate_via_history(cdp, path, expected)
             verify_accessibility_and_keyboard(cdp, path)
+            if path == "/lab/not-a-real-case":
+                unknown_scenario = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+                if "UNKNOWN SCENARIO" not in unknown_scenario or "No lab scenario is registered" not in unknown_scenario:
+                    raise RuntimeError("unknown lab slug did not render the not-found state")
+                print("PASS tampering lab / unknown slug renders not-found instead of Silent Rollback")
+            if path in {"/inspect", "/history", "/verify", "/evidence"}:
+                verify_submission_context(cdp, path)
             if path == "/history":
                 verify_history_ledger(cdp)
             if path == "/history/3":
@@ -879,12 +1091,20 @@ def main() -> int:
             if path == "/reproduce":
                 verify_reproduce_path(cdp)
 
-        wait_for_url(base, "/lab/silent-rollback", "Run Silent Rollback", cdp)
+        navigate_via_internal_link(cdp, "/lab", "Run Silent Rollback")
+        verify_accessibility_and_keyboard(cdp, "/lab")
+        navigate_via_internal_link(cdp, "/", ROUTES["/"])
+        navigate_via_internal_link(cdp, "/lab/silent-rollback", "Run Silent Rollback")
+        verify_accessibility_and_keyboard(cdp, "/lab/silent-rollback")
         click_and_wait_for_rollback(cdp)
-        click_and_wait_for_sepolia_probe(cdp)
-        wait_for_url(base, "/verify", "VERIFIED", cdp)
+        capture_demo_frame(cdp, "03-rollback.png")
+        run_optional_sepolia_probe(cdp)
+        navigate_via_internal_link(cdp, "/verify", "BUNDLE REPLAY VERIFIED")
+        verify_import_guards(cdp)
         click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
+        capture_demo_frame(cdp, "04-tampered.png", focus=".verify-results-detail")
         click_and_wait(cdp, "Restore original", "VERIFIED")
+        capture_demo_frame(cdp, "05-restored.png", focus=".verify-results-detail")
         verify_recovery_receipt(cdp)
         screenshot_root = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
         mobile_directory = Path(screenshot_root) / "mobile" if screenshot_root else None
@@ -900,7 +1120,7 @@ def main() -> int:
             },
         )
         for path, expected in ROUTES.items():
-            wait_for_url(base, path, expected, cdp)
+            navigate_via_history(cdp, path, expected)
             if cdp.evaluate(
                 "document.documentElement.scrollWidth <= window.innerWidth"
             ) is not True:
@@ -927,6 +1147,26 @@ def main() -> int:
             else "PASS: static browser smoke"
         )
         return 0
+    except Exception:
+        if os.environ.get("MEMORYLINEAGE_CDP_DEBUG") == "1":
+            browser_state = browser.poll() if browser is not None else None
+            targets = []
+            if chosen_port is not None:
+                try:
+                    with urlopen(f"http://127.0.0.1:{chosen_port}/json/list", timeout=1) as response:
+                        targets = [
+                            {"type": item.get("type"), "url": item.get("url")}
+                            for item in json.load(response)
+                        ]
+                except Exception as diagnostic_error:
+                    targets = [f"unavailable: {type(diagnostic_error).__name__}"]
+            event_names = [event.get("method") for event in (cdp.events if cdp else [])]
+            print(
+                f"CDP diagnosis browser_exit={browser_state!r} "
+                f"targets={targets!r} last_events={event_names[-8:]!r}",
+                flush=True,
+            )
+        raise
     finally:
         if browser is not None:
             browser.terminate()
