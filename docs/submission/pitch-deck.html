@@ -52,6 +52,7 @@
     .demo-copy { padding-top: .14in; }
     .demo-copy .result { font-size: 32px; font-weight: 700; line-height: 1.12; margin-top: .25in; }
     .demo-copy p { font-size: 17px; color: #c4d2e1; line-height: 1.4; margin-top: .25in; }
+    .demo-copy .code { font-size: 13px; line-height: 1.38; margin-top: .18in; padding: .12in .16in; }
     .capture { height: 4.46in; overflow: hidden; border: 1px solid #466487; background: #102032; }
     .capture img { width: 100%; height: auto; display: block; }
     .capture.verify img { width: 100%; }
@@ -75,7 +76,7 @@
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
     <div class="kicker">3rd-Web-Hack · private agent memory</div>
     <h1>An old AI-memory backup can look current.</h1>
-    <p class="lead">MemoryLineage checks whether a restored private snapshot is the authorized continuation of shared history before a reference agent resumes.</p>
+    <p class="lead">After a crash, the agent operator restores a private snapshot. A separate controller needs evidence before deciding whether the agent may resume.</p>
     <div class="rule"></div>
     <p class="big-quote">Verify the history,<br><span class="accent">not the memory.</span></p>
     <div class="foot"><span>MemoryLineage · pitch</span><span>01 / 08</span></div>
@@ -131,7 +132,8 @@
       <div class="demo-copy">
         <p>Canonical head: transition 3. Attempted predecessor: actual root after transition 1.</p>
         <div class="result danger">REJECTED<br>BAD_PREVIOUS_STATE</div>
-        <p>The local Solidity execution rejects the stale predecessor. It does not stop a local file restore or prove what an external runtime loaded.</p>
+        <div class="code">snapshot 1 → KNOWN_HISTORICAL_CHECKPOINT<br>reason: current head is snapshot 3<br>REHEARSE_ONLY → HELD<br>reference loader not invoked</div>
+        <p>The contract check rejects the stale root. Separately, the framework-neutral local reference runtime holds snapshot 1 before its loader. Production integration is not claimed.</p>
       </div>
       <div class="capture"><img src="assets/lab-local.png" alt="Inspector Tampering Lab showing the local BAD_PREVIOUS_STATE rollback rejection"></div>
     </div>
@@ -186,7 +188,7 @@
       <div><strong>Extend the proof</strong><p>Collect independent human reproduction and a public same-space deployment before making those claims.</p></div>
     </div>
     <p class="url">memorylineage.pages.dev · github.com/AndroLay/MemoryLineage</p>
-    <div class="foot"><span>Current hosted site may trail the local candidate revision</span><span>08 / 08</span></div>
+    <div class="foot"><span>Hosted deployment status unverified</span><span>08 / 08</span></div>
   </article>
 </body>
 </html>

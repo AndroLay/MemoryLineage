@@ -17,8 +17,8 @@ An AI agent has private memory that changes over time:
 snapshot 1  →  snapshot 2  →  snapshot 3
 ```
 
-After a crash, the operator restores snapshot 1 and tries to continue as if
-the newer history never existed.
+After a crash, the agent operator restores snapshot 1. A separate controller
+must decide whether the agent may resume or should be held for review.
 
 The question is not whether the operator can restore a local database. The
 question is whether the restored snapshot is the authorized continuation of
@@ -26,8 +26,9 @@ the committed history.
 
 ### Judge takeaway
 
-An operator-controlled local log cannot be the only checkpoint an external
-reviewer trusts when the operator also controls the runtime and storage.
+A controller cannot rely only on the operator's local log when that operator
+also controls the runtime and storage. It needs evidence that the restored
+snapshot is still the authorized continuation.
 
 ## Slide 2 — Why a shared registry?
 
@@ -64,12 +65,10 @@ unknown / diverged
 unverified
 ```
 
-It also exposes a Restore Preflight and Recovery Decision Receipt surface so a
-future runtime adapter can distinguish a permitted current-head resume from a
-historical rehearsal or a review hold.
-
-The current adapter is a reference integration boundary over the supplied
-fixture. It is not a production agent loader.
+The repository includes a framework-neutral local reference runtime. For this
+incident it classifies restored snapshot 1 as `KNOWN_HISTORICAL_CHECKPOINT`,
+recommends `REHEARSE_ONLY`, and holds it before the loader. This is a local
+reference integration, not a production agent runtime.
 
 ## Slide 4 — One coherent evidence path
 
@@ -110,6 +109,12 @@ This proves the tested stale predecessor cannot be accepted as the next
 canonical transition. It does not prevent a local restore or determine what a
 separate production runtime loaded.
 
+The separate local reference runtime checks the restored snapshot before its
+loader: snapshot 1 is behind current head 3, so it reports
+`KNOWN_HISTORICAL_CHECKPOINT` -> `REHEARSE_ONLY` -> `HELD`. Its report records
+that the loader was not invoked. This demonstrates the reference gate, not
+enforcement by an external production agent.
+
 ## Slide 6 — Do not trust the dashboard
 
 The Inspector lets a reviewer:
@@ -117,11 +122,12 @@ The Inspector lets a reviewer:
 1. inspect the canonical local evidence head;
 2. trace the transition and authority history;
 3. run Silent Rollback;
-4. export the portable evidence;
-5. change one commitment;
-6. observe `TRANSITION_ID_MISMATCH`;
-7. restore the bundle and observe `BUNDLE REPLAY VERIFIED`;
-8. run the independent Rust CLI verifier.
+4. inspect the local reference runtime's hold for historical snapshot 1;
+5. export the portable evidence;
+6. change one commitment;
+7. observe `TRANSITION_ID_MISMATCH`;
+8. restore the bundle and observe `BUNDLE REPLAY VERIFIED`;
+9. run the independent Rust CLI verifier.
 
 The static release gate covers all 11 routes, the 390px no-overflow check,
 the rollback result, evidence tamper/restore, and Recovery Decision Receipt

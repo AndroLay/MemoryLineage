@@ -24,7 +24,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
 | Public static website | AUTO-DEPLOYMENT / LIVE STATUS UNVERIFIED | No manual Pages deployment was run; a Git push occurred, but whether hosting automation deployed it and what the live site serves could not be verified |
 | Pitch deck | PASS / local only | Eight-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf), editable [HTML source](pitch-deck.html), and visual page inspection |
-| Demo video | PASS / local only | 45-second [captioned video](demo-video.md) from five static-browser states; not uploaded to Devpost |
+| Demo video | PASS / local only | 45-second [captioned video](demo-video.md) from five static-browser captures and one validated reference-runtime report card; not uploaded to Devpost |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
 
 ## Automated verification
