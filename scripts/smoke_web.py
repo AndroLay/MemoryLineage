@@ -931,7 +931,7 @@ def verify_import_guards(cdp: CdpSocket) -> None:
     print("PASS file imports / unsupported extension and oversized files rejected before read")
 
 
-def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
+def capture_requested_screenshots(cdp: CdpSocket) -> None:
     destination_text = os.environ.get("MEMORYLINEAGE_SCREENSHOT_DIR")
     if not destination_text:
         return
@@ -948,12 +948,12 @@ def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
         },
     )
     for path, expected in ROUTES.items():
-        wait_for_url(base, path, expected, cdp)
+        navigate_via_history(cdp, path, expected)
         if path == "/lab":
             click_and_wait_for_rollback(cdp)
         payload = cdp.command(
             "Page.captureScreenshot",
-            {"format": "png", "captureBeyondViewport": True},
+            {"format": "png", "captureBeyondViewport": False},
         )
         image = base64.b64decode(payload["data"])
         filename = (path.strip("/").replace("/", "-") or "home") + ".png"
@@ -963,7 +963,7 @@ def capture_requested_screenshots(base: str, cdp: CdpSocket) -> None:
             click_and_wait(cdp, "Tamper one field", "TRANSITION_ID_MISMATCH")
             tampered = cdp.command(
                 "Page.captureScreenshot",
-                {"format": "png", "captureBeyondViewport": True},
+                {"format": "png", "captureBeyondViewport": False},
             )
             (desktop / "verify-tampered.png").write_bytes(
                 base64.b64decode(tampered["data"])
@@ -1130,7 +1130,7 @@ def main() -> int:
             if mobile_directory:
                 payload = cdp.command(
                     "Page.captureScreenshot",
-                    {"format": "png", "captureBeyondViewport": True},
+                    {"format": "png", "captureBeyondViewport": False},
                 )
                 image = base64.b64decode(payload["data"])
                 filename = (path.strip("/").replace("/", "-") or "home") + ".png"
@@ -1139,7 +1139,7 @@ def main() -> int:
             else:
                 print(f"PASS responsive 390px / no overflow / {path}")
         cdp.command("Emulation.clearDeviceMetricsOverride")
-        capture_requested_screenshots(base, cdp)
+        capture_requested_screenshots(cdp)
         cdp.close()
         print(
             "PASS: development browser smoke"
