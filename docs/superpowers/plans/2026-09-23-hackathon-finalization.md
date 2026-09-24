@@ -32,6 +32,7 @@
 - [x] Produce a clean, reproducible release candidate without swallowing unrelated workspace changes.
 - [x] Run the repository release, legacy compatibility, submission-bundle, and reviewer-archive gates on the exact candidate revision.
 - [x] Prepare an exact publication checklist for GitHub, hosted Inspector, and any optional same-space testnet transaction. Do not present a local replay as a public transaction.
+- [x] Push the source candidate to GitHub `main` without creating a new tag or release; record that Pages deployment and candidate CI results are unverified.
 - [x] Keep human comprehension/reproduction and Devpost account submission pending until real external evidence exists.
 
 **Files:** `docs/submission/release-checklist.md`, `docs/submission/README.md`, evidence metadata, and existing release tooling if a concrete gap is found.
@@ -44,11 +45,12 @@ The official event accepts a short video **or** a live demonstration and asks fo
 
 ## Local completion record
 
-The committed local candidate is `675c707405ac2afea1fd067be44a67890b0a35f2`.
+The committed source candidate is `675c707405ac2afea1fd067be44a67890b0a35f2`.
 `cargo xtask release --quiet`, `npm run verify --silent`,
 `cargo xtask reviewer-package`, and `cargo xtask reviewer-reproduce` passed.
 The eight-page PDF and 45-second video were inspected and are reproducible from
-this source revision. The candidate has not been pushed or tagged; the last
-recorded hosted release is `v1.0.1`, and current Pages content could not be
-rechecked in this session. Devpost upload and external human
-comprehension/reproduction remain pending.
+this source revision. The candidate has been pushed to GitHub `main` and remains
+untagged; `v1.0.1` is the last confirmed release. The push may have triggered a
+Pages build, but the current site and candidate CI result could not be verified
+in this session. Devpost upload and external human comprehension/reproduction
+remain pending.

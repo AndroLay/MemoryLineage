@@ -119,20 +119,23 @@ resume example checks five loader outcomes: signed current head, missing
 authorization, historical, diverged, and invalid evidence. The current local
 `cargo xtask release` and `npm run verify` pass, including the 11-route
 Chromium smoke and legacy compatibility lane.
-The source tree is committed as local candidate
-`675c707405ac2afea1fd067be44a67890b0a35f2`. This moves **public incident
-coherence** to `VERIFIED_LOCAL_PACKAGE` for that source revision.
+The source tree is committed as candidate
+`675c707405ac2afea1fd067be44a67890b0a35f2` and has been pushed to GitHub
+`main`. This moves **public incident coherence** to `VERIFIED_LOCAL_PACKAGE`
+for that source revision; no new tag or release was created.
 `submissionCommit` remains `null` because the manifest cannot contain its own
 final Git SHA; the exact revision is recorded in the release checklist and
 reproduction runbook. The prior `v1.0.1` tag and last recorded hosted release
-predate this update; live Pages content was not independently verified here.
-External human reproduction and remote CI remain
-`NOT_YET_DEMONSTRATED`.
+predate this update. A Git push occurred, but whether Pages automatically
+deployed it and what the live site serves could not be verified here. External
+human reproduction remains `NOT_YET_DEMONSTRATED`; no remote CI result for the
+candidate was retrieved.
 
 The later finalization work adds a printable eight-slide pitch PDF, a 45-second
 captioned video assembled from actual static-browser states, a contribution and
 provenance record, and an opt-in secret-blinded commitment helper. The PDF and
 video are reproducible from candidate commit `675c707405ac2afea1fd067be44a67890b0a35f2`.
-No Devpost upload or public site refresh was performed; current Pages content
-was not independently verified. No same-space Sepolia deployment, production
-secret lifecycle, or external human report is implied by their presence.
+No Devpost upload or manual public-site deployment was performed; current Pages
+content was not independently verified. No same-space Sepolia deployment,
+production secret lifecycle, or external human report is implied by their
+presence.

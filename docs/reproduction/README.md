@@ -18,21 +18,22 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
-The current local source candidate is
-`675c707405ac2afea1fd067be44a67890b0a35f2`. It is committed on local `main` but
-has not been pushed or tagged. The earlier public release
+The source candidate is
+`675c707405ac2afea1fd067be44a67890b0a35f2`. It has been pushed to GitHub
+`main` and remains untagged. The earlier public release
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
 predates the submission envelope and new website labels. The manifest keeps
 `submissionCommit: null` to avoid a self-referential hash; use the exact SHA
-above in any reviewer packet and report. Before asking an external reviewer to
-clone from GitHub, publish this commit or provide the clean reviewer archive.
+above in any reviewer packet and report. A reviewer can check out this commit
+from GitHub or receive the clean reviewer archive.
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
 tree. The last recorded public Inspector is at
-[memorylineage.pages.dev](https://memorylineage.pages.dev). This workflow did
-not update it, and its current content was not rechecked here. Reproduction does
-not depend on the hosted site or a new Sepolia deployment.
+[memorylineage.pages.dev](https://memorylineage.pages.dev). A Git push occurred,
+but no manual Pages deployment was run and automatic deployment status is
+unverified; the current site content could not be fetched here. Reproduction
+does not depend on the hosted site or a new Sepolia deployment.
 
 ## Automated path
 

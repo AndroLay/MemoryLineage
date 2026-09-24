@@ -1,8 +1,9 @@
 # Claim and evidence audit — local candidate
 
 Reviewed on 24 September 2026 against source commit
-`675c707405ac2afea1fd067be44a67890b0a35f2`. This local candidate is separate
-from the earlier `v1.0.1` tag; current live Pages content was not rechecked.
+`675c707405ac2afea1fd067be44a67890b0a35f2`, which is pushed to GitHub `main`.
+It is separate from the earlier `v1.0.1` tag; current live Pages content was
+not rechecked.
 The submission manifest keeps `submissionCommit: null` to avoid a
 self-referential hash; this report, release checklist, and reproduction runbook
 record the exact source revision.
@@ -63,6 +64,7 @@ bundles and a separate replay-versus-trusted-head check.
   `production adoption`, and `consensus proven` found only explicit negations,
   status labels, or historical/internal discussion in current product surfaces.
 
-No remote CI result for this candidate, new hosted deployment, Devpost upload,
-or external human report is claimed here. The last recorded hosted release is
-`v1.0.1`; current Pages content was not independently verified in this session.
+The source candidate was pushed to `main`; no remote CI result for that push was
+retrieved. No Pages deployment, Devpost upload, or external human report is
+claimed. The last confirmed release is `v1.0.1`; current Pages content was not
+independently verified in this session.
