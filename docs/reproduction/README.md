@@ -19,7 +19,7 @@ Give the reviewer:
 4. no additional explanation of the product.
 
 The current local source candidate is
-`1c15dc89d434943319bca1234c783ab421636906`. It is committed on local `main` but
+`675c707405ac2afea1fd067be44a67890b0a35f2`. It is committed on local `main` but
 has not been pushed or tagged. The earlier public release
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
 predates the submission envelope and new website labels. The manifest keeps

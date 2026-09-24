@@ -44,7 +44,7 @@ The official event accepts a short video **or** a live demonstration and asks fo
 
 ## Local completion record
 
-The committed local candidate is `1c15dc89d434943319bca1234c783ab421636906`.
+The committed local candidate is `675c707405ac2afea1fd067be44a67890b0a35f2`.
 `cargo xtask release --quiet`, `npm run verify --silent`,
 `cargo xtask reviewer-package`, and `cargo xtask reviewer-reproduce` passed.
 The eight-page PDF and 45-second video were inspected and are reproducible from

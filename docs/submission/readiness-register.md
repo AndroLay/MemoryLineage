@@ -120,7 +120,7 @@ authorization, historical, diverged, and invalid evidence. The current local
 `cargo xtask release` and `npm run verify` pass, including the 11-route
 Chromium smoke and legacy compatibility lane.
 The source tree is committed as local candidate
-`1c15dc89d434943319bca1234c783ab421636906`. This moves **public incident
+`675c707405ac2afea1fd067be44a67890b0a35f2`. This moves **public incident
 coherence** to `VERIFIED_LOCAL_PACKAGE` for that source revision.
 `submissionCommit` remains `null` because the manifest cannot contain its own
 final Git SHA; the exact revision is recorded in the release checklist and
@@ -132,7 +132,7 @@ External human reproduction and remote CI remain
 The later finalization work adds a printable eight-slide pitch PDF, a 45-second
 captioned video assembled from actual static-browser states, a contribution and
 provenance record, and an opt-in secret-blinded commitment helper. The PDF and
-video are reproducible from candidate commit `1c15dc89d434943319bca1234c783ab421636906`.
+video are reproducible from candidate commit `675c707405ac2afea1fd067be44a67890b0a35f2`.
 No Devpost upload or public site refresh was performed; current Pages content
 was not independently verified. No same-space Sepolia deployment, production
 secret lifecycle, or external human report is implied by their presence.

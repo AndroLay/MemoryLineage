@@ -11,7 +11,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Local source candidate | COMMITTED / LOCAL ONLY | `1c15dc89d434943319bca1234c783ab421636906`; the source and local artifacts are committed but not tagged or published |
+| Local source candidate | COMMITTED / LOCAL ONLY | `675c707405ac2afea1fd067be44a67890b0a35f2`; the source and local artifacts are committed but not tagged or published |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
 | Dioxus Inspector routes | PASS | 11 routes in `apps/inspector/src/main.rs` and static browser smoke |
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
@@ -53,7 +53,7 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| Remote CI for local candidate | NOT RUN | Commit `1c15dc89d434943319bca1234c783ab421636906` has not been pushed to `origin` |
+| Remote CI for local candidate | NOT RUN | Commit `675c707405ac2afea1fd067be44a67890b0a35f2` has not been pushed to `origin` |
 | GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this local source candidate |

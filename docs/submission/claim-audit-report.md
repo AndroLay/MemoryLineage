@@ -1,7 +1,7 @@
 # Claim and evidence audit — local candidate
 
 Reviewed on 24 September 2026 against source commit
-`1c15dc89d434943319bca1234c783ab421636906`. This local candidate is separate
+`675c707405ac2afea1fd067be44a67890b0a35f2`. This local candidate is separate
 from the earlier `v1.0.1` tag; current live Pages content was not rechecked.
 The submission manifest keeps `submissionCommit: null` to avoid a
 self-referential hash; this report, release checklist, and reproduction runbook

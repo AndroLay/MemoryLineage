@@ -99,7 +99,7 @@ contains an eight-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) and a
 45-second [captioned local demo](MemoryLineage-local-demo.mp4). The last
 recorded public Inspector URL is
 [memorylineage.pages.dev](https://memorylineage.pages.dev); this workflow did
-not deploy candidate commit `1c15dc89d434943319bca1234c783ab421636906`, and
+not deploy candidate commit `675c707405ac2afea1fd067be44a67890b0a35f2`, and
 current page content was not rechecked. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete

@@ -42,7 +42,7 @@ readiness statuses are frozen in the
 | Independent human clean-checkout reproduction | Not yet demonstrated | Do not imply external developers have reproduced the project. |
 | External reviewer comprehension | Not yet demonstrated | No independent participant answers or time-to-explanation reports exist yet; the controlled protocol is only a prepared instrument. |
 | Production agent adoption | Not yet demonstrated | The local reference runtime and executable example do not show use by an external production agent. |
-| Public static Inspector | Last recorded release is prior candidate; current live content not rechecked | “The last recorded Rust/WASM Inspector release is `v1.0.1` at [memorylineage.pages.dev](https://memorylineage.pages.dev). The local source candidate `1c15dc89d434943319bca1234c783ab421636906` was not deployed by this workflow.” This does not mean Demo Space V2 is deployed to Sepolia. |
+| Public static Inspector | Last recorded release is prior candidate; current live content not rechecked | “The last recorded Rust/WASM Inspector release is `v1.0.1` at [memorylineage.pages.dev](https://memorylineage.pages.dev). The local source candidate `675c707405ac2afea1fd067be44a67890b0a35f2` was not deployed by this workflow.” This does not mean Demo Space V2 is deployed to Sepolia. |
 | Staging environment | Not provided | No separate staging environment is claimed. |
 | Semantic poisoning detection | Out of scope | Do not claim that MemoryLineage detects malicious meaning in otherwise valid memory. |
 | Memory truthfulness or AI reasoning correctness | Unsupported | Do not claim either property. |

@@ -20,7 +20,7 @@ local Demo Space V2 evidence separate from the existing Sepolia observation.
 The pitch deck is a source document. The last recorded public site URL is
 [memorylineage.pages.dev](https://memorylineage.pages.dev). The locally verified
 source candidate is committed as
-`1c15dc89d434943319bca1234c783ab421636906`, but it is not tagged or published
+`675c707405ac2afea1fd067be44a67890b0a35f2`, but it is not tagged or published
 to GitHub. The last recorded hosted release is `v1.0.1`; this workflow did not
 deploy the candidate, and the live Pages content could not be rechecked in this
 session. The local video and pitch PDF were built from that source revision and

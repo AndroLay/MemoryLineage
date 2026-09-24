@@ -5,7 +5,7 @@
 MemoryLineage independently checks whether a private AI-agent snapshot is the
 authorized continuation of its history. Raw memory remains off-chain.
 
-Release baseline: **`v1.0.0`** · current release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
+Release baseline: **`v1.0.0`** · last recorded public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
 
 Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev) (last recorded; current content unverified).
 Demo Space V2 remains local and is not deployed to Sepolia.
