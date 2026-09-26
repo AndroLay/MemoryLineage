@@ -1,12 +1,13 @@
 # MemoryLineage final upgrade status
 
 **Scope:** the prototype upgrade aimed at a real agent-checkpoint boundary and
-an evidence-based comparison with Forkline. This is a work-status record, not
-a new public release or a claim that MemoryLineage outranks another project.
+an evidence-based comparison with Forkline. This record tracks the evaluation
+pre-release; it is not a claim that MemoryLineage outranks another project.
 
 **Branch:** `codex/memorylineage-final-upgrade`
 
-**Published baseline:** `v1.0.2`, unchanged
+**Latest stable baseline:** `v1.0.2`
+**Evaluation pre-release:** `v1.1.0-rc.1`
 **Video:** no new video, narration, or video source was created or added. The
 owner-supplied YouTube URL remains an external link; the pitch PDF remains the
 only presentation media stored in the repository.
@@ -49,12 +50,12 @@ only presentation media stored in the repository.
 | `npm run verify --silent` | PASS | All nine existing EVM, Python, Inspector, audit, replay, and package checks |
 | Real LangGraph/SQLite integration tests | NOT RUN locally | Python 3.12 and pinned packages are absent; package download was blocked by network DNS |
 | `cargo xtask langgraph-verify` | BLOCKED AT PREREQUISITE CHECK | Correctly requires Python 3.12 and installed LangGraph packages; does not report skipped framework tests as a pass |
-| Hosted CI for this branch | PENDING | The workflow is configured to run after push; no hosted result is claimed before it runs |
+| Hosted CI for pre-release source | UNAVAILABLE BEFORE WORKFLOW STEPS | The first run and retry for commit `5473642d` both ended with `runner_id: 0` and zero steps; they provide no test result. |
 
-## Still required before calling the upgrade complete
+## Still required before calling the upgrade stable or complete
 
 1. A successful hosted run of the pinned LangGraph tests and repository CI on
-   this exact branch commit.
+   the release candidate commit.
 2. Two independent developer clean-checkout reproductions and at least five
    first-time user sessions using the pre-registered protocol. These results
    cannot be authored on behalf of participants.
@@ -66,11 +67,23 @@ only presentation media stored in the repository.
 5. Authenticated chain-state evidence for any canonical Ethereum claim. The
    offline verifier continues to prove bundle replay only; RPC agreement would
    be corroboration, not consensus authentication.
-6. A full release gate, clean-checkout reproduction, release metadata, and a
-   separate version/tag. The changes in this branch are not part of v1.0.2 and
-   do not silently update the Devpost submission.
+6. A successful hosted release gate and clean-checkout reproduction for the
+   candidate. The candidate is separate from v1.0.2 and does not silently
+   update the Devpost submission.
 
-These remaining gates limit the product and evaluation claims; they do not
-prevent publishing this implementation branch for review. Push of the branch
-does not merge to `main`, change the v1.0.2 tag, deploy Pages, or publish a new
-video.
+These remaining gates limit stable-release, production, and evaluation claims.
+The candidate remains an opt-in preview; it does not change the v1.0.2 tag,
+production Pages deployment, or Devpost entry. No new video was created.
+
+## v1.1.0-rc.1 candidate publication — 27 September 2026
+
+The candidate is published as an annotated Git tag and GitHub pre-release from
+`codex/memorylineage-final-upgrade`. The changelog and README keep the stable
+`v1.0.2` baseline distinct. The static Inspector candidate is deployed to a
+Cloudflare Pages preview branch; production remains on `main` at `v1.0.2`.
+
+The initial hosted workflow run and retry for commit `5473642d` both ended
+before any workflow step with `runner_id: 0`. Since no remote test ran, this
+pre-release must not be treated as fully CI-verified or stable. Local release
+gate results are recorded above; the real LangGraph + SQLite close/reopen gate
+still needs a successful hosted or equivalent Python 3.12 run.

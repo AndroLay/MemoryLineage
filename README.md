@@ -6,22 +6,25 @@ MemoryLineage checks whether a restored snapshot extends supplied, replayable hi
 This local-first prototype uses synthetic demo fixtures; raw memory stays off-chain.
 It does not authenticate canonical chain provenance or integrate with production agents.
 
-**Project version: `v1.0.2`** · [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).
-Previous public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
+**Latest stable release: `v1.0.2`** · [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).
+**Current pre-release candidate: `v1.1.0-rc.1`** · [Release notes](docs/submission/release-notes-v1.1.0-rc.1.md) · [GitHub pre-release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.1.0-rc.1) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.1.0-rc.1). This candidate is for evaluation; it is not the stable Devpost build.
+Previous stable release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 Two-minute demo: [Watch on YouTube](https://youtu.be/K2QUHm4lJCo).
 
-Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev). The `v1.0.2` static build was deployed to Cloudflare Pages production on 27 September 2026 with Wrangler from source commit `80257f74`; the deployment URL is [d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev). HTTP checks from this environment returned 403 for both URLs, so public browser reachability and served content remain unverified.
+Production site: [memorylineage.pages.dev](https://memorylineage.pages.dev), still serving the stable `v1.0.2` build from source commit `80257f74`. The candidate preview is deployed separately at [ml-v1-1-0-rc-1.memorylineage.pages.dev](https://ml-v1-1-0-rc-1.memorylineage.pages.dev); it does not replace production. Public browser reachability must be checked from the visitor's network if Cloudflare Access or bot protection blocks automated requests.
 Demo Space V2 remains local and is not deployed to Sepolia.
 
 ## Experimental LangGraph integration
 
-The unreleased `codex/memorylineage-final-upgrade` branch adds an experimental
-LangGraph checkpoint gate and a versioned, blinded recovery receipt. It is not
-part of the published `v1.0.2` release or current Devpost submission. The
-integration is local and synthetic; it does not provide production secret
-management, protect a saver before deserialization, or authenticate canonical
-chain state. See [the integration guide](integrations/langgraph/README.md) and
-the [upgrade status](docs/research/2026-09-27-memorylineage-final-upgrade-status.md).
+The `v1.1.0-rc.1` pre-release adds an experimental LangGraph checkpoint gate
+and a versioned, blinded recovery receipt. These additions are not part of the
+stable `v1.0.2` release or current Devpost submission. The integration uses
+local synthetic data; it does not provide production secret management,
+protect a saver before deserialization, or authenticate canonical chain state.
+The real LangGraph/SQLite integration gate still needs a successful hosted run.
+See [the integration guide](integrations/langgraph/README.md),
+[release notes](docs/submission/release-notes-v1.1.0-rc.1.md), and the
+[upgrade status](docs/research/2026-09-27-memorylineage-final-upgrade-status.md).
 
 ## The problem
 

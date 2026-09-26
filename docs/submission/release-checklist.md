@@ -12,6 +12,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | Project release version | PUBLISHED TAG AND RELEASE `v1.0.2` | The annotated tag and GitHub Release use the same sanitized source snapshot; Rust workspace crates retain their independent `0.1.0` package versions. |
+| Current upgrade candidate | PRE-RELEASE `v1.1.0-rc.1` | The annotated candidate tag and GitHub pre-release are for evaluation only; `v1.0.2` remains the stable Devpost baseline. See the [candidate release notes](release-notes-v1.1.0-rc.1.md). |
 | Release source history | PURGED AND PUBLISHED | The reachable `main` and `v1.0.2` histories exclude the MP4, WAV, narration, and video production files. Older version tags are unchanged. |
 | Release artifacts | PUBLISHED | The ten-page pitch PDF remains in the repository and is attached to the GitHub Release. No video or audio files are attached. |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
@@ -27,6 +28,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
 | Public static website | DEPLOYED; PUBLIC REACHABILITY UNVERIFIED | Wrangler confirmed a production deployment to project `memorylineage`, branch `main`, source commit `80257f74`, at `d001a7dc.memorylineage.pages.dev`. HTTP checks from this environment returned 403 for the deployment URL and custom domain, so visitor access and served content remain unverified. |
+| Candidate website preview | DEPLOYED TO PREVIEW BRANCH | Wrangler deploys the candidate build to branch `ml-v1-1-0-rc-1`; this preview does not change the production `main` deployment. External visitor reachability remains subject to Cloudflare access controls. |
 | Pitch deck | PASS / local only | Ten-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf) labels The Problem, The Solution, The Innovation, The Impact, Current Limitations, and Future Scope; generated from editable HTML and visually reviewed |
 | Demo video | URL SUPPLIED; EMBED VISIBLE IN OWNER SCREENSHOT | The project owner supplied <https://youtu.be/K2QUHm4lJCo>; a screenshot shows the Devpost page with an embedded player. Playback is not independently verified. The video and production files are absent from the reachable `main` and `v1.0.2` histories. |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
@@ -84,7 +86,7 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| Remote CI for final rewritten tag | NO RESULT | Run [`36248726652`](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652) and its retry refer to the original pre-cleanup revision and ended before any step; the rewritten tag has no hosted CI result. |
+| Hosted CI for candidate | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278192218`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278192218) and its retry for commit `5473642d` both ended with `runner_id: 0` and zero steps. This supplies no test result; a successful hosted run remains required before a stable `v1.1.0` release. |
 | GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this source candidate |
