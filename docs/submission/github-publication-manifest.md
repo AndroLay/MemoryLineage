@@ -4,31 +4,29 @@
 
 **Published project version:** [`v1.0.2`](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2)
 
-**Release commit:** `56ed787a678c8267dd4410db463a7ac177f90bc7`
+**Release source tag:** [`v1.0.2`](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2)
 
 ## Publication status
 
-- Commit `56ed787a678c8267dd4410db463a7ac177f90bc7` advanced `main` from
-  `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` and was pushed successfully.
-- Annotated tag `v1.0.2` points to that commit and was pushed successfully.
-- The release contains 49 reviewed public files. The local session artifact
-  was excluded.
+- The annotated `v1.0.2` tag points to the sanitized release source and is
+  aligned with the published `main` history.
+- The GitHub Release uses tag `v1.0.2` and attaches the ten-page pitch PDF.
+  The local session artifact was excluded.
 - GitHub Actions run [36248726652](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652)
-  and its retry ended before any job step; the job has no runner assignment or
-  step results.
+  and its retry refer to the original pre-cleanup revision and ended before any
+  job step; the rewritten tag has no hosted CI result.
 - The Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
   check in this environment. Deployment and live content remain unverified.
 - The project owner reports uploading the two-minute demo to YouTube; its URL
   is not recorded here. The Devpost video field was not independently checked.
-- A follow-up on current `main` removes the video, audio, narration, and
-  production files. The immutable `v1.0.2` tag retains the earlier snapshot;
-  the ten-page pitch PDF remains in current `main`.
-- No separate GitHub Release page was created.
+- The video, audio, narration, and production files are absent from the
+  reachable history of `main` and the rewritten `v1.0.2` tag. The ten-page
+  pitch PDF remains in the repository and is attached to the Release.
 
 ## Intended public commit contents
 
-Current `main` contains the public source and review materials. The published
-`v1.0.2` tag remains a frozen snapshot of the preceding release commit.
+Current `main` and the published `v1.0.2` tag contain the public source and
+review materials without video or audio production history.
 
 - Repository entry points and interface source: `.gitignore`, `README.md`,
   `DESIGN.md`, `PRODUCT.md`, `apps/inspector/`, and the relevant browser
@@ -39,7 +37,8 @@ Current `main` contains the public source and review materials. The published
 - Reproducible public tooling: the editable pitch source and PDF build path.
 - Final submission assets: the ten-page PDF, the Devpost thumbnail PNG and its
   HTML/image source, the README landing-page capture, and reviewed Inspector
-  screenshots. Video and audio files are hosted outside this repository.
+  screenshots. Video and audio files are hosted outside this repository and
+  are not part of the GitHub Release.
 - The existing source, synthetic fixtures, evidence, license, and third-party
   notices already tracked by the repository.
 
@@ -51,15 +50,15 @@ file list against these categories before making a release commit.
 | Path or class | Reason |
 | --- | --- |
 | `:memory:.ses` | Local session artifact, not a project deliverable; explicitly ignored |
-| Demo MP4/WAV, narration script, and video build/recording scripts | The project owner hosts the demo on YouTube; media and production files are intentionally omitted from current `main` |
+| Demo MP4/WAV, narration script, and video build/recording scripts | The project owner reports hosting the demo on YouTube; these files are intentionally absent from the reachable `main` and `v1.0.2` histories |
 | `target/`, `node_modules/`, `.next/`, `out/`, caches, and temporary frame/browser profiles | Rebuildable machine output |
 | `.env*`, private keys, secrets, credentials, and personal session data | Sensitive local configuration; never publish |
 | Any other file outside the reviewed public project and submission scope | No publication purpose established |
 
 The session file remains local. The thumbnail HTML and preview image are
 included because the HTML references that image and together they make the
-final PNG editable. The `v1.0.2` tag remains unchanged and retains the media
-files from its original snapshot.
+final PNG editable. The `v1.0.2` annotated tag is rewritten to the sanitized
+source snapshot; older version tags are unchanged.
 
 ## Finalization rules
 
@@ -68,8 +67,8 @@ files from its original snapshot.
 2. Run the release and public-package gates on that exact clean commit.
 3. Recheck the exact staged paths, then compare the commit SHA with GitHub when
    network access is available.
-4. Keep the v1.0.2 source tag and reviewer SHA consistent in the Devpost entry,
-   PDF, and reproduction materials. Do not claim a Pages update or Devpost
+4. Keep the v1.0.2 source tag consistent in the Devpost entry, PDF, and
+   reproduction materials. Do not claim a Pages update or Devpost
    link verification until each is observed.
 5. Keep copyright wording consistent with the repository license:
    Copyright © 2026 MemoryLineage contributors; repository code and

@@ -11,9 +11,9 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Project release version | PUBLISHED TAG `v1.0.2` | The annotated repository tag points to the release commit below; Rust workspace crates retain their independent `0.1.0` package versions. |
-| Release source commit | PUSHED | `56ed787a678c8267dd4410db463a7ac177f90bc7`; pushed to `main` and tag `v1.0.2` on 26 September 2026. |
-| Release worktree contents | `v1.0.2` TAGGED; MEDIA REMOVED FROM CURRENT `main` | The immutable v1.0.2 tag preserves its original snapshot. A follow-up on `main` removes the MP4, WAV, script, and video production sources at the project owner's request; the pitch PDF remains. |
+| Project release version | PUBLISHED TAG AND RELEASE `v1.0.2` | The annotated tag and GitHub Release use the same sanitized source snapshot; Rust workspace crates retain their independent `0.1.0` package versions. |
+| Release source history | PURGED AND PUBLISHED | The reachable `main` and `v1.0.2` histories exclude the MP4, WAV, narration, and video production files. Older version tags are unchanged. |
+| Release artifacts | PUBLISHED | The ten-page pitch PDF remains in the repository and is attached to the GitHub Release. No video or audio files are attached. |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
 | Dioxus Inspector and first-run routes | IMPLEMENTED / BROWSER GATE UNSTABLE | The routes and challenge interactions are included in `v1.0.2`; see the automated verification record below for Chromium smoke results. |
 | Local preview | LAST RECORDED PASS | `http://127.0.0.1:8080` was previously served by `cargo xtask serve-web`; it was not rechecked during the v1.0.2 publication step. |
@@ -28,13 +28,12 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
 | Public static website | DEPLOYMENT UNVERIFIED | The `main` push may trigger hosting automation. The latest request received Cloudflare HTTP 403, error 1010; this does not establish whether deployment completed or what the live site serves. |
 | Pitch deck | PASS / local only | Ten-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf) labels The Problem, The Solution, The Innovation, The Impact, Current Limitations, and Future Scope; generated from editable HTML and visually reviewed |
-| Demo video | OWNER REPORTS YOUTUBE UPLOAD | The project owner reports the two-minute demo is on YouTube. Its URL is not stored in this repository and has not been independently checked. Media and production files are removed from current `main`; the v1.0.2 tag still preserves them. |
+| Demo video | OWNER REPORTS YOUTUBE UPLOAD | The project owner reports the two-minute demo is on YouTube. Its URL is not stored in this repository and has not been independently checked. The video and production files are absent from the reachable `main` and `v1.0.2` histories. |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
 
 ## Automated verification
 
-The v1.0.2 release commit is `56ed787a678c8267dd4410db463a7ac177f90bc7`.
-Run these commands from a clean checkout for a fresh reproduction:
+Use the annotated `v1.0.2` tag for a clean checkout and fresh reproduction:
 
 ```bash
 cargo xtask verify
@@ -43,10 +42,12 @@ cargo xtask reviewer-reproduce
 npm run verify
 ```
 
-On the release commit, `cargo xtask release --quiet` passed formatting, Clippy,
-workspace tests, fixture and evidence checks, portability replay, recovery and
-runtime gates, Solidity/revm scenarios, WASM compilation, package boundary, and
-static build. It then failed at the Chromium step with
+The recorded local checks were run on the same application source before the
+history cleanup. That cleanup removed only media and production files and did
+not modify application code. `cargo xtask release --quiet` passed formatting,
+Clippy, workspace tests, fixture and evidence checks, portability replay,
+recovery and runtime gates, Solidity/revm scenarios, WASM compilation, package
+boundary, and static build. It then failed at the Chromium step with
 `Chromium page debugging target did not start`; therefore the combined release
 gate did not exit successfully. A standalone browser smoke passed once with
 Chromium stderr captured to a temporary file, while other standard smoke
@@ -82,14 +83,14 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| Remote CI for v1.0.2 source commit | FAILED BEFORE ANY STEP | Run [`36248726652`](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652) and its retry ended with no steps or assigned runner; they provide no CI test result for the commit. |
+| Remote CI for final rewritten tag | NO RESULT | Run [`36248726652`](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652) and its retry refer to the original pre-cleanup revision and ended before any step; the rewritten tag has no hosted CI result. |
 | GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this source candidate |
 | Previous GitHub Release | PUBLISHED / prior candidate | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1); remote CI for that release ended before runner startup |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
-| GitHub source push and version tag | PUBLISHED | Commit `56ed787a678c8267dd4410db463a7ac177f90bc7` and annotated tag `v1.0.2` were pushed; no separate GitHub Release page was created |
+| GitHub source tag and Release page | PUBLISHED | The sanitized annotated `v1.0.2` tag and matching GitHub Release are published; the PDF is the only attached project artifact. |
 | Cloudflare Pages deployment | UNVERIFIED | The latest request received Cloudflare HTTP 403, error 1010; deployment completion and served version cannot be inferred from that response |
 | Devpost video link / live-demo update | NOT VERIFIED | Project owner reports the video is on YouTube; its URL and the Devpost field were not supplied for verification. The pitch PDF remains in the repository. |
 

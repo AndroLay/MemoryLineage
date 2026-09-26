@@ -6,7 +6,8 @@ MemoryLineage checks whether a restored snapshot extends supplied, replayable hi
 This local-first prototype uses synthetic demo fixtures; raw memory stays off-chain.
 It does not authenticate canonical chain provenance or integrate with production agents.
 
-**Project version: [`v1.0.2`](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).** Previous public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
+**Project version: `v1.0.2`** · [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).
+Previous public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 
 Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev) (last recorded; current content unverified).
 Demo Space V2 remains local and is not deployed to Sepolia.

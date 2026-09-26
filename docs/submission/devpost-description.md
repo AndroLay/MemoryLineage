@@ -96,12 +96,13 @@ safe, whether an AI reasoned correctly, whether an agent's action was caused by
 that memory, or whether an external runtime obeys the reference recovery gate.
 
 The next evidence step is external developer reproduction. The repository
-contains a ten-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf). The project
+contains a ten-page [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf). The project
 owner reports uploading the two-minute narrated demo to YouTube; the URL is not
 stored in this repository. Video, voice-over, scripts, and production sources
-are intentionally absent from current `main`. The last recorded public Inspector URL is
+are absent from the reachable `main` and `v1.0.2` histories. The last recorded
+public Inspector URL is
 [memorylineage.pages.dev](https://memorylineage.pages.dev). The v1.0.2 source
-commit `56ed787a678c8267dd4410db463a7ac177f90bc7` was pushed, but the latest
+tag is published, but the latest
 request from this environment returned Cloudflare HTTP 403, error 1010; the
 hosted version and deployment status therefore remain unverified. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle

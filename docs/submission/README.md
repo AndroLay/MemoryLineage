@@ -24,26 +24,28 @@ Space V2 evidence separate from the earlier Sepolia observation.
 
 ## Publication status
 
-The `v1.0.2` source release is tagged at commit
-`56ed787a678c8267dd4410db463a7ac177f90bc7`; both `main` and the annotated tag
-were pushed to GitHub on 26 September 2026. It follows the previous public
-release, `v1.0.1`.
+The annotated [`v1.0.2` source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2)
+is the final submission snapshot and follows the previous public release,
+`v1.0.1`. The matching [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2)
+contains the pitch PDF; video, audio, narration, and production files are not
+reachable through the current `main` branch or `v1.0.2` tag history.
 
 GitHub Actions run [36248726652](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652)
-and its retry failed before any job step started; the API reported no steps and
-no assigned runner, so they provide no test result for this commit. See the
-[release checklist](release-checklist.md) for the local gate evidence.
+and its retry refer to the original pre-cleanup source revision and failed
+before any job step started; they provide no CI result for the final rewritten
+tag. See the [release checklist](release-checklist.md) for the local gate
+evidence and its limits.
 
 The public Pages URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
 The latest check from this environment received Cloudflare HTTP 403, error
 1010; that response does not establish whether the new deployment completed or
 what the site serves. The project owner reports that the two-minute demo video
-is uploaded to YouTube. Its URL is not recorded in this repository. The video,
-voice track, script, and production sources are removed from the current
-`main` branch; the immutable `v1.0.2` tag retains the earlier snapshot. The
-pitch PDF remains in the repository. The Devpost entry's video link has not
-been independently checked. There is no separate staging environment or
-external human reproduction report.
+is uploaded to YouTube. Its URL is not recorded in this repository. The pitch
+PDF remains in the repository and is attached to the GitHub Release. Video,
+audio, scripts, and production sources were purged from the reachable history
+of `main` and `v1.0.2`. The Devpost entry's video link has not been
+independently checked. There is no separate staging environment or external
+human reproduction report.
 
 The local session file `:memory:.ses` is not a project artifact and must never
 be published.

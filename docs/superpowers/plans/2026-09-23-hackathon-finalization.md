@@ -45,12 +45,16 @@ The official event accepts a short video **or** a live demonstration and asks fo
 
 ## Local completion record
 
-The committed source candidate is `675c707405ac2afea1fd067be44a67890b0a35f2`.
+The committed source candidate from this checkpoint was later superseded by
+the sanitized `v1.0.2` release tag.
 `cargo xtask release --quiet`, `npm run verify --silent`,
 `cargo xtask reviewer-package`, and `cargo xtask reviewer-reproduce` passed.
-The eight-page PDF and 45-second video were inspected and are reproducible from
-this source revision. The candidate has been pushed to GitHub `main` and remains
-untagged; `v1.0.1` is the last confirmed release. The push may have triggered a
+At this checkpoint, the eight-page PDF and 45-second video were inspected and
+reproducible from the then-current source. The later v1.0.2 deck has ten pages;
+the video is hosted externally per the project owner's report, and its
+production files are excluded from the final release history. The candidate
+was pushed to GitHub `main` and was then untagged; `v1.0.1` was the last
+confirmed release at that time. The push may have triggered a
 Pages build, but the current site and candidate CI result could not be verified
 in this session. Devpost upload and external human comprehension/reproduction
 remain pending.

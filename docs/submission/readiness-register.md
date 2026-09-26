@@ -103,11 +103,13 @@ protocol intentionally does not evaluate it.
 
 Consistent with the readiness plan and the strategy notes, this slice does not
 authorize: a new chain, a public Demo Space V2 deployment, a large external
-agent-framework integration, or any global-victory / adoption claim. The local
-The v1.0.2 tag included the pitch deck and demo video files. Current `main`
-retains the PDF but removes video, audio, and production sources after the
-project owner reported uploading the demo to YouTube. These materials do not
-imply public deployment or real agent adoption.
+agent-framework integration, or any global-victory / adoption claim.
+The original pre-cleanup v1.0.2 candidate included the pitch deck and demo video
+files. The final annotated `v1.0.2` tag and `main` history were rewritten to
+remove video, audio, narration, and production files after the project owner
+reported uploading the demo to YouTube. The ten-page PDF remains in the
+repository and GitHub Release. These materials do not imply public deployment
+or real agent adoption.
 
 ## Progress after the frozen baseline
 
@@ -122,13 +124,14 @@ resume example checks five loader outcomes: signed current head, missing
 authorization, historical, diverged, and invalid evidence. The current local
 `cargo xtask release` and `npm run verify` pass, including the 11-route
 Chromium smoke and legacy compatibility lane.
-The source tree is committed as candidate
-`675c707405ac2afea1fd067be44a67890b0a35f2` and has been pushed to GitHub
-`main`. This moves **public incident coherence** to `VERIFIED_LOCAL_PACKAGE`
-for that source revision; no new tag or release was created.
+The source tree was committed as a candidate and pushed to GitHub `main`.
+This moved **public incident coherence** to `VERIFIED_LOCAL_PACKAGE` for that
+source revision; no new tag or release was created at that checkpoint. The
+later v1.0.2 history cleanup changed commit identifiers but not application
+code.
 `submissionCommit` remains `null` because the manifest cannot contain its own
-final Git SHA; the exact revision is recorded in the release checklist and
-reproduction runbook. The prior `v1.0.1` tag and last recorded hosted release
+final Git SHA; the release tag is the stable reviewer reference. The prior
+`v1.0.1` tag and last recorded hosted release
 predate this update. A Git push occurred, but whether Pages automatically
 deployed it and what the live site serves could not be verified here. External
 human reproduction remains `NOT_YET_DEMONSTRATED`; no remote CI result for the
@@ -136,9 +139,8 @@ candidate was retrieved.
 
 The initial finalization work added a printable eight-slide pitch PDF, a
 contribution and provenance record, and an opt-in secret-blinded commitment
-helper. At that stage the PDF was reproducible from candidate commit
-`675c707405ac2afea1fd067be44a67890b0a35f2`; the later UX refresh and
-owner-reported YouTube upload are recorded below. At that checkpoint, no
+helper. At that stage the PDF was reproducible from the local source candidate;
+the later UX refresh and owner-reported YouTube upload are recorded below. At that checkpoint, no
 Devpost upload or manual public-site deployment had been performed; current
 Pages content was not independently verified. No same-space Sepolia deployment,
 production secret lifecycle, or external human report is implied by their
@@ -173,12 +175,11 @@ Current verification passed on 25 September 2026:
   same browser smoke. It now serves one landing page; the duplicate previously
   seen there came from a stale Dioxus process, which was replaced with the
   repository-supported launcher.
-- At this 25 September checkpoint, the eight-page PDF was rendered and visually
-  reviewed. The source and current CSS/viewport screenshots remained uncommitted on local HEAD
-  `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`. This describes the local
-  deltas, not the earlier source snapshot: local `main` and `origin/main`
-  match that SHA. No additional commit, tag, deployment, or Devpost upload of
-  those deltas occurred.
+- At this 25 September checkpoint, the then-current PDF was rendered and
+  visually reviewed. The source and current CSS/viewport screenshots remained
+  uncommitted locally; those deltas were subsequently incorporated into the
+  `v1.0.2` submission source. No deployment or Devpost upload of those deltas
+  was confirmed at that checkpoint.
 
 This completes the local prototype implementation and its available automated
 gates. It does not establish first-time reviewer comprehension or heuristic
@@ -210,17 +211,20 @@ stored in this repository and has not been independently checked.
 
 ## v1.0.2 publication status — 26 September 2026
 
-The v1.0.2 commit `56ed787a678c8267dd4410db463a7ac177f90bc7` and annotated tag
-were pushed to GitHub. The GitHub Actions job and its retry failed before any
-step started and had no assigned runner, so they produced no CI test result. The
-local release gate passed its code, evidence, contract, WASM, package, and static
-build checks, but the combined gate did not complete its Chromium smoke step
-reliably. A standalone browser smoke passed once with Chromium output captured;
-other attempts could not start the page debugging target.
+The annotated `v1.0.2` tag and matching GitHub Release publish the sanitized
+submission source. Video, audio, narration, and production files are absent
+from the reachable `main` and `v1.0.2` histories; older version tags are
+unchanged. The GitHub Actions job and its retry refer to the original
+pre-cleanup revision and failed before any step started, so the final tag has
+no hosted CI result. The local release gate passed code, evidence, contract,
+WASM, package, and static-build checks on the same application source before
+the media-history cleanup, but the combined gate did not complete its Chromium
+smoke step reliably. A standalone browser smoke passed once with Chromium
+output captured; other attempts could not start the page debugging target.
 
 The public Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
 check in this environment. That does not confirm whether the v1.0.2 deployment
 completed. The project owner reports that the demo video is hosted on YouTube;
-its URL and the Devpost video field are not recorded here. Current `main` keeps
-the pitch PDF and no video/audio production assets. The v1.0.2 tag retains the
-original media snapshot.
+its URL and the Devpost video field are not recorded here. The pitch PDF is
+retained and attached to the GitHub Release. No video or audio production
+assets are reachable from the final source tag.

@@ -16,10 +16,10 @@ able to attest to authorship and eligibility in the Devpost account.
 | --- | --- | --- |
 | 19 September 2026, 03:06 UTC+8 | Initial Git commit `2c36366` | A substantial code and research baseline entered this repository at once. The commit alone does not date when each file was written. |
 | 22 September 2026, 02:48 UTC+8 | `v1.0.1` commit `44a5751` | Public release baseline for the previously hosted Inspector. |
-| 24 September 2026 | Earlier source candidate `675c707405ac2afea1fd067be44a67890b0a35f2` | This candidate was recorded as pushed to `main` at the time. It was later superseded by source snapshot `497e823`; neither has a release tag newer than `v1.0.1`. |
-| 26 September 2026 | Previous source baseline `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` | This was the `main` tip before the final submission package was committed. |
-| 26 September 2026 | Project version `v1.0.2`, commit `56ed787a678c8267dd4410db463a7ac177f90bc7` | The commit and annotated `v1.0.2` tag were pushed to GitHub. The local combined release gate did not fully pass its Chromium startup step; the hosted GitHub Actions job failed before any step ran. |
-| 26 September 2026 | Current-main media cleanup | After the project owner reported uploading the demo to YouTube, the MP4, WAV, narration, and production files were removed from current `main`; the pitch PDF remains. The immutable `v1.0.2` tag still contains its original snapshot. |
+| 24 September 2026 | Earlier source candidate | This candidate was recorded as pushed to `main` at the time. It was later superseded by the v1.0.2 submission source. |
+| 26 September 2026 | Pre-release source baseline | This was the `main` tip before the final submission package was committed. The release history was later rewritten to remove video and audio production files. |
+| 26 September 2026 | Project version `v1.0.2` | The annotated tag and GitHub Release publish the sanitized submission snapshot. The local combined release gate did not fully pass its Chromium startup step; the hosted GitHub Actions run for the original pre-cleanup revision failed before any step ran. |
+| 26 September 2026 | Media-history cleanup | After the project owner reported uploading the demo to YouTube, MP4, WAV, narration, and production files were purged from the reachable `main` and `v1.0.2` histories. The ten-page pitch PDF remains in the repository and Release; older tags are unchanged. |
 
 The older research notes under [`docs/research/`](../research/README.md) are
 historical source material. Their dates and internal scores are not hackathon

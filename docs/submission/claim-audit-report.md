@@ -1,16 +1,17 @@
 # Historical claim and evidence audit — 24 September candidate
 
-Reviewed on 24 September 2026 against source commit
-`675c707405ac2afea1fd067be44a67890b0a35f2`; it was recorded as pushed to
-GitHub `main` at that time. This is a historical audit, not a recheck of the
-later source snapshot `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` or the current
-uncommitted UX/media worktree. The local evidence/protocol claims below were
-audited at that revision; the UI and submission assets have since changed.
+Reviewed on 24 September 2026 against the source candidate recorded as pushed
+to GitHub `main` at that time. This is a historical audit, not a recheck of the
+later v1.0.2 source tag or the current interface and submission assets. The
+local evidence/protocol claims below were audited at that revision; the UI and
+submission assets have since changed. Its old commit identifier is omitted
+because the v1.0.2 history was later rewritten to remove video materials.
 The report is separate from the earlier `v1.0.1` tag, and current live Pages
 content was not rechecked.
 The submission manifest keeps `submissionCommit: null` to avoid a
-self-referential hash; this report, release checklist, and reproduction runbook
-record the exact source revision.
+self-referential hash. Current reproduction instructions use the stable
+`v1.0.2` tag; this historical report intentionally omits its superseded commit
+identifier.
 
 | Claim | Evidence | Source class | Recheck | Status |
 | --- | --- | --- | --- | --- |

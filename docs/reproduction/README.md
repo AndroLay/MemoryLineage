@@ -4,9 +4,9 @@ This runbook is for a developer who has not received a private walkthrough of
 MemoryLineage. It tests whether the repository, evidence, and website explain
 the same claim from a fresh checkout.
 
-This reviewer packet targets project version `v1.0.2` at commit
-`56ed787a678c8267dd4410db463a7ac177f90bc7`. The commit and annotated tag were
-pushed to GitHub on 26 September 2026.
+This reviewer packet targets the annotated `v1.0.2` tag. The tag and matching
+GitHub Release identify the final sanitized source snapshot published on
+26 September 2026.
 
 The result of `cargo xtask reproduce` is an automated local result. It must not
 be recorded as an external human reproduction. A human report is only valid
@@ -18,19 +18,19 @@ this directory.
 Give the reviewer:
 
 1. the repository URL;
-2. the exact frozen commit SHA recorded below;
+2. the annotated `v1.0.2` tag;
 3. this runbook;
 4. no additional explanation of the product.
 
-**Final reviewer SHA: `56ed787a678c8267dd4410db463a7ac177f90bc7`.** Use this
-exact commit for a clean checkout or reviewer archive. The Devpost entry has
-not yet been updated with this SHA.
+**Final reviewer ref: `v1.0.2`.** Check out this tag for a clean checkout or
+reviewer archive. A tag is used so the reproduction instructions stay aligned
+with the published source release.
 
 The earlier public release
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
 predates the submission envelope and current website labels. The manifest
 keeps `submissionCommit: null` to avoid a self-referential hash. A reviewer
-can check out the frozen final commit from GitHub or receive its clean reviewer
+can check out the frozen final tag from GitHub or receive its clean reviewer
 archive.
 
 The repository is intentionally able to run the core path without deployment:
