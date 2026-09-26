@@ -21,7 +21,9 @@ and a versioned, blinded recovery receipt. These additions are not part of the
 stable `v1.0.2` release or current Devpost submission. The integration uses
 local synthetic data; it does not provide production secret management,
 protect a saver before deserialization, or authenticate canonical chain state.
-The real LangGraph/SQLite integration gate still needs a successful hosted run.
+GitHub Actions for code commit `e87be2e` and its retry ended before any workflow
+step because GitHub assigned no runner (`runner_id: 0`), so the real
+LangGraph/SQLite integration gate still needs a successful hosted run.
 See [the integration guide](integrations/langgraph/README.md),
 [release notes](docs/submission/release-notes-v1.1.0-rc.1.md), and the
 [upgrade status](docs/research/2026-09-27-memorylineage-final-upgrade-status.md).

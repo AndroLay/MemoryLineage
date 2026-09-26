@@ -19,14 +19,15 @@ Devpost submission remain `v1.0.2`.
 
 ## Verification status
 
-The local Rust release gate and existing repository verification passed on the
-candidate checkout. The Python unit tests that do not require LangGraph passed.
-The real LangGraph + SQLite integration tests could not run locally because
-this environment lacks Python 3.12 and the pinned packages. The first hosted
-workflow attempt and its retry failed before any workflow step started because
-GitHub assigned no runner (`runner_id: 0`); this is an unavailable CI result,
-not a passing test result. Treat this as a pre-release until the hosted gate
-completes successfully.
+The local Rust release gate, static browser smoke, public package boundary,
+and `npm run verify --silent` passed on the candidate source. LangGraph
+integration test discovery ran 11 tests: 9 passed and the 2 real framework
+tests skipped. This environment has Python 3.14, not the required Python 3.12,
+and does not have the pinned LangGraph packages. GitHub Actions for code commit
+`e87be2e` and its retry both failed before any workflow step because GitHub
+assigned no runner (`runner_id: 0`). This is not a passing hosted test result.
+Keep this as a pre-release until the real integration gate completes
+successfully.
 
 Reproduce the integration gate with Python 3.12 and the pinned dependencies as
 described in [`integrations/langgraph/README.md`](../../integrations/langgraph/README.md):
@@ -47,6 +48,7 @@ canonical Ethereum registry state. Do not use real user memory with this
 prototype.
 
 The candidate is previewed separately from production at
-<https://ml-v1-1-0-rc-1.memorylineage.pages.dev>. Production remains on the
-stable `v1.0.2` build. The existing YouTube demo remains external; no new video,
-audio, or narration assets are part of this release.
+<https://ml-v1-1-0-rc-1.memorylineage.pages.dev>; this endpoint returned HTTP
+200 after deployment. Production remains on the stable `v1.0.2` build. The
+existing YouTube demo remains external; no new video, audio, or narration
+assets are part of this release.

@@ -50,7 +50,7 @@ only presentation media stored in the repository.
 | `npm run verify --silent` | PASS | All nine existing EVM, Python, Inspector, audit, replay, and package checks |
 | Real LangGraph/SQLite integration tests | NOT RUN locally | Python 3.12 and pinned packages are absent; package download was blocked by network DNS |
 | `cargo xtask langgraph-verify` | BLOCKED AT PREREQUISITE CHECK | Correctly requires Python 3.12 and installed LangGraph packages; does not report skipped framework tests as a pass |
-| Hosted CI for pre-release source | UNAVAILABLE BEFORE WORKFLOW STEPS | The first run and retry for commit `5473642d` both ended with `runner_id: 0` and zero steps; they provide no test result. |
+| Hosted CI for candidate source | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260) and its retry for code commit `e87be2e` ended with `runner_id: 0` and zero steps; they provide no test result. |
 
 ## Still required before calling the upgrade stable or complete
 
@@ -82,8 +82,10 @@ The candidate is published as an annotated Git tag and GitHub pre-release from
 `v1.0.2` baseline distinct. The static Inspector candidate is deployed to a
 Cloudflare Pages preview branch; production remains on `main` at `v1.0.2`.
 
-The initial hosted workflow run and retry for commit `5473642d` both ended
-before any workflow step with `runner_id: 0`. Since no remote test ran, this
-pre-release must not be treated as fully CI-verified or stable. Local release
-gate results are recorded above; the real LangGraph + SQLite close/reopen gate
-still needs a successful hosted or equivalent Python 3.12 run.
+Hosted workflow run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260)
+and its retry for code commit `e87be2e` both ended before any workflow step
+with `runner_id: 0`. Since no remote test ran, this pre-release must not be
+treated as fully CI-verified or stable. Local release-gate results are recorded
+above; the real LangGraph + SQLite close/reopen gate still needs a successful
+hosted or equivalent Python 3.12 run. The Pages preview alias returned HTTP
+200; production remains on `main` at stable `v1.0.2`.

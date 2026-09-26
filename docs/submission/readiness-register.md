@@ -256,3 +256,28 @@ and an empty contribution-description field. The selected tags are `cli`,
 the page and video were not opened independently, so playback, link targets,
 and current public contents remain unverified. The copy-ready corrections are
 in [`devpost-submission.md`](devpost-submission.md).
+
+## v1.1.0-rc.1 evaluation pre-release — 27 September 2026
+
+The evaluation candidate is published as an annotated Git tag and GitHub
+pre-release at
+[`v1.1.0-rc.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.1.0-rc.1).
+The source is on `codex/memorylineage-final-upgrade`; stable `v1.0.2`, the
+Devpost entry, and the production Pages deployment remain unchanged. The
+existing pitch PDF is the only artifact attached; no video or audio file was
+added.
+
+Wrangler 4.141.0 deployed the candidate Inspector from code commit `e87be2e`
+to Pages preview branch `ml-v1-1-0-rc-1`. The branch alias is
+[`ml-v1-1-0-rc-1.memorylineage.pages.dev`](https://ml-v1-1-0-rc-1.memorylineage.pages.dev);
+a HEAD request returned HTTP 200. Production `main` was not updated.
+
+The local Rust release gate, static browser smoke, public-package boundary,
+and `npm run verify --silent` passed. LangGraph integration test discovery ran
+11 tests: 9 passed and 2 real LangGraph + SQLite tests skipped because Python
+3.12 and the pinned packages are unavailable locally. Hosted run
+[`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260)
+and its retry both failed before starting a workflow step (`runner_id: 0`).
+This candidate is therefore an evaluation pre-release, not a fully
+CI-verified stable release. Complete the real integration gate before
+promoting it to stable `v1.1.0`.
