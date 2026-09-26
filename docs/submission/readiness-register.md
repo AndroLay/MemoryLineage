@@ -94,7 +94,7 @@ protocol intentionally does not evaluate it.
 | Remote CI green | — | NOT_YET_DEMONSTRATED | A hosted runner executes the workflow past its first step |
 | Production agent-runtime adoption | — | NOT_YET_DEMONSTRATED | A real external runtime is integrated and recorded |
 | New Sepolia deployment of Demo Space V2 | — | OUT_OF_SCOPE | Only if separately authorized; not part of this slice |
-| Local pitch PDF and demo video | `DEMO_SPACE_V2_LOCAL` | VERIFIED_LOCAL_PACKAGE | The checked-in PDF/video fail to render or no longer show the claimed local replay states |
+| Pitch PDF and external demo link | PDF in repository; YouTube upload owner-reported | PDF VERIFIED / LINK UNCHECKED | The PDF fails to render, or a supplied YouTube URL fails to show the described demo |
 | Public Devpost upload / staging environment | — | NOT_YET_DEMONSTRATED / NOT_PROVIDED | A real upload or separately hosted staging environment is provided |
 | Semantic memory truth / poisoning detection | — | OUT_OF_SCOPE | The protocol does not evaluate semantic meaning |
 | Formal third-party security audit | — | OUT_OF_SCOPE | Not performed; bounded assurance is not an audit |
@@ -104,8 +104,10 @@ protocol intentionally does not evaluate it.
 Consistent with the readiness plan and the strategy notes, this slice does not
 authorize: a new chain, a public Demo Space V2 deployment, a large external
 agent-framework integration, or any global-victory / adoption claim. The local
-pitch deck and demo video are repository artifacts; they do not authorize or
-imply public upload, deployment, or real agent adoption.
+The v1.0.2 tag included the pitch deck and demo video files. Current `main`
+retains the PDF but removes video, audio, and production sources after the
+project owner reported uploading the demo to YouTube. These materials do not
+imply public deployment or real agent adoption.
 
 ## Progress after the frozen baseline
 
@@ -133,13 +135,12 @@ human reproduction remains `NOT_YET_DEMONSTRATED`; no remote CI result for the
 candidate was retrieved.
 
 The initial finalization work added a printable eight-slide pitch PDF, a
-45-second captioned video assembled from actual static-browser states, a
 contribution and provenance record, and an opt-in secret-blinded commitment
-helper. At that stage the PDF and video were reproducible from candidate commit
-`675c707405ac2afea1fd067be44a67890b0a35f2`; the later local UX refresh and
-37-second and two-minute media are recorded below.
-No Devpost upload or manual public-site deployment was performed; current Pages
-content was not independently verified. No same-space Sepolia deployment,
+helper. At that stage the PDF was reproducible from candidate commit
+`675c707405ac2afea1fd067be44a67890b0a35f2`; the later UX refresh and
+owner-reported YouTube upload are recorded below. At that checkpoint, no
+Devpost upload or manual public-site deployment had been performed; current
+Pages content was not independently verified. No same-space Sepolia deployment,
 production secret lifecycle, or external human report is implied by their
 presence.
 
@@ -172,14 +173,8 @@ Current verification passed on 25 September 2026:
   same browser smoke. It now serves one landing page; the duplicate previously
   seen there came from a stale Dioxus process, which was replaced with the
   repository-supported launcher.
-- At this 25 September checkpoint, the eight-page PDF was rendered and visually reviewed. The original
-  37-second video captures the complete guided flow with a visible cursor,
-  scene captions, and synthesized UI cues. A separate two-minute, 1920×1080
-  narrated cut and 1:59 dry voice-over WAV are now present locally. The narration
-  was synthesized with Kokoro TTS on-device; it is not a human performance.
-  A human listen-through for pronunciation and perceived naturalness remains
-  pending before external submission. The source, media, and current
-  CSS/viewport screenshots remain uncommitted on local HEAD
+- At this 25 September checkpoint, the eight-page PDF was rendered and visually
+  reviewed. The source and current CSS/viewport screenshots remained uncommitted on local HEAD
   `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`. This describes the local
   deltas, not the earlier source snapshot: local `main` and `origin/main`
   match that SHA. No additional commit, tag, deployment, or Devpost upload of
@@ -188,8 +183,8 @@ Current verification passed on 25 September 2026:
 This completes the local prototype implementation and its available automated
 gates. It does not establish first-time reviewer comprehension or heuristic
 4/4 scores: independent novice sessions remain `NOT_YET_DEMONSTRATED`. External
-clean-checkout reproduction, remote CI for the uncommitted worktree, current
-Pages content, and Devpost upload also remain open. The prototype demonstrates
+clean-checkout reproduction, hosted CI, current Pages content, and verification
+of the Devpost video link remain open. The prototype demonstrates
 a local reference-runtime hold and replayable stale-root rejection; it does not
 claim production runtime integration, measured incident reduction, canonical
 public-chain provenance from offline replay, or semantic memory safety.
@@ -210,9 +205,8 @@ pages at 16:9, and was rendered and visually reviewed. The talk track is in
 Devpost upload, public-site update, or external reviewer assessment is claimed.
 The project and submission version assigned to this final candidate is
 `v1.0.2`; `v1.0.1` is the preceding confirmed public release.
-The project owner reviewed and accepted the final narrated cut on 26 September;
-the narration remains disclosed as synthetic, with no independent voice-quality
-assessment claimed.
+The project owner reports the demo video is uploaded to YouTube. Its URL is not
+stored in this repository and has not been independently checked.
 
 ## v1.0.2 publication status — 26 September 2026
 
@@ -226,5 +220,7 @@ other attempts could not start the page debugging target.
 
 The public Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
 check in this environment. That does not confirm whether the v1.0.2 deployment
-completed. The Devpost video and pitch PDF remain prepared locally and have not
-been uploaded.
+completed. The project owner reports that the demo video is hosted on YouTube;
+its URL and the Devpost video field are not recorded here. Current `main` keeps
+the pitch PDF and no video/audio production assets. The v1.0.2 tag retains the
+original media snapshot.
