@@ -10,6 +10,12 @@ ambiguity. The older serializer concern in the historical comparison below
 applies to the retained V1 compatibility profile. V2 remains unsalted synthetic
 evidence; see the [privacy profile note](../product/commitment-privacy-profile.md).
 
+**25 September research addendum:** ExitDrill is recorded below as an adjacent
+workflow reference with **3rd-Web-Hack membership unverified**. Its supplied
+Devpost page could not be retrieved, and the official project gallery remains
+unpublished. Do not count it as a same-event competitor until its submission
+status is confirmed.
+
 ## Coverage boundary
 
 The official project gallery is currently unpublished. Devpost shows the
@@ -29,6 +35,9 @@ The entries below are separated into:
 2. the two projects previously supplied and audited by the team;
 3. adjacent projects from other hackathons that are useful benchmarks but are
    not 3rd-Web-Hack competitors.
+
+Projects whose event membership cannot be verified are listed separately and
+are not included in the competitor count.
 
 ## Public 3rd-Web-Hack candidates
 
@@ -176,6 +185,34 @@ The entries below are separated into:
   threat to Forkline or MemoryLineage under the stated Web3 requirement.
 - Confidence: high for the Devpost description; repository execution was not
   rerun in this pass.
+
+## Event membership unresolved; not scored as a 3rd-Web-Hack entry
+
+### ExitDrill — structural recovery drill for SaaS exports
+
+- Devpost page supplied for this audit: <https://devpost.com/software/exitdrill>
+- Public repository: <https://github.com/ChelseaKR/exitdrill>
+- Event status: **unverified**. The Devpost page was inaccessible to this
+  review, and the official gallery is unpublished. No accessible source in this
+  pass confirms that ExitDrill was submitted to 3rd-Web-Hack; do not treat it as
+  an event entrant or use it in event scoring.
+- The repository describes a technical alpha that compares a pre-export
+  baseline with a SaaS export across entity identity, relationships, attachment
+  bytes, permissions, and audit history.
+- Its README describes a three-minute offline CLI demo using clean and
+  adversarial synthetic CRM exports. The adversarial case keeps row count the
+  same while showing separate structural-loss signals, then gives a short
+  human-readable summary and replayable aggregate receipts.
+- Product relevance to MemoryLineage: a useful adjacent example of a bounded
+  drill, concrete comparison, explicit per-dimension outcome, and concise
+  explanation. Its documented three-minute demo is a CLI walkthrough; the
+  sources reviewed do not establish a game-like onboarding flow or novice
+  comprehension.
+- Claim boundary: the repository labels the project a technical alpha with
+  synthetic fixtures; it explicitly does not prove a completed migration or
+  operational exit.
+- Confidence: high for the repository README as reviewed on 25 September 2026;
+  low for any claim about Devpost submission or 3rd-Web-Hack membership.
 
 ## Adjacent projects and research, not 3rd-Web-Hack entries
 

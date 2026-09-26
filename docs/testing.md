@@ -56,9 +56,11 @@ cargo xtask release
 
 `smoke-web` uses only Python's standard library and a locally installed
 Chromium. It serves the static output with an `index.html` fallback, checks all
-11 routes, checks the 390px viewport for page-level overflow on every route,
+15 route paths, checks the 390px viewport for page-level overflow on every route,
 checks one visible heading, named interactive controls, and keyboard Tab focus
-on every route, then exercises the local Silent Rollback evidence replay, evidence tampering,
+on every route. It verifies that Home withholds the challenge result, then
+checks both challenge answers, the success/decision wording, and the collapsed
+machine-reason disclosure. It then exercises the local Silent Rollback evidence replay, evidence tampering,
 evidence restore, and Recovery Decision Receipt verification, tampering, and
 restore. The rollback smoke waits for the result panel's terminal state and
 checks that its detail contains the exact machine reason, so the pre-run

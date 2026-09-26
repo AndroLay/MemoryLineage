@@ -555,12 +555,17 @@ one honest boundary between assessment and enforcement
 | Agora proof boundary | Distinguish record integrity from truth of execution | A claim that commitments prove memory truth |
 | PolkaShield integration | Small host adapter and CI/runbook | A new custom chain or Web2 gateway suite |
 | OceanFin simulation | Rehearse before resume and show outcome before action | Wallet execution or DeFi strategy building |
+| ExitDrill bounded comparison | Show a baseline-versus-result case, preserve separate outcome dimensions, and finish with a plain-language summary | A memory-lineage competitor, game-like onboarding, or proof of a completed migration |
 | ANTS human story | Simple restore-and-check interaction | Absolute authenticity or erasure claims |
 | AegisGate privacy table | On-chain vs local/private table | KYC or financial compliance product |
 | CRE Risk Router receipts | Dry-run, structured result, portable decision receipt | Chainlink dependency without a product need |
 | SentinelCRE pre-execution gate | Visible hold/allow boundary and attack scenarios | A semantic AI risk score |
 | AgentScore accountability | Make a result consumable by a host policy | Generic reputation marketplace |
 | ACL independent evaluator | Separate evidence producer from verifier | Full autonomous commerce platform |
+
+ExitDrill is an adjacent workflow reference from its public repository; its
+3rd-Web-Hack membership is unverified and it is not included in the event
+competitor set. See the [public project audit](./2026-09-20-3rd-web-hack-public-project-audit.md#event-membership-unresolved-not-scored-as-a-3rd-web-hack-entry).
 
 ## What must not be added before the core slice is stronger
 
@@ -780,6 +785,13 @@ important claim can be made falsifiable.
 - [3rd-Web-Hack official page](https://3rd-web-hack.devpost.com/)
 - [Forkline: Rehearse the Rollback](https://devpost.com/software/forkline-rehearse-the-rollback)
 - [MemoryLineage public competitor audit](./AUDIT_SUBMISSION_3RD_WEB_HACK_2026-09-18.md)
+- [Current 3rd-Web-Hack public project audit](./2026-09-20-3rd-web-hack-public-project-audit.md)
+
+### Adjacent workflow reference; event membership unverified
+
+- [ExitDrill public repository](https://github.com/ChelseaKR/exitdrill)
+- [ExitDrill Devpost page supplied for review](https://devpost.com/software/exitdrill)
+- [Event-membership status and evidence boundary](./2026-09-20-3rd-web-hack-public-project-audit.md#event-membership-unresolved-not-scored-as-a-3rd-web-hack-entry)
 
 ### Polkadot 2025
 

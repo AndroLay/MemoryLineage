@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print the local HTML pitch deck to a self-contained eight-page PDF."""
+"""Print the local HTML pitch deck to a self-contained PDF."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ def main() -> None:
             [
                 browser, "--headless=new", "--no-sandbox", "--disable-gpu",
                 "--disable-dev-shm-usage", "--no-first-run",
+                "--disable-crash-reporter", "--disable-breakpad",
                 f"--user-data-dir={profile}", "--allow-file-access-from-files",
                 "--no-pdf-header-footer", f"--print-to-pdf={OUTPUT}",
                 SOURCE.as_uri(),

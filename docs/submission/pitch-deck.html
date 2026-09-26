@@ -3,192 +3,362 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MemoryLineage · 3rd-Web-Hack pitch</title>
+  <title>MemoryLineage · judge presentation</title>
   <style>
     @page { size: 13.333in 7.5in; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #0d1825; color: #f7f9fd; font-family: Arial, Helvetica, sans-serif; }
+    html, body { margin: 0; padding: 0; background: #081321; color: #f4f7fb; font-family: Arial, Helvetica, sans-serif; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .slide { width: 13.333in; height: 7.5in; padding: .52in .64in .44in; break-after: page; position: relative; overflow: hidden; background: #0d1825; }
+    .slide { width: 13.333in; height: 7.5in; padding: .48in .68in .52in; break-after: page; position: relative; overflow: hidden; background: #081321; }
     .slide:last-child { break-after: auto; }
-    .brand { display: flex; align-items: center; gap: .12in; color: #f6f9ff; text-transform: uppercase; font-size: 12px; font-weight: 700; letter-spacing: .18em; }
-    .brand img { width: .22in; height: .22in; }
-    .kicker { color: #8bb5ff; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: .38in 0 .1in; }
     h1, h2, h3, p { margin: 0; }
-    h1 { font-size: 54px; line-height: 1.04; letter-spacing: -.045em; max-width: 10.8in; }
-    h2 { font-size: 35px; line-height: 1.08; letter-spacing: -.035em; max-width: 11.2in; }
-    h3 { font-size: 19px; line-height: 1.2; }
-    .lead { color: #cbd7e7; font-size: 22px; line-height: 1.38; max-width: 10.8in; margin-top: .26in; }
-    .body { color: #cbd7e7; font-size: 17px; line-height: 1.42; }
-    .muted { color: #91a4b9; }
-    .mono { font-family: 'DejaVu Sans Mono', monospace; }
-    .foot { position: absolute; bottom: .32in; left: .64in; right: .64in; display: flex; justify-content: space-between; border-top: 1px solid #2a3e55; padding-top: .12in; color: #94a7be; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
-    .accent { color: #95bdff; }
-    .danger { color: #ff9aa2; }
-    .good { color: #83d5b0; }
-    .rule { height: 2px; background: #83aefa; width: 2.2in; margin-top: .38in; }
-    .big-quote { font-size: 43px; line-height: 1.12; max-width: 10.8in; letter-spacing: -.035em; margin-top: .62in; }
-    .timeline { display: flex; align-items: stretch; gap: .12in; margin-top: .53in; }
-    .time-item { flex: 1; border-top: 2px solid #74aaff; padding-top: .13in; }
-    .time-item.red { border-color: #ff919a; }
-    .time-item .num { font-size: 13px; letter-spacing: .08em; color: #91baff; font-weight: 700; }
-    .time-item.red .num { color: #ff9aa2; }
-    .time-item strong { display: block; font-size: 21px; margin-top: .08in; }
-    .time-item span { display: block; color: #aebed0; font-size: 15px; line-height: 1.32; margin-top: .1in; }
-    .statement { margin-top: .48in; border-left: 3px solid #ff9aa2; padding-left: .2in; font-size: 23px; line-height: 1.3; max-width: 10.8in; }
-    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: .55in; margin-top: .53in; }
-    .columns.three { grid-template-columns: repeat(3, 1fr); gap: .38in; }
-    .column { border-top: 2px solid #334e6c; padding-top: .16in; }
-    .column .label { color: #9dc0f6; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
-    .column h3 { margin-top: .13in; }
-    .column p { color: #bfcddd; font-size: 16px; line-height: 1.4; margin-top: .14in; }
-    .path { display: grid; grid-template-columns: repeat(5, 1fr); gap: .14in; margin-top: .54in; }
-    .path div { border-top: 2px solid #7eafff; padding-top: .13in; }
-    .path b { color: #86b6ff; font-size: 13px; }
-    .path strong { display: block; font-size: 20px; margin-top: .1in; }
-    .path span { display: block; color: #adbed1; font-size: 15px; line-height: 1.35; margin-top: .12in; }
-    .stack { color: #a9bed5; font-size: 15px; margin-top: .58in; }
-    .demo { display: grid; grid-template-columns: 4.65in 1fr; gap: .36in; margin-top: .34in; }
-    .demo-copy { padding-top: .14in; }
-    .demo-copy .result { font-size: 32px; font-weight: 700; line-height: 1.12; margin-top: .25in; }
-    .demo-copy p { font-size: 17px; color: #c4d2e1; line-height: 1.4; margin-top: .25in; }
-    .demo-copy .code { font-size: 13px; line-height: 1.38; margin-top: .18in; padding: .12in .16in; }
-    .capture { height: 4.46in; overflow: hidden; border: 1px solid #466487; background: #102032; }
-    .capture img { width: 100%; height: auto; display: block; }
-    .capture.verify img { width: 100%; }
-    .code { font-family: 'DejaVu Sans Mono', monospace; font-size: 16px; line-height: 1.5; color: #b7d0fc; background: #15283d; border-left: 3px solid #84b3ff; padding: .16in .2in; margin-top: .38in; }
-    .boundary { display: flex; gap: .44in; margin-top: .42in; }
-    .boundary section { width: 50%; border-top: 2px solid #7eafff; padding-top: .15in; }
-    .boundary section:last-child { border-color: #ff9aa2; }
-    .boundary h3 { color: #f8fbff; margin-bottom: .14in; }
-    .boundary li { color: #c5d1df; font-size: 16px; line-height: 1.42; margin-bottom: .1in; }
-    ul { margin: 0; padding-left: .23in; }
-    .close { font-size: 25px; line-height: 1.33; max-width: 10.5in; margin-top: .5in; }
-    .next { display: grid; grid-template-columns: repeat(3, 1fr); gap: .28in; margin-top: .55in; }
-    .next div { border-top: 2px solid #7eafff; padding-top: .16in; }
-    .next strong { font-size: 19px; }
-    .next p { margin-top: .12in; color: #bbcadb; font-size: 15px; line-height: 1.38; }
-    .url { color: #9bc1ff; font-size: 17px; margin-top: .42in; }
+    .brand { display: flex; align-items: center; gap: .12in; color: #f6f9ff; font-size: 13px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    .brand img { width: .25in; height: .25in; object-fit: contain; }
+    .kicker { margin: .28in 0 .10in; color: #91b8ff; font-size: 14px; font-weight: 750; letter-spacing: .11em; text-transform: uppercase; }
+    h1 { max-width: 10.5in; font-size: 56px; line-height: 1.02; letter-spacing: -.045em; }
+    h2 { max-width: 11.5in; font-size: 43px; line-height: 1.06; letter-spacing: -.04em; }
+    h3 { font-size: 24px; line-height: 1.12; letter-spacing: -.025em; }
+    .lede { max-width: 10.7in; margin-top: .2in; color: #c8d5e5; font-size: 23px; line-height: 1.34; }
+    .body { color: #c5d2e2; font-size: 20px; line-height: 1.38; }
+    .small { color: #a9bbd1; font-size: 17px; line-height: 1.38; }
+    .mono { font-family: 'DejaVu Sans Mono', Consolas, monospace; }
+    .accent { color: #9bc1ff; }
+    .good { color: #79dfba; }
+    .danger { color: #ff9ca3; }
+    .warm { color: #efcd81; }
+    .footer { position: absolute; right: .68in; bottom: .24in; left: .68in; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #263d58; padding-top: .10in; color: #9aacc2; font-size: 11px; letter-spacing: .045em; }
+    .cover { padding-top: .6in; }
+    .cover-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: .5in; align-items: center; margin-top: .45in; }
+    .cover h1 { font-size: 61px; max-width: 7.1in; }
+    .cover .lede { max-width: 6.5in; margin-top: .24in; }
+    .cover-line { width: 1.3in; height: 3px; margin-top: .35in; background: #78aaff; }
+    .cover-promise { margin-top: .28in; color: #eef4fc; font-size: 27px; line-height: 1.18; letter-spacing: -.02em; }
+    .cover-promise span { color: #9bc1ff; }
+    .cover-visual { padding: .34in .34in .3in; border-left: 1px solid #34506e; }
+    .cover-visual-title { margin-bottom: .3in; color: #aebed1; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+    .cover-track { display: flex; align-items: center; gap: .12in; }
+    .cover-node { display: grid; width: 1.05in; height: 1.05in; place-items: center; border: 1px solid #5d85bd; border-radius: 50%; color: #eaf2ff; background: #0c1b2d; font-size: 20px; font-weight: 700; text-align: center; }
+    .cover-node.current { border-color: #74daba; box-shadow: 0 0 0 5px rgba(116, 218, 186, .1); }
+    .cover-arrow { color: #82adf1; font-size: 25px; }
+    .cover-restore { width: max-content; margin: .3in 0 0 .22in; border-left: 2px dashed #f08d95; padding-left: .15in; color: #ffb0b5; font-size: 17px; line-height: 1.25; }
+    .cover-question { margin-top: .28in; color: #d5dfeb; font-size: 18px; }
+    .timeline { display: flex; align-items: flex-start; gap: .12in; margin-top: .45in; }
+    .timeline-item { flex: 1; min-height: 1.25in; border-top: 3px solid #78aaff; padding-top: .13in; }
+    .timeline-item.restore { border-color: #f08d95; }
+    .timeline-item .step { color: #97bbf4; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 15px; }
+    .timeline-item.restore .step { color: #ff9ca3; }
+    .timeline-item strong { display: block; margin-top: .08in; color: #f7f9fd; font-size: 23px; }
+    .timeline-item span:last-child { display: block; margin-top: .09in; color: #b4c3d6; font-size: 18px; line-height: 1.3; }
+    .split-note { display: grid; grid-template-columns: 1fr 1fr; gap: .5in; margin-top: .24in; border-top: 1px solid #2a405b; padding-top: .2in; }
+    .split-note strong { display: block; color: #edf4fc; font-size: 21px; }
+    .split-note p { margin-top: .07in; color: #bdcbdc; font-size: 19px; line-height: 1.33; }
+    .concept-question { max-width: 11.3in; margin-top: .35in; color: #eef4fc; font-size: 35px; font-weight: 650; line-height: 1.12; letter-spacing: -.035em; }
+    .concept-split { display: grid; grid-template-columns: 1fr .25fr 1fr; align-items: center; gap: .23in; margin-top: .35in; }
+    .concept-side { min-height: 1.8in; border-top: 3px solid #72d8b3; padding-top: .16in; }
+    .concept-side.shared { border-color: #78aaff; }
+    .concept-side .label { color: #9aacc2; font-size: 14px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .concept-side strong { display: block; margin-top: .12in; font-size: 27px; }
+    .concept-side p { max-width: 4.9in; margin-top: .1in; color: #becbdc; font-size: 20px; line-height: 1.32; }
+    .concept-arrow { color: #8bb5ff; font-size: 32px; text-align: center; }
+    .concept-boundary { margin-top: .05in; border-left: 3px solid #e9c873; padding: .08in 0 .08in .16in; color: #ead9a8; font-size: 19px; line-height: 1.35; }
+    .architecture-intro { max-width: 10.5in; margin-top: .12in; color: #c0cddd; font-size: 19px; line-height: 1.32; }
+    .architecture { margin-top: .22in; }
+    .arch-label { margin-bottom: .07in; color: #8fa9c8; font-size: 14px; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+    .arch-row { display: grid; grid-template-columns: 1.45fr .17fr 1.8fr .17fr 3.2fr; align-items: center; gap: .08in; }
+    .arch-node { min-height: 1.17in; border-top: 3px solid #78aaff; padding: .11in .08in 0 0; }
+    .arch-node.private { border-color: #72d8b3; }
+    .arch-node.registry { border-color: #edc975; }
+    .arch-node.bundle { border-color: #af9cff; }
+    .arch-node .layer { color: #a2b3c8; font-size: 14px; font-weight: 750; letter-spacing: .055em; text-transform: uppercase; }
+    .arch-node strong { display: block; margin-top: .065in; color: #f3f7fc; font-size: 21px; line-height: 1.15; }
+    .arch-node span { display: block; margin-top: .07in; color: #c4cfdd; font-size: 17px; line-height: 1.23; }
+    .arch-output-wrap { border-left: 1px solid #395572; padding-left: .16in; }
+    .arch-output-note { margin-bottom: .055in; color: #b2c2d5; font-size: 14px; font-weight: 750; letter-spacing: .065em; text-transform: uppercase; }
+    .arch-output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .2in; }
+    .arch-arrow { color: #86b3fb; font-size: 24px; text-align: center; }
+    .arch-readpath { display: grid; grid-template-columns: 1.45fr .17fr 1.3fr .17fr 1.1fr .17fr 1.2fr .17fr .8fr; align-items: center; gap: .06in; margin-top: .11in; border-top: 1px solid #263d58; padding-top: .13in; }
+    .arch-readnode { min-height: .83in; border-left: 2px solid #91b8ff; padding-left: .12in; color: #cbd7e5; font-size: 17px; line-height: 1.22; }
+    .arch-readnode strong { display: block; margin-bottom: .04in; color: #a6c8ff; font-size: 18px; }
+    .arch-foot { margin-top: .11in; color: #adbdcf; font-size: 16px; line-height: 1.28; }
+    .flow { display: flex; align-items: stretch; gap: .1in; margin-top: .36in; }
+    .flow-step { flex: 1; border-top: 3px solid #78aaff; padding-top: .12in; }
+    .flow-step .number { color: #9bc1ff; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 16px; }
+    .flow-step strong { display: block; margin-top: .08in; color: #f2f6fc; font-size: 21px; line-height: 1.12; }
+    .flow-step span { display: block; margin-top: .09in; color: #c3cfdd; font-size: 18px; line-height: 1.26; }
+    .flow-arrow { align-self: flex-start; margin-top: .44in; color: #87b5ff; font-size: 23px; }
+    .outcomes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35in; margin-top: .37in; border-top: 1px solid #2a405b; padding-top: .18in; }
+    .outcome { border-left: 2px solid #76d8b5; padding-left: .14in; }
+    .outcome.history { border-color: #e8c56f; }
+    .outcome.hold { border-color: #f08d95; }
+    .outcome strong { display: block; color: #f3f7fb; font-size: 20px; }
+    .outcome span { display: block; margin-top: .05in; color: #c2cedd; font-size: 18px; line-height: 1.22; }
+    .flow-caveat { margin-top: .17in; color: #b6c4d5; font-size: 16px; }
+    .result-layout { display: grid; grid-template-columns: .92fr 1.08fr; gap: .33in; margin-top: .24in; align-items: center; }
+    .result-copy { padding-top: .04in; }
+    .result-copy .lede { margin-top: .08in; font-size: 20px; }
+    .result-track { display: flex; align-items: center; gap: .11in; margin-top: .23in; }
+    .result-state { border-top: 2px solid #78aaff; padding-top: .08in; color: #eff4fb; font-size: 18px; font-weight: 700; }
+    .result-state.current { border-color: #72d8b3; }
+    .result-state.candidate { border-color: #f08d95; color: #ffc0c4; }
+    .result-arrow { color: #8cb5f4; font-size: 22px; }
+    .result-verdict { margin-top: .18in; border-left: 3px solid #f08d95; padding-left: .14in; }
+    .result-verdict strong { display: block; color: #ffb4b9; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 25px; }
+    .result-verdict span { display: block; margin-top: .04in; color: #cad5e2; font-size: 17px; line-height: 1.32; }
+    .runtime-result { margin-top: .14in; color: #c5d2e1; font-size: 17px; line-height: 1.3; }
+    .runtime-result b { color: #f3f7fc; }
+    .screenshot { overflow: hidden; height: 4.4in; border: 1px solid #3d5877; background: #0c1a2a; }
+    .screenshot img { display: block; width: 100%; height: auto; }
+    .proof-layout { display: grid; grid-template-columns: 1fr 1.1fr; gap: .36in; margin-top: .26in; align-items: center; }
+    .proof-intro { margin-top: .12in; color: #c3cfdd; font-size: 20px; line-height: 1.34; }
+    .innovation-compare { margin-top: .17in; }
+    .innovation-row { display: grid; grid-template-columns: 1.32in 1fr; gap: .14in; align-items: start; border-top: 1px solid #344a65; padding: .1in 0; }
+    .innovation-row strong { color: #e6edf7; font-size: 17px; line-height: 1.2; }
+    .innovation-row span { color: #c7d3e1; font-size: 17px; line-height: 1.25; }
+    .innovation-row.memorylineage { border-left: 3px solid #6cd7b2; padding-left: .12in; }
+    .innovation-row.memorylineage strong { color: #8fe3c3; }
+    .proof-output { margin-top: .18in; color: #a9c9ff; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 17px; line-height: 1.55; }
+    .proof-note { margin-top: .13in; color: #b1bfd1; font-size: 16px; line-height: 1.28; }
+    .boundary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .48in; margin-top: .3in; }
+    .boundary-col { border-top: 3px solid #6ed8b4; padding-top: .13in; }
+    .boundary-col.limit { border-color: #f08d95; }
+    .boundary-col h3 { margin-bottom: .08in; }
+    .boundary-col ul { margin: 0; padding-left: .22in; }
+    .boundary-col li { margin: .075in 0; padding-left: .02in; color: #cbd6e3; font-size: 20px; line-height: 1.23; }
+    .boundary-col li strong { color: #edf3fa; }
+    .impact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4in; margin-top: .52in; }
+    .impact-item { min-height: 2.1in; border-top: 3px solid #78aaff; padding-top: .16in; }
+    .impact-item:nth-child(2) { border-color: #73d9b6; }
+    .impact-item:nth-child(3) { border-color: #b5a3ff; }
+    .impact-item .role { color: #9eb5d2; font-size: 15px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    .impact-item strong { display: block; margin-top: .13in; color: #f2f6fb; font-size: 25px; line-height: 1.14; }
+    .impact-item p { margin-top: .12in; color: #c4d1df; font-size: 21px; line-height: 1.3; }
+    .impact-note { margin-top: .3in; border-left: 3px solid #e8c56f; padding-left: .15in; color: #eddfaF; font-size: 18px; line-height: 1.32; }
+    .roadmap { display: grid; grid-template-columns: repeat(4, 1fr); gap: .22in; margin-top: .48in; }
+    .roadmap-item { min-height: 1.62in; border-top: 3px solid #86b3fb; padding-top: .14in; }
+    .roadmap-item:nth-child(2) { border-color: #8dc8dc; }
+    .roadmap-item:nth-child(3) { border-color: #c1a9ff; }
+    .roadmap-item:nth-child(4) { border-color: #e6c673; }
+    .roadmap-item .number { color: #9bc1ff; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 15px; }
+    .roadmap-item strong { display: block; margin-top: .09in; color: #f2f6fb; font-size: 22px; }
+    .roadmap-item p { margin-top: .08in; color: #c2cedd; font-size: 19px; line-height: 1.25; }
+    .final-line { max-width: 10.8in; margin-top: .32in; color: #eaf1fa; font-size: 27px; line-height: 1.2; letter-spacing: -.025em; }
+    .reproduce { margin-top: .17in; color: #abcaff; font-family: 'DejaVu Sans Mono', Consolas, monospace; font-size: 18px; }
+    .legal { margin-top: .16in; color: #a1b2c7; font-size: 13px; line-height: 1.3; }
+    @media print {
+      html, body { width: 13.333in; }
+      .slide { page-break-after: always; }
+      .slide:last-child { page-break-after: auto; }
+    }
   </style>
 </head>
 <body>
-  <article class="slide">
+  <article class="slide cover">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">3rd-Web-Hack · private agent memory</div>
-    <h1>An old AI-memory backup can look current.</h1>
-    <p class="lead">After a crash, the agent operator restores a private snapshot. A separate controller needs evidence before deciding whether the agent may resume.</p>
-    <div class="rule"></div>
-    <p class="big-quote">Verify the history,<br><span class="accent">not the memory.</span></p>
-    <div class="foot"><span>MemoryLineage · pitch</span><span>01 / 08</span></div>
+    <div class="cover-grid">
+      <div>
+        <div class="kicker">3rd-Web-Hack · agent memory recovery</div>
+        <h1>Can this backup continue the agent’s history?</h1>
+        <p class="lede">MemoryLineage checks whether a restored private snapshot is the authorized continuation of recorded history.</p>
+        <div class="cover-line"></div>
+        <p class="cover-promise">Verify the history,<br><span>not the memory.</span></p>
+      </div>
+      <div class="cover-visual" aria-label="A newer committed state exists after snapshot one is restored">
+        <p class="cover-visual-title">One private memory · an ordered history</p>
+        <div class="cover-track">
+          <div class="cover-node">State<br>1</div><span class="cover-arrow">→</span>
+          <div class="cover-node">State<br>2</div><span class="cover-arrow">→</span>
+          <div class="cover-node current">State<br>3<br><small>HEAD</small></div>
+        </div>
+        <p class="cover-restore">RESTORED<br>State 1</p>
+        <p class="cover-question">Should the agent resume from here?</p>
+      </div>
+    </div>
+    <div class="footer"><span>MemoryLineage · private agent history</span><span>01 / 10</span></div>
   </article>
 
   <article class="slide">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">The silent rollback</div>
-    <h2>One restore. Two different histories.</h2>
+    <div class="kicker">01 · The Problem</div>
+    <h2>The file opens. The history may be wrong.</h2>
+    <p class="lede">After an outage, restoring an old snapshot can silently rewind an agent while newer committed states already exist.</p>
     <div class="timeline">
-      <div class="time-item"><span class="num">01</span><strong>Snapshot 1</strong><span>Private memory checkpoint.</span></div>
-      <div class="time-item"><span class="num">02</span><strong>Snapshot 2</strong><span>Newer state is committed.</span></div>
-      <div class="time-item"><span class="num">03</span><strong>Snapshot 3</strong><span>Canonical committed head.</span></div>
-      <div class="time-item red"><span class="num">04</span><strong>Restore 1</strong><span>Operator tries to continue from the old root.</span></div>
+      <div class="timeline-item"><span class="step">01</span><strong>Snapshot 1</strong><span>A private checkpoint is saved.</span></div>
+      <div class="timeline-item"><span class="step">02</span><strong>Snapshot 2</strong><span>The recorded history advances.</span></div>
+      <div class="timeline-item"><span class="step">03</span><strong>Snapshot 3</strong><span>The shared head is now here.</span></div>
+      <div class="timeline-item restore"><span class="step">RESTORE</span><strong>Snapshot 1</strong><span>The operator brings an older copy back.</span></div>
     </div>
-    <p class="statement">The local database can reopen. An independent reviewer still needs to know whether that state may extend the shared history.</p>
-    <div class="foot"><span>Problem · operator / controller / auditor</span><span>02 / 08</span></div>
+    <div class="split-note">
+      <div><strong>Restoring storage is easy.</strong><p>The runtime can reopen a local backup.</p></div>
+      <div><strong>Approving a continuation is different.</strong><p>A controller needs independent evidence that this state may extend the recorded history.</p></div>
+    </div>
+    <div class="footer"><span>The silent rollback · operator / controller / auditor</span><span>02 / 10</span></div>
   </article>
 
   <article class="slide">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Why Web3 belongs here</div>
-    <h2>The runtime operator cannot be the only keeper of the checkpoint.</h2>
-    <p class="lead">A shared registry records the current predecessor and configured authority. Raw memory stays off-chain.</p>
-    <div class="columns three">
-      <div class="column"><div class="label">Private runtime</div><h3>Stores the snapshot</h3><p>The operator can restore or replace local files after a crash or migration.</p></div>
-      <div class="column"><div class="label">Registry authority</div><h3>Controls succession</h3><p>The Solidity registry checks sequence, predecessor root, and authorization.</p></div>
-      <div class="column"><div class="label">Independent reviewer</div><h3>Replays the evidence</h3><p>A separate Rust verifier checks the portable history without trusting the website.</p></div>
+    <div class="kicker">02 · The Solution · Concept</div>
+    <h2>Private snapshots. Shared order. Reviewable decisions.</h2>
+    <p class="concept-question">Can this backup continue from the latest approved state?</p>
+    <div class="concept-split">
+      <div class="concept-side"><span class="label">Private side · agent storage</span><strong>Keep the memory private</strong><p>Prompts, notes, and raw memory values stay with the agent’s own storage.</p></div>
+      <div class="concept-arrow">→</div>
+      <div class="concept-side shared"><span class="label">Shared side · evidence</span><strong>Record a snapshot fingerprint</strong><p>A fixed-size fingerprint shows a snapshot’s place in history; ordered records show who approved each step without sharing raw memory.</p></div>
     </div>
-    <div class="foot"><span>Conditional trust model · multiple parties</span><span>03 / 08</span></div>
+    <p class="concept-boundary">MemoryLineage checks recorded order and authorization. It does not decide whether the memory itself is true or safe.</p>
+    <div class="footer"><span>Verify the history, not the memory</span><span>03 / 10</span></div>
   </article>
 
   <article class="slide">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Working MVP · one evidence path</div>
-    <h2>From a private snapshot to a replayable decision.</h2>
-    <div class="path">
-      <div><b>01</b><strong>SQLite</strong><span>Three synthetic private snapshots.</span></div>
-      <div><b>02</b><strong>Rust</strong><span>Versioned commitments and evidence.</span></div>
-      <div><b>03</b><strong>Solidity</strong><span>Ordered state and authority rules.</span></div>
-      <div><b>04</b><strong>Rust/revm</strong><span>Execute the published bytecode locally.</span></div>
-      <div><b>05</b><strong>Inspector + CLI</strong><span>Explain and independently replay the result.</span></div>
-    </div>
-    <p class="stack">Stack: Solidity 0.8.36 · Rust 1.97.1 · Dioxus/WASM · SQLite · revm · Ethereum Sepolia for a separate public observation</p>
-    <div class="foot"><span>Demo Space V2 · local Rust/revm · no transaction broadcast</span><span>04 / 08</span></div>
-  </article>
-
-  <article class="slide">
-    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Falsifiable result</div>
-    <h2>Transition 4 names the old root. The registry rejects it.</h2>
-    <div class="demo">
-      <div class="demo-copy">
-        <p>Canonical head: transition 3. Attempted predecessor: actual root after transition 1.</p>
-        <div class="result danger">REJECTED<br>BAD_PREVIOUS_STATE</div>
-        <div class="code">snapshot 1 → KNOWN_HISTORICAL_CHECKPOINT<br>reason: current head is snapshot 3<br>REHEARSE_ONLY → HELD<br>reference loader not invoked</div>
-        <p>The contract check rejects the stale root. Separately, the framework-neutral local reference runtime holds snapshot 1 before its loader. Production integration is not claimed.</p>
+    <div class="kicker">02 · The Solution · Architecture</div>
+    <h2>How a private backup becomes reviewable evidence.</h2>
+    <p class="architecture-intro">Raw snapshots stay in private storage. The shared record keeps small fingerprints, order, and approval evidence.</p>
+    <div class="architecture">
+      <p class="arch-label">Write path · create the shared history and evidence</p>
+      <div class="arch-row">
+        <div class="arch-node private"><span class="layer">01 · Private data</span><strong>Agent memory store</strong><span>Raw snapshot stays local.</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node"><span class="layer">02 · Evidence builder</span><strong>Rust evidence builder</strong><span>Creates snapshot fingerprints and transition records.</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-output-wrap">
+          <p class="arch-output-note">Rust produces two separate outputs</p>
+          <div class="arch-output-grid">
+            <div class="arch-node registry"><span class="layer">Shared checkpoint</span><strong>Solidity registry</strong><span>Latest state, previous state, approval.</span></div>
+            <div class="arch-node bundle"><span class="layer">Portable evidence</span><strong>Replayable bundle</strong><span>Fingerprints, transitions, signature details.</span></div>
+          </div>
+        </div>
       </div>
-      <div class="capture"><img src="assets/lab-local.png" alt="Inspector Tampering Lab showing the local BAD_PREVIOUS_STATE rollback rejection"></div>
-    </div>
-    <div class="foot"><span>Screenshot from the local static Inspector · Demo Space V2</span><span>05 / 08</span></div>
-  </article>
-
-  <article class="slide">
-    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Do not trust the dashboard</div>
-    <h2>Change one commitment. Replay must fail.</h2>
-    <div class="demo">
-      <div class="demo-copy">
-        <p>Export the same evidence bundle from the Inspector and check it with the independent Rust CLI.</p>
-        <div class="code">original → BUNDLE REPLAY VERIFIED<br>tampered → TRANSITION_ID_MISMATCH<br>restored → BUNDLE REPLAY VERIFIED</div>
-        <p>Replay confirms bundle consistency, not canonical registry provenance. Receipts bind the decision to the supplied bundle and policy.</p>
+      <p class="arch-label">Restore path · compare a returned snapshot before loading</p>
+      <div class="arch-readpath">
+        <div class="arch-readnode"><strong>Inputs</strong>Backup + evidence + latest</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-readnode"><strong>Replay</strong>Rust checks the evidence records</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-readnode"><strong>Preflight</strong>Inspector explains the result</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-readnode"><strong>Policy gate</strong>Local reference gate</div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-readnode"><strong>Loader</strong>Only for allowed state</div>
       </div>
-      <div class="capture verify"><img src="assets/verify-local.png" alt="Inspector showing BUNDLE REPLAY VERIFIED and registry identity limited to ADDRESS_FORMAT_ONLY"></div>
     </div>
-    <div class="foot"><span>Portable evidence · Rust/WASM + independent Rust CLI</span><span>06 / 08</span></div>
+    <p class="arch-foot">Demo Space V2 is synthetic and local: the checked-in Solidity bytecode runs through Rust/revm. This is not a public deployment.</p>
+    <div class="footer"><span>Separation: private payload / shared checkpoint / independent review</span><span>04 / 10</span></div>
   </article>
 
   <article class="slide">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Original contribution and limits</div>
-    <h2>Recovery preflight around pinned registry semantics.</h2>
-    <div class="boundary">
-      <section><h3 class="good">Built and evidenced here</h3><ul>
-        <li>Current, historical, divergent, and unverified classification.</li>
-        <li>Policy-bound recovery receipts and protected local loader.</li>
-        <li>Independent replay, authority timeline, and tamper evidence.</li>
-        <li>Rust/WASM Inspector and a reproducible local incident.</li>
-      </ul></section>
-      <section><h3 class="danger">Outside the current proof</h3><ul>
-        <li>Semantic truth or safety of the private memory.</li>
-        <li>Production agent adoption or off-chain availability.</li>
-        <li>Public deployment of this exact Demo Space V2 history.</li>
-        <li>Canonical bundle provenance, complete history recovery, historical ERC-1271 replay, or RPC consensus.</li>
-        <li>Authorship of ERC-8350, EIP-712, or ERC-1271.</li>
-      </ul></section>
+    <div class="kicker">02 · The Solution · Recovery Flow</div>
+    <h2>Check the backup before the agent continues.</h2>
+    <div class="flow">
+      <div class="flow-step"><span class="number">01</span><strong>Choose a backup</strong><span>Pick the restored copy.</span></div><span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="number">02</span><strong>Check the evidence</strong><span>Confirm the records line up.</span></div><span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="number">03</span><strong>Compare with latest</strong><span>Check the state and approval.</span></div><span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="number">04</span><strong>Explain the result</strong><span>Current, older, mismatch, or unable to verify.</span></div><span class="flow-arrow">→</span>
+      <div class="flow-step"><span class="number">05</span><strong>Decide before loading</strong><span>Then decide if the agent can resume.</span></div>
     </div>
-    <div class="foot"><span>Claim scope · inspect the repository provenance record</span><span>07 / 08</span></div>
+    <div class="outcomes">
+      <div class="outcome"><strong>Matches latest + approved</strong><span>Eligible to pass the local demo gate.</span></div>
+      <div class="outcome history"><strong>Known older backup</strong><span>Practice with it; do not continue the live session.</span></div>
+      <div class="outcome hold"><strong>Does not match or cannot be checked</strong><span>Hold for review; keep the loader blocked.</span></div>
+    </div>
+    <p class="flow-caveat">The protected loader is a framework-neutral reference adapter. External production runtime enforcement is not demonstrated.</p>
+    <div class="footer"><span>Candidate → evidence → decision → loader</span><span>05 / 10</span></div>
   </article>
 
   <article class="slide">
     <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
-    <div class="kicker">Impact and next proof</div>
-    <h2>Make recovery reviewable before an agent resumes.</h2>
-    <p class="close">For managed agent systems with separate operators, controllers, and auditors, MemoryLineage offers a narrow shared answer to an otherwise private restore decision.</p>
-    <div class="next">
-      <div><strong>Try the incident</strong><p>Open the Inspector, check an old restore, and inspect the exact rejection.</p></div>
-      <div><strong>Replay the evidence</strong><p>Run the submission CLI verifier from the named source revision.</p></div>
-      <div><strong>Extend the proof</strong><p>Collect independent human reproduction and a public same-space deployment before making those claims.</p></div>
+    <div class="kicker">02 · The Solution · Silent Rollback Example</div>
+    <h2>The check works. The old backup stays on hold.</h2>
+    <div class="result-layout">
+      <div class="result-copy">
+        <p class="lede">The latest recorded state is 3. The restored backup is state 1 and tries to continue from there.</p>
+        <div class="result-track">
+          <span class="result-state">STATE 1</span><span class="result-arrow">→</span><span class="result-state current">LATEST 3</span><span class="result-arrow">/</span><span class="result-state candidate">BACKUP 1</span>
+        </div>
+        <div class="result-verdict"><strong>BAD_PREVIOUS_STATE</strong><span>The local registry rejects a new step that starts from state 1 instead of state 3.</span></div>
+        <p class="runtime-result"><b>Recovery decision:</b> known older backup → practice only → held before the local reference loader.</p>
+        <p class="runtime-result"><b>CHECK PASSED</b> means the check caught the mismatch. The backup was not approved.</p>
+      </div>
+      <div class="screenshot"><img src="assets/lab-local.png" alt="Local Inspector result: evidence check passed, stale backup held, BAD_PREVIOUS_STATE"></div>
     </div>
-    <p class="url">memorylineage.pages.dev · github.com/AndroLay/MemoryLineage</p>
-    <div class="foot"><span>Hosted deployment status unverified</span><span>08 / 08</span></div>
+    <div class="footer"><span>Synthetic Demo Space V2 · local Rust/revm execution</span><span>06 / 10</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">03 · The Innovation</div>
+    <h2>Why this recovery workflow is different.</h2>
+    <div class="proof-layout">
+      <div>
+        <p class="proof-intro">The contribution is the recovery workflow around existing standards—not a new cryptographic primitive.</p>
+        <div class="innovation-compare">
+          <div class="innovation-row"><strong>Restore only</strong><span>Reopens the file, but does not show whether it is the latest shared state.</span></div>
+          <div class="innovation-row"><strong>Local signed log</strong><span>Shows who signed a record; by itself, it may not give other parties an independent latest checkpoint.</span></div>
+          <div class="innovation-row memorylineage"><strong>MemoryLineage</strong><span>Compares the backup with ordered shared evidence, then records a reviewable decision before the local loader.</span></div>
+        </div>
+        <p class="proof-output">original bundle → BUNDLE REPLAY VERIFIED<br>changed fingerprint → TRANSITION_ID_MISMATCH</p>
+        <p class="proof-note">Replay checks bundle consistency. This local demo does not authenticate public-chain origin.</p>
+      </div>
+      <div class="screenshot"><img src="assets/verify-local.png" alt="Inspector Verify Evidence page showing a replay-verified evidence bundle and the registry identity scope"></div>
+    </div>
+    <div class="footer"><span>Existing standards, joined by a recovery audit workflow</span><span>07 / 10</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">04 · The Impact</div>
+    <h2>Make recovery decisions reviewable.</h2>
+    <p class="lede">When storage and resume approval are split across people, each needs the same evidence.</p>
+    <div class="impact-grid">
+      <div class="impact-item"><span class="role">Operator</span><strong>See what came back</strong><p>Compare the restored backup with the recorded latest state before handing control back.</p></div>
+      <div class="impact-item"><span class="role">Controller</span><strong>Apply one visible rule</strong><p>Latest and approved may pass the demo gate; older stays practice-only; unknown states are held.</p></div>
+      <div class="impact-item"><span class="role">Auditor</span><strong>Check the same evidence</strong><p>Replay the bundle independently and see altered evidence fail with a specific mismatch.</p></div>
+    </div>
+    <p class="impact-note">Prototype evidence: a synthetic local case rejects the stale step and keeps the reference loader from running. Production outcomes and user impact have not been measured.</p>
+    <div class="footer"><span>04 · Impact is an intended outcome, not a measured result</span><span>08 / 10</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">Current Limitations</div>
+    <h2>Local replay has a clear trust boundary.</h2>
+    <div class="boundary-grid">
+      <section class="boundary-col limit">
+        <h3>Evidence and recovery</h3>
+        <ul>
+          <li><strong>Chain origin:</strong> offline replay checks the address format, not which contract or network produced the bundle.</li>
+          <li><strong>Complete history:</strong> recovery needs saved logs or bundles; the demo has no history indexer.</li>
+          <li><strong>Other trust checks:</strong> past smart-wallet approvals are not replayed; network reads use one RPC source.</li>
+        </ul>
+      </section>
+      <section class="boundary-col limit">
+        <h3>Product and meaning</h3>
+        <ul>
+          <li><strong>Deployment:</strong> Demo Space V2 is synthetic and local; no same-space public deployment is shown.</li>
+          <li><strong>Runtime assurance:</strong> the gate is a local reference adapter, not a production framework integration or formal audit.</li>
+          <li><strong>Real-memory privacy:</strong> extra privacy protection for real memories is not integrated or audited.</li>
+          <li><strong>Memory meaning:</strong> truth, safety, reasoning quality, and memory-to-action causality are out of scope.</li>
+        </ul>
+      </section>
+    </div>
+    <div class="footer"><span>External reproduction and production adoption are not claimed</span><span>09 / 10</span></div>
+  </article>
+
+  <article class="slide">
+    <div class="brand"><img src="../../apps/inspector/assets/memorylineage-mark-reversed.svg" alt=""> MemoryLineage</div>
+    <div class="kicker">05 · Future Scope</div>
+    <h2>What must be proved before real use.</h2>
+    <p class="lede">Each milestone has a checkable exit condition; the current demo has not passed these production gates.</p>
+    <div class="roadmap">
+      <div class="roadmap-item"><span class="number">01 · CHAIN SOURCE</span><strong>Trust the source</strong><p>Verify deployed code and state against a block checked through a trusted source.</p></div>
+      <div class="roadmap-item"><span class="number">02 · HISTORY</span><strong>Rebuild the same history</strong><p>Replay saved logs and bundles to the checked registry head; stop if records are missing.</p></div>
+      <div class="roadmap-item"><span class="number">03 · REAL RUNTIME</span><strong>Gate one real loader</strong><p>Prove current, approved state proceeds; old, diverged, or unknown state stays blocked.</p></div>
+      <div class="roadmap-item"><span class="number">04 · PEOPLE & PRIVACY</span><strong>Validate before real memory</strong><p>Measure unaided reviewer success; test privacy-key backup and recovery.</p></div>
+    </div>
+    <p class="final-line">The question stays simple: is this backup an authorized continuation of the recorded history?</p>
+    <p class="reproduce">Reproduce locally: cargo xtask reproduce</p>
+    <p class="legal">© 2026 MemoryLineage contributors · Open-source code under the MIT License · Third-party notices are in the repository.</p>
+    <div class="footer"><span>github.com/AndroLay/MemoryLineage</span><span>10 / 10</span></div>
   </article>
 </body>
 </html>

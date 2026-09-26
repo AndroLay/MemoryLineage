@@ -12,6 +12,391 @@ use crate::data::{
 };
 use dioxus::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+const LANDING_SCROLL_REVEAL_SCRIPT: &str = r#"
+(() => {
+    const root = document.querySelector(".memory-landing");
+    if (!root || root.dataset.scrollRevealReady === "true") return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nativeTimeline = typeof CSS !== "undefined"
+        && typeof CSS.supports === "function"
+        && CSS.supports("animation-timeline", "view()");
+    if (!reducedMotion && nativeTimeline) return;
+    if (!("IntersectionObserver" in window)) return;
+
+    const targets = Array.from(root.querySelectorAll(
+        ".landing-contrast, .landing-flow, .landing-history-preview"
+    ));
+    if (!targets.length) return;
+
+    window.__memoryLineageRevealObserver?.disconnect?.();
+    const observer = new IntersectionObserver((entries, activeObserver) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add("scroll-revealed");
+                activeObserver.unobserve(entry.target);
+            }
+        }
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });
+
+    root.classList.add("scroll-reveal-ready");
+    root.dataset.scrollRevealReady = "true";
+    for (const target of targets) {
+        if (target.getBoundingClientRect().top < window.innerHeight * 0.92) {
+            target.classList.add("scroll-revealed");
+        } else {
+            observer.observe(target);
+        }
+    }
+    window.__memoryLineageRevealObserver = observer;
+    return true;
+})()
+"#;
+
+#[cfg(target_arch = "wasm32")]
+fn install_landing_scroll_reveal() {
+    spawn(async {
+        let _ = document::eval(LANDING_SCROLL_REVEAL_SCRIPT).await;
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn install_landing_scroll_reveal() {}
+
+#[component]
+pub fn WelcomePage(data: UiData) -> Element {
+    let mut guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let mut tour_progress = use_context::<Signal<crate::TourProgress>>();
+    use_effect(install_landing_scroll_reveal);
+    let restored_sequence = data.restored_snapshot().sequence;
+    let head_sequence = data.head().delta.sequence;
+    rsx! {
+        div { class: "memory-landing",
+            section { class: "landing-hero", aria_labelledby: "landing-title",
+                div { class: "landing-shell landing-hero-layout",
+                    div { class: "landing-hero-copy",
+                        h1 { id: "landing-title",
+                            "A backup can open "
+                            span { class: "landing-title-emphasis", "and still be out of date." }
+                        }
+                        p { class: "landing-hero-lede", "When an AI agent restarts from a private memory backup, the file can load even if the shared history has moved on. MemoryLineage helps operators and reviewers check that history before treating a restore as current." }
+                        div { class: "welcome-actions landing-hero-actions",
+                            Link {
+                                class: "button button-primary welcome-start-button",
+                                to: AppRoute::Home {},
+                                onclick: move |_| {
+                                    guided_tour.set(Some(crate::TourStep::Incident));
+                                    tour_progress.set(crate::TourProgress::default());
+                                },
+                                "Get started ", Icon { name: IconName::Arrow, size: 16 }
+                            }
+                            Link {
+                                class: "button button-secondary welcome-free-button",
+                                to: AppRoute::Overview {},
+                                onclick: move |_| {
+                                    guided_tour.set(None);
+                                    tour_progress.set(crate::TourProgress::default());
+                                },
+                                "Explore freely"
+                            }
+                        }
+                        p { class: "welcome-time-note",
+                            span { class: "landing-note-rule" }
+                            "Try one recovery case in about a minute. No setup required."
+                        }
+                    }
+                    figure { class: "landing-incident-preview",
+                        figcaption { class: "landing-incident-heading",
+                            div {
+                                small { "A SAMPLE RECOVERY" }
+                                strong { "Can this backup continue?" }
+                            }
+                            span { "LOCAL SAMPLE" }
+                        }
+                        div { class: "landing-incident-states", aria_label: "Restored Backup {restored_sequence} and latest shared Backup {head_sequence}",
+                            div { class: "landing-incident-state landing-incident-restored",
+                                span { "RESTORED BACKUP" }
+                                strong { "Backup {restored_sequence}" }
+                                small { "Restored locally" }
+                            }
+                            span { class: "landing-incident-question", aria_hidden: "true", "?" }
+                            div { class: "landing-incident-state landing-incident-shared",
+                                span { "LATEST SHARED HISTORY" }
+                                strong { "Backup {head_sequence}" }
+                                small { "Latest recorded backup" }
+                            }
+                        }
+                        div { class: "landing-incident-history", aria_hidden: "true",
+                            for (index, transition) in data.v2.transitions.iter().enumerate() {
+                                if index > 0 {
+                                    span { class: "landing-history-connector" }
+                                }
+                                if transition.delta.sequence == head_sequence {
+                                    span { class: "landing-history-node landing-history-current",
+                                        strong { "{transition.delta.sequence}" }
+                                        small { "Latest" }
+                                    }
+                                } else {
+                                    span { class: "landing-history-node",
+                                        strong { "{transition.delta.sequence}" }
+                                        small { "Saved" }
+                                    }
+                                }
+                            }
+                        }
+                        p { class: "landing-incident-caption", "Synthetic snapshots only · the verdict appears when you try the check." }
+                    }
+                }
+            }
+
+            section { class: "landing-assurance", aria_label: "What to expect from the sample",
+                div { class: "landing-shell landing-assurance-row",
+                    div { strong { "No real memory is used" } p { "The bundled snapshots are synthetic; the demo does not read your files." } }
+                    div { strong { "Start without setup" } p { "Open the bundled recovery case in your browser." } }
+                    div { strong { "No agent is resumed" } p { "Trying the local case does not run an agent or send a transaction." } }
+                }
+            }
+
+            section { class: "landing-section landing-problem", id: "problem", aria_labelledby: "landing-problem-title",
+                div { class: "landing-shell landing-problem-layout",
+                    div { class: "landing-section-intro",
+                        h2 { id: "landing-problem-title", "Restoring the file is only half the recovery decision." }
+                        p { "A local database can tell an operator what was restored. By itself, it cannot tell an independent reviewer whether that state continues the latest authorized history." }
+                    }
+                    div { class: "landing-contrast",
+                        div { class: "landing-contrast-row",
+                            span { "THE RESTORED FILE" }
+                            strong { "It opens and contains a memory snapshot." }
+                            p { "That confirms the local data can be read." }
+                        }
+                        div { class: "landing-contrast-row landing-contrast-shared",
+                            span { "THE SHARED RECORD" }
+                            strong { "It identifies which checkpoint was recorded last." }
+                            p { "That gives separated operators and reviewers a reference for recovery." }
+                        }
+                    }
+                    p { class: "landing-problem-note", "The gap matters when the runtime operator, history authority, and reviewer are not the same person." }
+                }
+            }
+
+            section { class: "landing-section landing-method", id: "how-it-works", aria_labelledby: "landing-method-title",
+                div { class: "landing-shell",
+                    div { class: "landing-section-intro landing-method-intro",
+                        h2 { id: "landing-method-title", "Follow the history before deciding what can continue." }
+                        p { "MemoryLineage records the succession of private snapshots as commitments, then checks a candidate against a named, replayable history." }
+                    }
+                    ol { class: "landing-flow",
+                        li {
+                            span { class: "landing-flow-mark", "1" }
+                            div { strong { "Compare the restore" } p { "Identify the snapshot and compare it with the latest recorded checkpoint." } }
+                        }
+                        li {
+                            span { class: "landing-flow-mark", "2" }
+                            div { strong { "Review the succession" } p { "Trace which transitions and authorities connect the history." } }
+                        }
+                        li {
+                            span { class: "landing-flow-mark", "3" }
+                            div { strong { "Use the evidence" } p { "See whether the candidate matches the head, is an earlier checkpoint, diverges, or cannot be verified." } }
+                        }
+                    }
+                    p { class: "landing-method-note", "The product checks history and authorization evidence. It does not inspect whether the memory itself is true or safe." }
+                }
+            }
+
+            section { class: "landing-section landing-roles", id: "who-its-for", aria_labelledby: "landing-roles-title",
+                div { class: "landing-shell",
+                    div { class: "landing-roles-intro",
+                        h2 { id: "landing-roles-title", "Recovery crosses roles. The evidence should travel with it." }
+                        p { "MemoryLineage is most useful when the person restoring an agent is not the only person who decides what history may continue." }
+                    }
+                    div { class: "landing-role-list",
+                        article {
+                            span { "RESTORE" }
+                            h3 { "The operator" }
+                            p { "Checks whether a recovered backup matches the latest recorded checkpoint before treating it as current." }
+                        }
+                        article {
+                            span { "AUTHORIZE" }
+                            h3 { "The history authority" }
+                            p { "Records which state follows which, so a local file is not the only account of the past." }
+                        }
+                        article {
+                            span { "REVIEW" }
+                            h3 { "The independent reviewer" }
+                            p { "Can follow the same transitions and replay the evidence without receiving raw memory." }
+                        }
+                    }
+                }
+            }
+
+            section { class: "landing-section landing-evidence", id: "evidence-boundary", aria_labelledby: "landing-evidence-title",
+                div { class: "landing-shell landing-evidence-layout",
+                    div { class: "landing-section-intro",
+                        h2 { id: "landing-evidence-title", "What this demo can and cannot show" }
+                        p { "The included case uses synthetic snapshots and a local replayable evidence bundle. Its source and limits stay visible as you inspect it." }
+                    }
+                    div { class: "landing-evidence-columns",
+                        div { class: "landing-evidence-column landing-evidence-can",
+                            h3 { "What you can check" }
+                            ul {
+                                li { "Whether the sample backup matches the bundle's recorded head or an earlier checkpoint." }
+                                li { "How a stale continuation is classified by the tested registry rules." }
+                                li { "Whether exported evidence still passes independent local replay." }
+                            }
+                        }
+                        div { class: "landing-evidence-column landing-evidence-limit",
+                            h3 { "What this prototype does not claim" }
+                            ul {
+                                li { "It does not read or publish a real agent's private memory." }
+                                li { "It does not stop an external production runtime from resuming." }
+                                li { "A local bundle replay alone does not authenticate canonical Ethereum state." }
+                            }
+                        }
+                    }
+                }
+            }
+
+            section { class: "landing-section landing-inspector", id: "inside-inspector", aria_labelledby: "landing-inspector-title",
+                div { class: "landing-shell",
+                    div { class: "landing-section-intro landing-inspector-intro",
+                        h2 { id: "landing-inspector-title", "One question leads to a reviewable trail." }
+                        p { "Start with a plain-language recovery check. Then open the same sample history, inspect its transitions, or replay the evidence yourself." }
+                    }
+                    div { class: "landing-inspector-layout",
+                        figure { class: "landing-history-preview",
+                            figcaption {
+                                strong { "Demo Space V2" }
+                                span { "SYNTHETIC LOCAL HISTORY" }
+                            }
+                            ol {
+                                for transition in data.v2.transitions.iter() {
+                                    li {
+                                        Link {
+                                            class: if transition.delta.sequence == head_sequence { "landing-history-link landing-history-link-current" } else { "landing-history-link" },
+                                            to: AppRoute::Transition { sequence: transition.delta.sequence },
+                                            span { class: "landing-history-sequence", "{transition.delta.sequence}" }
+                                            span { class: "landing-history-copy",
+                                                strong { "Snapshot {transition.delta.sequence}" }
+                                                small { if transition.delta.sequence == head_sequence { "Latest shared checkpoint" } else { "Recorded checkpoint" } }
+                                            }
+                                            Icon { name: IconName::Arrow, size: 15 }
+                                        }
+                                    }
+                                }
+                            }
+                            p { class: "landing-history-footnote", "Select a checkpoint to open its transition details. No raw memory is shown." }
+                        }
+                        div { class: "landing-inspector-routes",
+                            Link { class: "landing-route-link", to: AppRoute::Inspect {},
+                                span { "Inspect" }
+                                strong { "Compare a candidate with the current head." }
+                                Icon { name: IconName::Arrow, size: 16 }
+                            }
+                            Link { class: "landing-route-link", to: AppRoute::History {},
+                                span { "History" }
+                                strong { "Follow recorded transitions and authority changes." }
+                                Icon { name: IconName::Arrow, size: 16 }
+                            }
+                            Link { class: "landing-route-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() },
+                                span { "Tampering Lab" }
+                                strong { "Replay a recovery case and inspect its result." }
+                                Icon { name: IconName::Arrow, size: 16 }
+                            }
+                            Link { class: "landing-route-link", to: AppRoute::Verify {},
+                                span { "Verify" }
+                                strong { "Import, inspect, and replay a portable bundle." }
+                                Icon { name: IconName::Arrow, size: 16 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            section { class: "landing-section landing-questions", id: "questions", aria_labelledby: "landing-questions-title",
+                div { class: "landing-shell landing-questions-layout",
+                    div { class: "landing-section-intro",
+                        h2 { id: "landing-questions-title", "Before you try MemoryLineage." }
+                        p { "A few things worth knowing before you open the Inspector." }
+                    }
+                    div { class: "landing-faq-list",
+                        details {
+                            summary { "Does the sample contain real agent memory?" }
+                            p { "No. The browser demo uses synthetic snapshots and replayable local evidence. It does not access your files or connect to a running agent." }
+                        }
+                        details {
+                            summary { "Does MemoryLineage prevent a local restore?" }
+                            p { "No. It makes a recovery decision inspectable. The current web prototype does not control an external runtime or prevent local database changes." }
+                        }
+                        details {
+                            summary { "Does VERIFIED prove the history is canonical on Ethereum?" }
+                            p { "A local replay verifies the contents and consistency of its named bundle. It does not, by itself, authenticate the registry address or current public-chain state." }
+                        }
+                    }
+                }
+            }
+
+            section { class: "landing-final", aria_labelledby: "landing-final-title",
+                div { class: "landing-shell landing-final-content",
+                    h2 { id: "landing-final-title", "Try the recovery question for yourself." }
+                    p { "Make a quick prediction, check it against the sample evidence, and keep exploring only if you want to." }
+                    div { class: "welcome-actions landing-final-actions",
+                        Link {
+                            class: "button button-primary welcome-start-button",
+                            to: AppRoute::Home {},
+                            onclick: move |_| {
+                                guided_tour.set(Some(crate::TourStep::Incident));
+                                tour_progress.set(crate::TourProgress::default());
+                            },
+                            "Get started ", Icon { name: IconName::Arrow, size: 16 }
+                        }
+                        Link {
+                            class: "button button-secondary welcome-free-button",
+                            to: AppRoute::Overview {},
+                            onclick: move |_| {
+                                guided_tour.set(None);
+                                tour_progress.set(crate::TourProgress::default());
+                            },
+                            "Explore freely"
+                        }
+                    }
+                    p { class: "landing-final-note", "Synthetic local example · no private memory, agent resume, or transaction." }
+                }
+            }
+
+            footer { class: "landing-footer",
+                div { class: "landing-shell",
+                    div { class: "landing-footer-main",
+                        div { class: "landing-footer-brand",
+                            span { class: "landing-footer-mark",
+                                img { src: asset!("/assets/memorylineage-mark-reversed.svg"), alt: "" }
+                            }
+                            strong { "MemoryLineage" }
+                            p { "Check the history behind a restored backup." }
+                        }
+                        nav { aria_label: "Footer product links",
+                            strong { "Explore" }
+                            a { href: "#problem", "The problem" }
+                            a { href: "#how-it-works", "How it works" }
+                            a { href: "#evidence-boundary", "Evidence & limits" }
+                            a { href: "#questions", "Questions" }
+                        }
+                        nav { aria_label: "Footer project links",
+                            strong { "Project" }
+                            a { href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noopener noreferrer", "GitHub source" }
+                            a { href: "https://github.com/AndroLay/MemoryLineage/blob/main/LICENSE", target: "_blank", rel: "noopener noreferrer", "MIT License" }
+                            a { href: "https://github.com/AndroLay/MemoryLineage/blob/main/README.md", target: "_blank", rel: "noopener noreferrer", "Documentation" }
+                        }
+                    }
+                    div { class: "landing-footer-legal",
+                        p { "© 2026 MemoryLineage contributors. Open source under the MIT License." }
+                        p { "Reuse and modification are permitted under the terms in the license." }
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum RollbackUiState {
     Ready,
@@ -35,87 +420,65 @@ fn import_metadata_error_message(reason: &str) -> String {
 
 #[component]
 pub fn HomePage(data: UiData) -> Element {
+    let mut guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let is_guided_step = guided_tour() == Some(crate::TourStep::Incident);
+    let restored_sequence = data.restored_snapshot().sequence;
+    let head_sequence = data.head().delta.sequence;
+    rsx! {
+        div { class: "page page-home",
+            section { class: if is_guided_step { "home-challenge-entry tour-spotlight" } else { "home-challenge-entry" },
+                h1 { "Can this backup continue the shared history?" }
+                p { class: "home-tagline", "Verify the history, not the memory." }
+                p { class: "home-challenge-story",
+                    "An agent was restarted from Backup {restored_sequence}. The shared history has since reached Backup {head_sequence}."
+                }
+                div { class: "home-challenge-timeline", aria_label: "Backup {restored_sequence} was restored; the latest shared history is Backup {head_sequence}",
+                    div { class: "home-challenge-point home-challenge-point-old",
+                        span { "RESTORED BACKUP" }
+                        strong { "Backup {restored_sequence}" }
+                    }
+                    span { class: "home-challenge-connector", aria_hidden: "true", "→" }
+                    div { class: "home-challenge-point home-challenge-point-current",
+                        span { "LATEST SHARED HISTORY" }
+                        strong { "Backup {head_sequence}" }
+                    }
+                }
+                Link {
+                    class: "button button-primary home-challenge-cta",
+                    to: AppRoute::Challenge {},
+                    onclick: move |_| {
+                        if is_guided_step {
+                            guided_tour.set(Some(crate::TourStep::Challenge));
+                        }
+                    },
+                    "Start the one-minute challenge ",
+                    Icon { name: IconName::Arrow, size: 16 }
+                }
+                p { class: "home-demo-boundary", "SYNTHETIC DEMO · No private memory is shown. No real agent or transaction runs in this sample." }
+                Link { class: "home-overview-link", to: AppRoute::Overview {}, "Explore the full technical overview" }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn OverviewPage(data: UiData) -> Element {
     let head = data.head();
     let restored_sequence = data.incident.restored_snapshot.sequence;
     let attempted_sequence = data.rollback.attempted_sequence;
     let stale_root = data.rollback.stale_predecessor.as_str();
     let contract_reason = data.rollback.revert_reason.as_str();
     rsx! {
-        div { class: "page page-home",
-            section { class: "home-hero",
-                div { class: "home-hero-copy",
-                    p { class: "eyebrow", "MEMORY LINEAGE" }
-                    p { class: "home-tagline", "Verify the history, not the memory." }
-                    h1 { "An old AI-memory backup can look current." }
-                    p { class: "home-lede", "The file still opens and the agent can still start. MemoryLineage checks whether that restored private state is the authorized continuation of the shared history before anyone treats it as current, without publishing the private memory itself." }
-                    div { class: "action-row",
-                        Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
-                        Link { class: "button button-secondary", to: AppRoute::Inspect {}, "Inspect the head" }
-                    }
-                    section { class: "home-metrics",
-                        div { class: "home-metric", Icon { name: IconName::Database, size: 27 }, div { strong { "{data.fixture.snapshots.len()}" }, span { "private snapshots in the demo" } } }
-                        div { class: "home-metric", Icon { name: IconName::Shield, size: 27 }, div { strong { "{data.mutation_rejected}/{data.mutation_count}" }, span { "known history attacks rejected" } } }
-                        div { class: "home-metric", Icon { name: IconName::Open, size: 27 }, div { strong { "Sepolia" }, span { "separate chain observation" } } }
+        div { class: "page page-home overview-page",
+            div { class: "page-header overview-page-header",
+                div {
+                    h1 { "Recorded history for Demo Space V2." }
+                    p { class: "page-lede", "Explore the synthetic snapshots, current shared head, and replayable evidence. No private memory is loaded." }
+                    Link { class: "button button-primary overview-challenge-cta", to: AppRoute::Challenge {},
+                        "Try the one-minute challenge ", Icon { name: IconName::Arrow, size: 16 }
                     }
                 }
-                div { class: "home-hero-trust content-panel",
-                    div { class: "home-trust-heading",
-                        div { p { class: "panel-kicker", "THE INCIDENT / {data.submission.incident_id}" } strong { "Old restore vs canonical head" } }
-                        span { class: "home-trust-status", "LOCAL DEMO SPACE V2" }
-                    }
-                    div { class: "incident-rail", aria_label: "Demo Space V2 canonical snapshots",
-                        for snapshot in data.fixture.snapshots.iter() {
-                            div { class: if snapshot.sequence == head.delta.sequence { "incident-state incident-state-current" } else { "incident-state" },
-                                span { class: "incident-sequence", "{snapshot.sequence:02}" }
-                                span { class: "incident-label", "{snapshot.visible_label.as_deref().unwrap_or(\"Snapshot\")}" }
-                                strong { if snapshot.sequence == head.delta.sequence { "CANONICAL HEAD" } else { "COMMITTED" } }
-                                code { "{short_hash(&snapshot.snapshot_commitment, 8, 6)}" }
-                            }
-                        }
-                    }
-                    div { class: "incident-attempt",
-                        div { span { "RESTORED LOCALLY" } strong { "Snapshot {restored_sequence}" } code { "{short_hash(&stale_root, 8, 6)}" } }
-                        div { class: "incident-arrow", "→" }
-                        div { span { "ATTEMPTED CONTINUATION" } strong { "Transition {attempted_sequence}" } code { "{contract_reason}" } }
-                    }
-                    div { class: "incident-result", span { "EXACT MACHINE RESULT" }, StatusBadge { label: contract_reason.to_owned(), tone: "danger".to_owned() } }
-                    div { class: "trust-list",
-                        div { class: "trust-item", Icon { name: IconName::Lock, size: 24 }, div { strong { "Memory stays local" }, span { "Only commitments cross the boundary." } } }
-                        div { class: "trust-item", Icon { name: IconName::History, size: 24 }, div { strong { "The checkpoint is shared" }, span { "Anyone can replay the committed succession." } } }
-                        div { class: "trust-item", Icon { name: IconName::Authority, size: 24 }, div { strong { "Authority is recorded" }, span { "Changes are part of the evidence." } } }
-                        div { class: "trust-item", Icon { name: IconName::Open, size: 24 }, div { strong { "Evidence travels" }, span { "Export the bundle and verify it elsewhere." } } }
-                    }
-                }
-            }
-            section { class: "section-wrap home-problem-explainer content-panel",
-                div { class: "home-problem-copy",
-                    p { class: "panel-kicker", "THE PROBLEM IN PLAIN LANGUAGE" }
-                    h2 { "An old backup can look perfectly normal." }
-                    p { "The database opens. The agent starts. But the people who did not operate it have no independent way to tell whether the restored memory is the latest state or an older one." }
-                    p { class: "home-problem-emphasis", "MemoryLineage answers one question: can this private snapshot continue the history everyone agreed on?" }
-                }
-                div { class: "home-problem-steps", aria_label: "The restore problem",
-                    div { class: "home-problem-step",
-                        span { class: "home-problem-step-number", "01" }
-                        strong { "The agent remembers" }
-                        span { "Useful context is stored in a private database." }
-                    }
-                    div { class: "home-problem-step",
-                        span { class: "home-problem-step-number", "02" }
-                        strong { "An old backup is restored" }
-                        span { "The local file can go back to snapshot {restored_sequence}, even when newer states were already recorded." }
-                    }
-                    div { class: "home-problem-step home-problem-step-alert",
-                        span { class: "home-problem-step-number", "03" }
-                        strong { "The reviewer cannot tell" }
-                        span { "Without a shared history, an older state can look like the current one." }
-                    }
-                }
-                div { class: "home-problem-answer",
-                    span { class: "home-problem-answer-label", "MEMORYLINEAGE ADDS THE MISSING CHECK" }
-                    strong { "An older root cannot silently become the next shared state." }
-                    Link { class: "text-link", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "See the failed restore →" }
-                }
+                span { class: "source-chip source-published", "SYNTHETIC / LOCAL REVM" }
             }
             section { class: "home-overview section-wrap content-panel",
                 div { class: "panel-title-row home-overview-heading",
@@ -241,6 +604,138 @@ pub fn HomePage(data: UiData) -> Element {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum FirstRunOutcome {
+    GoodCatch,
+    NotQuite,
+    VerificationFailed(String),
+}
+
+#[component]
+pub fn ChallengePage(data: UiData) -> Element {
+    let guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let is_guided_step = guided_tour() == Some(crate::TourStep::Challenge);
+    let tour_progress = use_context::<Signal<crate::TourProgress>>();
+    let mut answer = use_signal(|| None::<bool>);
+    let mut outcome = use_signal(|| None::<FirstRunOutcome>);
+    let selected_answer = answer();
+    let outcome_now = outcome.read().clone();
+    let restored_sequence = data.restored_snapshot().sequence;
+    let head_sequence = data.head().delta.sequence;
+    let evidence = data.evidence_json();
+    let reason = data.rollback.revert_reason.clone();
+    let check_answer = {
+        let mut outcome = outcome;
+        let mut tour_progress = tour_progress;
+        let evidence = evidence.clone();
+        move |_| {
+            let Some(guess) = answer() else {
+                return;
+            };
+            match verify_evidence_json(&evidence) {
+                Ok(report) if report.verdict == "VERIFIED" && report.attack_evidence == "PASS" => {
+                    let should_hold_old_backup = restored_sequence < head_sequence;
+                    outcome.set(Some(if guess == should_hold_old_backup {
+                        FirstRunOutcome::GoodCatch
+                    } else {
+                        FirstRunOutcome::NotQuite
+                    }));
+                    let progress = tour_progress();
+                    tour_progress.set(crate::TourProgress {
+                        challenge_checked: true,
+                        ..progress
+                    });
+                }
+                Ok(report) => outcome.set(Some(FirstRunOutcome::VerificationFailed(format!(
+                    "Evidence did not confirm the expected attack record ({} / {}).",
+                    report.verdict, report.attack_evidence
+                )))),
+                Err(error) => outcome.set(Some(FirstRunOutcome::VerificationFailed(error))),
+            }
+        }
+    };
+    let result_title = match &outcome_now {
+        Some(FirstRunOutcome::GoodCatch) => "Good catch",
+        Some(FirstRunOutcome::NotQuite) => "Not quite",
+        Some(FirstRunOutcome::VerificationFailed(_)) => "The check could not complete",
+        None => "",
+    };
+    let can_check = selected_answer.is_some() && outcome_now.is_none();
+    let verified_success = matches!(
+        outcome_now.as_ref(),
+        Some(FirstRunOutcome::GoodCatch | FirstRunOutcome::NotQuite)
+    );
+    rsx! {
+        div { class: "page workspace-page challenge-page",
+            section { class: "challenge-workspace",
+                Link { class: "challenge-back-link", to: AppRoute::Home {}, "← Home" }
+                h1 { "Does Backup {restored_sequence} match the latest shared history?" }
+                p { class: "challenge-question", "You restored Backup {restored_sequence}. The shared history now ends at Backup {head_sequence}. Should this backup continue?" }
+                div { class: if is_guided_step { "challenge-choice-area tour-spotlight" } else { "challenge-choice-area" },
+                    div { class: "challenge-answers", role: "group", aria_label: "Choose whether the restored backup is current",
+                        button {
+                            r#type: "button",
+                            class: if selected_answer == Some(false) { "challenge-answer challenge-answer-selected" } else { "challenge-answer" },
+                            aria_pressed: selected_answer == Some(false),
+                            onclick: move |_| { answer.set(Some(false)); outcome.set(None); },
+                            span { class: "challenge-answer-mark", "A" }
+                            strong { "It matches the latest history" }
+                        }
+                        button {
+                            r#type: "button",
+                            class: if selected_answer == Some(true) { "challenge-answer challenge-answer-selected" } else { "challenge-answer" },
+                            aria_pressed: selected_answer == Some(true),
+                            onclick: move |_| { answer.set(Some(true)); outcome.set(None); },
+                            span { class: "challenge-answer-mark", "B" }
+                            strong { "It is an older checkpoint" }
+                        }
+                    }
+                    div { class: "challenge-controls",
+                        button { class: "button button-primary", disabled: !can_check, onclick: check_answer, "Check my answer" }
+                        span { class: "challenge-time-note", "About one minute · local evidence only" }
+                    }
+                }
+                div { class: "challenge-result", role: "status", aria_live: "polite", aria_atomic: "true",
+                    if verified_success {
+                        div { class: "challenge-result-summary",
+                            span { class: "challenge-result-status", "CHECK PASSED" }
+                            h2 { "{result_title}" }
+                            p { "The check confirms Backup {restored_sequence} is older than the shared history at Backup {head_sequence}." }
+                            div { class: "challenge-decision",
+                                span { "RESTORE DECISION" }
+                                strong { "Hold Backup {restored_sequence}" }
+                                small { "It cannot continue the history at Backup {head_sequence}." }
+                            }
+                        }
+                    } else if let Some(FirstRunOutcome::VerificationFailed(error)) = outcome_now.as_ref() {
+                        div { class: "challenge-result-failure",
+                            span { class: "challenge-result-status", "CHECK NOT COMPLETED" }
+                            h2 { "{result_title}" }
+                            p { "No restore decision was made. {error}" }
+                            button { class: "button button-secondary", onclick: move |_| { answer.set(None); outcome.set(None); }, "Try again" }
+                        }
+                    } else {
+                        p { class: "challenge-result-prompt", "Choose one answer, then check it." }
+                    }
+                }
+                if verified_success {
+                    details { class: "challenge-technical",
+                        summary { "Why did the check reach this decision?" }
+                        p { "The local evidence replay passed. Its simulated continuation uses an older predecessor than the current shared head." }
+                        code { "{reason}" }
+                    }
+                    div { class: "challenge-next-actions",
+                        button { class: "button button-quiet", onclick: move |_| { answer.set(None); outcome.set(None); }, "Try another answer" }
+                        Link { class: "button button-secondary", to: AppRoute::Overview {}, "Explore the evidence" }
+                        Link { class: "challenge-audit-link", to: AppRoute::Lab {}, "Open the full audit lab" }
+                    }
+                }
+                p { class: "challenge-boundary", "This is a synthetic local example. It does not load an agent or send a transaction." }
+            }
+        }
+    }
+}
+
 #[component]
 fn PreflightSnapshotButton(
     sequence: u64,
@@ -262,6 +757,8 @@ fn PreflightSnapshotButton(
 
 #[component]
 pub fn InspectPage(data: UiData) -> Element {
+    let guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let is_spotlighted = guided_tour() == Some(crate::TourStep::Inspect);
     let head = data.head();
     let history_count = data.v2.authorization_history.len().saturating_sub(1);
     let mut selected_snapshot = use_signal(|| data.canonical_snapshot().sequence);
@@ -341,7 +838,7 @@ pub fn InspectPage(data: UiData) -> Element {
                 Link { class: "button button-primary", to: AppRoute::LabScenario { scenario: "silent-rollback".to_owned() }, "Check an old restore ", Icon { name: IconName::Arrow, size: 16 } }
                 Link { class: "button button-secondary", to: AppRoute::History {}, "View history" }
             }
-            div { class: "inspect-layout",
+            div { class: if is_spotlighted { "inspect-layout tour-spotlight" } else { "inspect-layout" },
                 main {
                     section { class: "content-panel inspect-lineage-panel",
                         div { class: "panel-title-row",
@@ -469,6 +966,8 @@ pub fn InspectPage(data: UiData) -> Element {
 
 #[component]
 pub fn HistoryPage(data: UiData) -> Element {
+    let guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let is_spotlighted = guided_tour() == Some(crate::TourStep::History);
     let head = data.head();
     let history_verdict_tone = if data.report.is_some() {
         "verified"
@@ -480,7 +979,7 @@ pub fn HistoryPage(data: UiData) -> Element {
             div { class: "history-context-bar", span { class: "context-icon", Icon { name: IconName::Database, size: 18 } }, span { class: "context-label", "SPACE" }, code { "{short_hash(&data.v2.registry.space_id, 10, 6)}" }, span { "•" }, span { "{data.v2.transitions.len()} committed states" }, span { "•" }, span { "local evidence head" } }
             PageHeader { kicker: "HISTORY".to_owned(), title: "Canonical committed lineage and authority events.".to_owned(), description: "Each accepted transition has a predecessor, an authority record, and an evidence source.".to_owned(), source: format!("{} / LOCAL REVM", data.submission.incident_id) }
             div { class: "history-workspace",
-                main { class: "history-main-column",
+                main { class: if is_spotlighted { "history-main-column tour-spotlight" } else { "history-main-column" },
                     section { class: "content-panel history-main-panel history-lineage-panel",
                         div { class: "panel-title-row history-panel-heading", div { p { class: "panel-kicker", "CANONICAL MEMORY LINEAGE" } h2 { "{data.v2.transitions.len()} observed states" } }, div { class: "history-view-controls", span { "View" }, span { class: "view-control view-control-active", "Linear" } } }
                         div { class: "history-lineage-wrap", LineageRail { data: data.clone(), compact: true } }
@@ -625,6 +1124,9 @@ pub fn TransitionPage(data: UiData, sequence: u64) -> Element {
 
 #[component]
 pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
+    let guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let tour_progress = use_context::<Signal<crate::TourProgress>>();
+    let is_spotlighted = guided_tour() == Some(crate::TourStep::Lab);
     let local_reason = data.rollback.revert_reason.clone();
     let mut selected = use_signal(|| initial_scenario);
     let mut attempted = use_signal(|| false);
@@ -640,12 +1142,15 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
     let current_source = source();
     let stale_predecessor = data.rollback.stale_predecessor.clone();
     let attempt_sequence = data.rollback.attempted_sequence;
+    let restored_sequence = data.restored_snapshot().sequence;
+    let canonical_sequence = data.head().delta.sequence;
     let local_evidence = data.evidence_json();
     let run_rollback = {
         let mut attempted = attempted;
         let state = state;
         let source_signal = source;
         let detail_signal = detail;
+        let mut tour_progress = tour_progress;
         let evidence = local_evidence.clone();
         let stale_root = stale_predecessor.clone();
         move |_| {
@@ -662,6 +1167,11 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     ));
                     source.set("PUBLISHED LOCAL REVM / RUST-WASM VERIFIED".to_owned());
                     state.set(RollbackUiState::EvidenceRejected);
+                    let progress = tour_progress();
+                    tour_progress.set(crate::TourProgress {
+                        rollback_replayed: true,
+                        ..progress
+                    });
                 }
                 Ok(_) => {
                     let mut state = state;
@@ -751,7 +1261,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
     } else {
         match current_state {
             RollbackUiState::Ready => "observed",
-            RollbackUiState::LiveRejected | RollbackUiState::EvidenceRejected => "danger",
+            RollbackUiState::LiveRejected => "danger",
+            RollbackUiState::EvidenceRejected => "verified",
             RollbackUiState::ProbingSepolia
             | RollbackUiState::LiveUnavailable
             | RollbackUiState::EvidenceInvalid
@@ -759,9 +1270,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
         }
     };
     let result_panel_class = match current_state {
-        RollbackUiState::LiveRejected | RollbackUiState::EvidenceRejected => {
-            "result-panel result-panel-rejected"
-        }
+        RollbackUiState::LiveRejected => "result-panel result-panel-rejected",
+        RollbackUiState::EvidenceRejected => "result-panel result-panel-verified",
         RollbackUiState::LiveUnavailable
         | RollbackUiState::EvidenceInvalid
         | RollbackUiState::UnexpectedLive => "result-panel result-panel-warning",
@@ -773,7 +1283,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
             RollbackUiState::Ready => "READY / LOCAL EVIDENCE",
             RollbackUiState::ProbingSepolia => "PROBING SEPOLIA",
             RollbackUiState::LiveRejected => "LIVE RPC: REJECTED",
-            RollbackUiState::EvidenceRejected => "LOCAL EVIDENCE: REJECTED",
+            RollbackUiState::EvidenceRejected => "CHECK PASSED",
             RollbackUiState::LiveUnavailable => "SEPOLIA PROBE: UNAVAILABLE",
             RollbackUiState::EvidenceInvalid => "LOCAL EVIDENCE: INVALID",
             RollbackUiState::UnexpectedLive => "UNEXPECTED LIVE RESULT",
@@ -786,9 +1296,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
         "audit-path-step"
     };
     let verdict_class = match current_state {
-        RollbackUiState::EvidenceRejected | RollbackUiState::LiveRejected => {
-            "audit-path-step audit-path-step-rejected"
-        }
+        RollbackUiState::EvidenceRejected => "audit-path-step audit-path-step-complete",
+        RollbackUiState::LiveRejected => "audit-path-step audit-path-step-rejected",
         RollbackUiState::LiveUnavailable
         | RollbackUiState::EvidenceInvalid
         | RollbackUiState::UnexpectedLive => "audit-path-step audit-path-step-warning",
@@ -796,7 +1305,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
         RollbackUiState::Ready => "audit-path-step",
     };
     let verdict_label = match current_state {
-        RollbackUiState::EvidenceRejected | RollbackUiState::LiveRejected => "REJECTED",
+        RollbackUiState::EvidenceRejected => "HOLD OLD BACKUP",
+        RollbackUiState::LiveRejected => "REJECTED",
         RollbackUiState::LiveUnavailable => "UNAVAILABLE",
         RollbackUiState::EvidenceInvalid => "INVALID",
         RollbackUiState::UnexpectedLive => "UNEXPECTED",
@@ -826,7 +1336,7 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                         }
                     }
                 }
-                section { class: "attack-workspace content-panel",
+                section { class: if is_spotlighted { "attack-workspace content-panel tour-spotlight" } else { "attack-workspace content-panel" },
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "WHAT WE ARE COMPARING" } h2 { "{selected_scenario.title()}" } }, StatusBadge { label: result_label.to_owned(), tone: result_tone.to_owned() } }
                     if selected_scenario == Scenario::SilentRollback {
                         div { class: "rollback-story",
@@ -844,10 +1354,10 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
                     if selected_scenario == Scenario::SilentRollback {
                         div { class: result_panel_class, aria_live: "polite",
                             if was_attempted && current_state != RollbackUiState::Ready && current_state != RollbackUiState::ProbingSepolia {
-                                div { class: "result-heading", span { class: "result-symbol", if current_state == RollbackUiState::LiveRejected || current_state == RollbackUiState::EvidenceRejected { "×" } else { "!" } }, div { strong { "{result_label}" }, small { "{result_detail}" } } }
+                                div { class: if current_state == RollbackUiState::EvidenceRejected { "result-heading result-heading-verified" } else { "result-heading" }, span { class: if current_state == RollbackUiState::EvidenceRejected { "result-symbol result-symbol-verified" } else { "result-symbol" }, if current_state == RollbackUiState::EvidenceRejected { "✓" } else if current_state == RollbackUiState::LiveRejected { "×" } else { "!" } }, div { strong { "{result_label}" }, small { "{result_detail}" } } }
                                 if current_state == RollbackUiState::EvidenceRejected {
-                                    h3 { "The published Rust/revm run rejected transition {attempt_sequence}." }
-                                    p { "The browser has independently replayed the evidence: the stale predecessor is transition 1's root, while the canonical local head is transition 3. Run `cargo xtask verify` to regenerate the SQLite fixture and execute the Solidity bytecode again." }
+                                    h3 { "Backup {restored_sequence} cannot continue the history at Snapshot {canonical_sequence}." }
+                                    p { "The evidence check passed. The simulated continuation was rejected because Backup {restored_sequence} is older than the current shared head. The exact machine reason remains in the evidence detail above." }
                                 } else if current_state == RollbackUiState::LiveRejected {
                                     h3 { "The existing Sepolia registry rejected this separate stale-predecessor probe." }
                                     p { "This read-only observation uses the previously deployed Sepolia space. It is not the Demo Space V2 history shown here, and no transaction was broadcast." }
@@ -912,6 +1422,8 @@ pub fn LabPage(data: UiData, initial_scenario: Scenario) -> Element {
 
 #[component]
 pub fn VerifyPage(data: UiData) -> Element {
+    let guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let is_spotlighted = guided_tour() == Some(crate::TourStep::Verify);
     let default_json = data.evidence_json();
     let tampered_json = data.tampered_json();
     let default_receipt_json = data.recovery_receipt_json();
@@ -1228,7 +1740,7 @@ pub fn VerifyPage(data: UiData) -> Element {
                         div { span { "3" }, strong { "Restore" }, small { "confirm the original replays successfully" } }
                     }
                 }
-                section { class: "content-panel verification-panel",
+                section { class: if is_spotlighted { "content-panel verification-panel tour-spotlight" } else { "content-panel verification-panel" },
                     div { class: "panel-title-row", div { p { class: "panel-kicker", "VERIFICATION SUMMARY" }, h2 { "Independent bundle replay" } }, StatusBadge { label: if is_verified { "BUNDLE REPLAY VERIFIED".to_owned() } else { "REPLAY REJECTED".to_owned() }, tone: if is_verified { "verified".to_owned() } else { "danger".to_owned() } } }
                     div { class: if is_verified { "verification-banner verification-banner-pass" } else { "verification-banner verification-banner-fail" }, aria_live: "polite", span { class: "verification-icon", if is_verified { "✓" } else { "×" } }, div { strong { if is_verified { "BUNDLE REPLAY VERIFIED" } else { "REPLAY REJECTED" } }, p { "{verification_summary}" } } }
                     div { class: "check-table",
@@ -1627,7 +2139,7 @@ pub fn PriorWorkPage(data: UiData) -> Element {
             }
             section { class: "section-wrap content-panel provenance-ledger",
                 div { class: "panel-title-row", div { p { class: "panel-kicker", "SOURCE IDENTITY" }, h2 { "Public baseline and local candidate stay distinct." } }, StatusBadge { label: "TRANSPARENT".to_owned(), tone: "warning".to_owned() } }
-                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "separate Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "public repository / configured".to_owned() }, ReadoutRow { label: "Public baseline tag".to_owned(), value: "v1.0.1".to_owned(), detail: "new local work needs a later revision".to_owned() } }
+                dl { class: "readout-list", ReadoutRow { label: "Contract address".to_owned(), value: short_hash(&data.deployment.registry_address, 14, 8), detail: "separate Sepolia deployment".to_owned() }, ReadoutRow { label: "Spec pin".to_owned(), value: "ERC-8350 / v1-pinned-vector-2026-09-18".to_owned(), detail: "published vector snapshot".to_owned() }, ReadoutRow { label: "GitHub URL".to_owned(), value: "AndroLay/MemoryLineage".to_owned(), detail: "public repository / configured".to_owned() }, ReadoutRow { label: "Project version".to_owned(), value: "v1.0.2".to_owned(), detail: "current submission build".to_owned() } }
                 p { class: "small-note", "MemoryLineage does not claim to have invented ERC-8350 or to be the first AI memory lineage system. Its distinction is the independent, authorization-bound audit surface and reproducible evidence around the pinned semantics." }
             }
             section { class: "section-wrap content-panel", div { class: "panel-kicker", "RELATED SURFACES" }, div { class: "related-link-grid", Link { to: AppRoute::Architecture {}, "Architecture →" }, Link { to: AppRoute::Evidence {}, "Public evidence →" }, Link { to: AppRoute::Security {}, "Security boundary →" }, Link { to: AppRoute::Reproduce {}, "Reproduce →" }, Link { to: AppRoute::PriorWork {}, "Prior work →" } } }

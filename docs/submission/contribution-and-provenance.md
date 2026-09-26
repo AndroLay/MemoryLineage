@@ -1,5 +1,9 @@
 # Contribution and provenance for 3rd-Web-Hack
 
+This submission uses project version `v1.0.2`; `v1.0.1` is the preceding
+public Inspector release. These repository-level version tags are independent
+of the internal Cargo package versions.
+
 This record is for a reviewer deciding what MemoryLineage contributes. It does
 not infer the creation date of every source file from a Git commit or assert a
 participant's eligibility. The [event rules](https://3rd-web-hack.devpost.com/rules)
@@ -12,7 +16,9 @@ able to attest to authorship and eligibility in the Devpost account.
 | --- | --- | --- |
 | 19 September 2026, 03:06 UTC+8 | Initial Git commit `2c36366` | A substantial code and research baseline entered this repository at once. The commit alone does not date when each file was written. |
 | 22 September 2026, 02:48 UTC+8 | `v1.0.1` commit `44a5751` | Public release baseline for the previously hosted Inspector. |
-| 24 September 2026 | Source candidate `675c707405ac2afea1fd067be44a67890b0a35f2`, pushed to `main` | The incident envelope, direct restore action, protected-resume example, pitch PDF, and demo video are in the public repository. The candidate is not tagged; `v1.0.1` remains the last confirmed release. |
+| 24 September 2026 | Earlier source candidate `675c707405ac2afea1fd067be44a67890b0a35f2` | This candidate was recorded as pushed to `main` at the time. It was later superseded by source snapshot `497e823`; neither has a release tag newer than `v1.0.1`. |
+| 26 September 2026 | Last locally recorded source snapshot `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` | Local `main` and `origin/main` refs match this snapshot. A fresh remote query was unavailable; current UX/media edits remain uncommitted and are not in it. |
+| 26 September 2026 | Project/submission version `v1.0.2` | Release version assigned to the current final candidate; publish only after the clean-commit release gate passes. |
 
 The older research notes under [`docs/research/`](../research/README.md) are
 historical source material. Their dates and internal scores are not hackathon
@@ -35,7 +41,7 @@ or first-in-field status. Third-party license information is in
 | Rust and Rust/WASM replay verify ordered state, predecessor, authority, and evidence integrity | `crates/ml-verifier-independent/`, `/verify`, `ml-cli verify` | A bundle's source label is a declaration without external provenance |
 | Solidity behavior and Silent Rollback are executed against checked-in bytecode | `contracts/`, `crates/ml-local-evm/`, `evidence/submission/` | Demo Space V2 is local Rust/revm, not a Sepolia transaction history |
 | A separate earlier Sepolia deployment and reread demonstrate public registry observation | `evidence/sepolia/` | Different space from Demo Space V2; never combine the two as one incident |
-| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The last recorded hosted `v1.0.1` release predates local source commit `675c707`; this workflow did not deploy it |
+| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The last confirmed hosted `v1.0.1` release predates source snapshot `497e823`; the current uncommitted onboarding changes have not been deployed |
 
 The narrow product contribution is a verifiable recovery decision when the
 runtime operator must not be the only party trusted to preserve the canonical

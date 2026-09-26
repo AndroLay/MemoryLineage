@@ -44,15 +44,45 @@ Seven supporting surfaces complete the audit argument:
 The primary navigation stays limited to the four operational surfaces. The
 supporting surfaces are reached through contextual links and the footer.
 
-## First viewport contract
+## Root landing page (`/`): Persuade
 
-Within the first viewport the visitor sees:
+The root page uses a bolder, editorial product-story composition: oversized
+plain-language headline, the synthetic Backup 1 versus Backup 3 lineage visual,
+a factual proof strip, alternating problem and workflow sections, role-based
+context, an Inspector preview, evidence limits, FAQ, a strong closing action,
+and an open-source footer. It borrows the scale, product-preview placement,
+section rhythm, and repeated calls to action from the
+[Beehiiv homepage](https://www.beehiiv.com/), while keeping MemoryLineage's
+dark evidence palette and its own product language. It does not borrow
+Beehiiv's testimonials, customer numbers, publisher logos, pricing, or product
+claims. The public page keeps synthetic data and evidence limits visible.
 
-- the product sentence “Verify the history, not the memory.”;
-- a synthetic SQLite demo-fixture and separate protocol-corpus distinction;
-- the current local-evidence source and verdict, with Sepolia clearly separate;
-- the raw-memory boundary;
-- the `Run Silent Rollback` action.
+The footer names the actual MIT license and its copyright holders. It does not
+claim exclusive rights that conflict with the repository's open-source grant.
+
+`Get started` opens the optional guided tour at `/app`; `Explore freely` opens
+the technical overview at `/overview` without the tour. The top navigation
+links to landing sections and retains the GitHub icon button. The landing page uses synthetic
+local examples and does not expose the challenge's machine verdict before the
+visitor tries it.
+
+## Guided first-run flow
+
+The tour shows progress and offers Back, Next, Exit, and Finish controls. Its
+first two steps stay on full-page views and spotlight their real action areas:
+the Home challenge entry, then the Challenge answer and check controls. The
+spotlight does not crop or zoom the page, and no highlight is fabricated when a
+step has no target. It continues through the existing Inspect, History,
+Tampering Lab, and Verify work areas. Challenge and Lab still require their
+relevant actions before Next is enabled. The tour is optional and does not lock
+technical or supporting routes.
+
+The first-run challenge asks the visitor to predict whether the restored
+snapshot is current, then checks local evidence. Before that action, it does
+not show the result or machine reason. Afterward, the evidence check and
+restore decision are labeled separately in plain language; the machine reason
+is available in a collapsed disclosure. The complete technical overview and
+audit workspace remain reachable after the challenge.
 
 Reference screenshot values are never runtime fixtures. Counts, roots,
 addresses, blocks, and statuses come from repository evidence or a labeled

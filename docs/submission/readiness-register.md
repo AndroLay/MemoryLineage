@@ -103,8 +103,9 @@ protocol intentionally does not evaluate it.
 
 Consistent with the readiness plan and the strategy notes, this slice does not
 authorize: a new chain, a public Demo Space V2 deployment, a large external
-agent-framework integration, a demo video, or any global-victory / adoption
-claim. Those remain separate, evidence-gated operations.
+agent-framework integration, or any global-victory / adoption claim. The local
+pitch deck and demo video are repository artifacts; they do not authorize or
+imply public upload, deployment, or real agent adoption.
 
 ## Progress after the frozen baseline
 
@@ -131,11 +132,84 @@ deployed it and what the live site serves could not be verified here. External
 human reproduction remains `NOT_YET_DEMONSTRATED`; no remote CI result for the
 candidate was retrieved.
 
-The later finalization work adds a printable eight-slide pitch PDF, a 45-second
-captioned video assembled from actual static-browser states, a contribution and
-provenance record, and an opt-in secret-blinded commitment helper. The PDF and
-video are reproducible from candidate commit `675c707405ac2afea1fd067be44a67890b0a35f2`.
+The initial finalization work added a printable eight-slide pitch PDF, a
+45-second captioned video assembled from actual static-browser states, a
+contribution and provenance record, and an opt-in secret-blinded commitment
+helper. At that stage the PDF and video were reproducible from candidate commit
+`675c707405ac2afea1fd067be44a67890b0a35f2`; the later local UX refresh and
+37-second and two-minute media are recorded below.
 No Devpost upload or manual public-site deployment was performed; current Pages
 content was not independently verified. No same-space Sepolia deployment,
 production secret lifecycle, or external human report is implied by their
 presence.
+
+## Local onboarding UX update — 25 September 2026
+
+The local judge path is now implementation-complete: the landing offers a
+guided start or a direct technical overview; the free overview has its own
+one-minute challenge link and does not activate the tour. The guided path
+highlights real controls on steps 1 and 2, asks the visitor to predict before
+showing a result, and then carries the incident into Inspect, History,
+Tampering Lab, and Verify. The local decision says the evidence check passed
+while Backup 1 is held against shared head 3; `BAD_PREVIOUS_STATE` appears only
+after the visitor opens the technical reason. All copy labels this as a
+synthetic local example with no agent resume or transaction.
+
+Current verification passed on 25 September 2026:
+
+- `TMPDIR=/var/tmp cargo xtask release --quiet` — formatting, Clippy, all
+  workspace tests, fixtures, Demo Space V2 evidence, portability rehearsal,
+  recovery gate, runtime example, bounded assurance, submission bundle,
+  conformance, independent replay, revm lanes, WASM, package boundary, static
+  build, Chromium smoke, and release package boundary.
+- `TMPDIR=/var/tmp npm run verify --silent` — all nine EVM, Python, Inspector,
+  audit, replay, and package checks.
+- The Chromium smoke covers all 14 stable route patterns plus dynamic Lab
+  paths, guided and free entry, challenge answers, unknown Lab slug, keyboard
+  focus, and 390px no-overflow behavior. It confirms the landing scroll reveal
+  is attached and the refreshed captures are from the current static build.
+  The active `http://127.0.0.1:8080` preview was also checked directly with the
+  same browser smoke. It now serves one landing page; the duplicate previously
+  seen there came from a stale Dioxus process, which was replaced with the
+  repository-supported launcher.
+- At this 25 September checkpoint, the eight-page PDF was rendered and visually reviewed. The original
+  37-second video captures the complete guided flow with a visible cursor,
+  scene captions, and synthesized UI cues. A separate two-minute, 1920×1080
+  narrated cut and 1:59 dry voice-over WAV are now present locally. The narration
+  was synthesized with Kokoro TTS on-device; it is not a human performance.
+  A human listen-through for pronunciation and perceived naturalness remains
+  pending before external submission. The source, media, and current
+  CSS/viewport screenshots remain uncommitted on local HEAD
+  `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`. This describes the local
+  deltas, not the earlier source snapshot: local `main` and `origin/main`
+  match that SHA. No additional commit, tag, deployment, or Devpost upload of
+  those deltas occurred.
+
+This completes the local prototype implementation and its available automated
+gates. It does not establish first-time reviewer comprehension or heuristic
+4/4 scores: independent novice sessions remain `NOT_YET_DEMONSTRATED`. External
+clean-checkout reproduction, remote CI for the uncommitted worktree, current
+Pages content, and Devpost upload also remain open. The prototype demonstrates
+a local reference-runtime hold and replayable stale-root rejection; it does not
+claim production runtime integration, measured incident reduction, canonical
+public-chain provenance from offline replay, or semantic memory safety.
+
+## Judge pitch brief alignment — 26 September 2026
+
+The local pitch deck has been revised to ten 16:9 slides with explicit
+section labels for **The Problem**, **The Solution**, **The Innovation**,
+**The Impact**, **Current Limitations**, and **Future Scope**. Its architecture
+diagram separates the private-memory write path and its two outputs from the
+candidate-evidence recovery path through preflight and the local reference
+gate. The impact section says outcomes have not been measured; current trust
+limits appear before the future-work roadmap.
+
+The PDF was regenerated from `docs/submission/pitch-deck.html`, reports ten
+pages at 16:9, and was rendered and visually reviewed. The talk track is in
+`docs/submission/pitch-deck.md`. This is still a local submission artifact: no
+Devpost upload, public-site update, or external reviewer assessment is claimed.
+The project and submission version assigned to this final candidate is
+`v1.0.2`; `v1.0.1` is the preceding confirmed public release.
+The project owner reviewed and accepted the final narrated cut on 26 September;
+the narration remains disclosed as synthetic, with no independent voice-quality
+assessment claimed.

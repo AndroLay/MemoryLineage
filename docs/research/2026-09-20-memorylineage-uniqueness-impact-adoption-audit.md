@@ -451,6 +451,22 @@ Then the user must see the recovery decision, not only a hash.
 
 Reference: [Forkline Devpost](https://devpost.com/software/forkline-rehearse-the-rollback).
 
+### ExitDrill: adjacent drill and explanation pattern
+
+ExitDrill's public repository describes a short synthetic exercise that
+compares a pre-export baseline with a clean or lossy SaaS export, reports the
+structural dimensions separately, and ends with a concise explanation. This is
+useful for the *shape* of an onboarding task: one concrete case, visible
+evidence, and an understandable outcome. It is not a direct memory-lineage
+competitor, a game-like tutorial, or evidence that new users understand either
+product. The documented demo is a CLI workflow rather than a gamified tutorial.
+ExitDrill is described as a technical alpha using synthetic data and does not
+claim to prove a completed migration. Its Devpost event membership is
+unverified, so it must not be counted as a 3rd-Web-Hack entrant; see the
+[public project audit](./2026-09-20-3rd-web-hack-public-project-audit.md#event-membership-unresolved-not-scored-as-a-3rd-web-hack-entry).
+
+Reference: [ExitDrill repository](https://github.com/ChelseaKR/exitdrill).
+
 ### Polkadot winners
 
 The Polkadot Builder Party winners show a recurring pattern: a clear user pain,

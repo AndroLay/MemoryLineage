@@ -50,7 +50,9 @@ pub fn Icon(name: IconName, size: u32) -> Element {
 }
 
 #[component]
-pub fn TopNavigation(route: Route) -> Element {
+pub fn TopNavigation(route: Route, show_primary: bool, landing: bool) -> Element {
+    let mut guided_tour = use_context::<Signal<Option<crate::TourStep>>>();
+    let mut tour_progress = use_context::<Signal<crate::TourProgress>>();
     let inspect_surface = matches!(route, Route::Inspect | Route::Transition(_));
     let active = |candidate: Route| {
         if route == candidate || (candidate == Route::Inspect && inspect_surface) {
@@ -65,21 +67,65 @@ pub fn TopNavigation(route: Route) -> Element {
         "nav-link"
     };
     rsx! {
-        header { class: "topbar",
-            Link { class: "brand", to: AppRoute::Home {}, aria_label: "MemoryLineage home",
+        header { class: if landing { "topbar topbar-landing" } else { "topbar" },
+            Link { class: "brand", to: AppRoute::Welcome {}, aria_label: "MemoryLineage home", onclick: move |_| guided_tour.set(None),
                 span { class: "brand-mark",
                     img { class: "brand-logo", src: asset!("/assets/memorylineage-mark-reversed.svg"), alt: "MemoryLineage logo" }
                 }
                 span { strong { "MEMORYLINEAGE" } }
             }
-            nav { class: "primary-nav", aria_label: "Primary navigation",
-                Link { class: active(Route::Inspect), to: AppRoute::Inspect {}, "Inspect" }
-                Link { class: active(Route::History), to: AppRoute::History {}, "History" }
-                Link { class: lab_class, to: AppRoute::Lab {}, "Tampering Lab" }
-                Link { class: active(Route::Verify), to: AppRoute::Verify {}, "Verify" }
+            if landing {
+                nav { class: "landing-nav", aria_label: "Landing page sections",
+                    div { class: "landing-nav-wide",
+                        a { href: "#problem", "The problem" }
+                        a { href: "#how-it-works", "How it works" }
+                        a { href: "#who-its-for", "Who it's for" }
+                        a { href: "#evidence-boundary", "Evidence & limits" }
+                        a { href: "#inside-inspector", "Inside the Inspector" }
+                        a { href: "#questions", "Questions" }
+                    }
+                    details { class: "landing-nav-compact",
+                        summary { "Sections" }
+                        div { class: "landing-nav-menu",
+                            a { href: "#problem", "The problem" }
+                            a { href: "#how-it-works", "How it works" }
+                            a { href: "#who-its-for", "Who it's for" }
+                            a { href: "#evidence-boundary", "Evidence & limits" }
+                            a { href: "#inside-inspector", "Inside the Inspector" }
+                            a { href: "#questions", "Questions" }
+                        }
+                    }
+                }
+            } else if show_primary {
+                nav { class: "primary-nav", aria_label: "Primary navigation",
+                    Link { class: active(Route::Inspect), to: AppRoute::Inspect {}, "Inspect" }
+                    Link { class: active(Route::History), to: AppRoute::History {}, "History" }
+                    Link { class: lab_class, to: AppRoute::Lab {}, "Tampering Lab" }
+                    Link { class: active(Route::Verify), to: AppRoute::Verify {}, "Verify" }
+                }
+            }
+            if landing {
+                Link {
+                    class: "landing-nav-cta",
+                    to: AppRoute::Home {},
+                    aria_label: "Get started with the guided MemoryLineage walkthrough",
+                    onclick: move |_| {
+                        guided_tour.set(Some(crate::TourStep::Incident));
+                        tour_progress.set(crate::TourProgress::default());
+                    },
+                    span { class: "landing-nav-cta-wide", "Get started" }
+                    span { class: "landing-nav-cta-compact", "Start" }
+                    Icon { name: IconName::Arrow, size: 15 }
+                }
             }
             div { class: "topbar-meta",
-                a { class: "topbar-muted topbar-link", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noreferrer", "GITHUB / PUBLIC SOURCE" }
+                a { class: "github-button", href: "https://github.com/AndroLay/MemoryLineage", target: "_blank", rel: "noopener noreferrer", aria_label: "Open MemoryLineage public source on GitHub in a new tab", title: "Open public source on GitHub in a new tab",
+                    svg { class: "github-mark", view_box: "0 0 24 24",
+                        path { fill: "currentColor", d: "M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.54v-2.1c-3.1.67-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.02-.7.08-.69.08-.69 1.12.08 1.71 1.15 1.71 1.15 1 .1.8 2.16 3.02 1.62.1-.72.4-1.2.7-1.48-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.27-2.6 5.21-5.08 5.49.4.35.75 1.02.75 2.06v3.04c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z" }
+                    }
+                    span { "GitHub" }
+                    span { class: "github-button-hint", "Source" }
+                }
             }
         }
     }

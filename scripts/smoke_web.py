@@ -42,10 +42,14 @@ DESKTOP_VIEWPORT = (1440, 1000)
 MOBILE_VIEWPORT = (390, 844)
 
 ROUTES = {
-    "/": "Verify the history",
+    "/": "A backup can open and still be out of date.",
+    "/app": "Can this backup continue the shared history?",
+    "/overview": "Recorded history for Demo Space V2.",
+    "/challenge": "Does Backup 1 match the latest shared history?",
     "/inspect": "Inspect Memory Space",
     "/history": "Canonical committed lineage and authority events.",
     "/history/3": "Transition #3",
+    "/lab": "Tampering Lab",
     "/lab/not-a-real-case": "Unknown tampering scenario",
     "/verify": "Verify Evidence",
     "/evidence": "Public Evidence",
@@ -54,6 +58,11 @@ ROUTES = {
     "/reproduce": "Reproduce the Submission",
     "/prior-work": "Standards and project contribution",
 }
+
+
+def normalize_visible_text(value: str) -> str:
+    """Collapse layout whitespace before comparing rendered text markers."""
+    return " ".join(value.split())
 
 
 class SpaHandler(http.server.SimpleHTTPRequestHandler):
@@ -224,9 +233,9 @@ def build_chromium_command(chromium: str, debug_port: int, profile: Path) -> lis
 
 
 def create_chromium_profile_directory() -> str:
-    profile_parent = ROOT / "target"
-    profile_parent.mkdir(parents=True, exist_ok=True)
-    return tempfile.mkdtemp(prefix="memorylineage-smoke-", dir=profile_parent)
+    # Chromium places a Unix-domain singleton socket below this directory; keep
+    # the full path short enough for Linux's socket-path limit.
+    return tempfile.mkdtemp(prefix="mlsmoke-", dir="/tmp")
 
 
 def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
@@ -247,7 +256,7 @@ def wait_for_url(base: str, path: str, expected: str, cdp: CdpSocket) -> None:
             time.sleep(1.0)
             continue
         last_body = body
-        if expected in body:
+        if expected in normalize_visible_text(body):
             print(f"PASS route {path or '/'}")
             return
         time.sleep(0.25)
@@ -366,7 +375,7 @@ def verify_accessibility_and_keyboard(cdp: CdpSocket, path: str) -> None:
         raise RuntimeError(f"route {path} has no visible keyboard-interactive controls")
     if audit.get("unnamed"):
         raise RuntimeError(f"route {path} has unnamed controls: {audit['unnamed']!r}")
-    if path in {"/lab", "/verify"} and not audit.get("liveRegions"):
+    if path in {"/lab", "/verify", "/challenge"} and not audit.get("liveRegions"):
         raise RuntimeError(f"route {path} has no aria-live result region")
 
     if not focus_first_control_by_tab(cdp):
@@ -429,7 +438,7 @@ def focus_first_control_by_tab(cdp: CdpSocket) -> bool:
 
 
 def navigate_via_internal_link(
-    cdp: CdpSocket, path: str, expected: str
+    cdp: CdpSocket, path: str, expected: str, link_label: str | None = None
 ) -> None:
     main_frame_navigations = sum(
         1
@@ -439,8 +448,10 @@ def navigate_via_internal_link(
     )
     expression = f"""(() => {{
       const target = {json.dumps(path)};
+      const label = {json.dumps(link_label)};
       const anchor = Array.from(document.querySelectorAll('a[href]')).find(
         element => new URL(element.href).pathname === target
+          && (!label || element.innerText.includes(label))
       );
       if (!anchor) return false;
       const rect = anchor.getBoundingClientRect();
@@ -507,7 +518,7 @@ def navigate_via_internal_link(
                 f"internal link to {path} performed a full document reload; "
                 "the Inspector requires client-side route navigation"
             )
-        if state.get("path") == path and expected in state.get("body", ""):
+        if state.get("path") == path and expected in normalize_visible_text(state.get("body", "")):
             print(f"PASS client navigation {path}")
             return
         time.sleep(0.25)
@@ -549,72 +560,289 @@ def navigate_via_history(cdp: CdpSocket, path: str, expected: str) -> None:
         if (
             isinstance(state, dict)
             and state.get("path") == path
-            and expected in state.get("body", "")
+            and expected in normalize_visible_text(state.get("body", ""))
         ):
             return
         time.sleep(0.1)
     raise RuntimeError(f"history navigation did not render {path} with {expected!r}")
 
 
+def verify_welcome_page(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    visible_body = " ".join(body.split())
+    primary_navigation = cdp.evaluate("Boolean(document.querySelector('.primary-nav'))")
+    landing_count = cdp.evaluate("document.querySelectorAll('.memory-landing').length")
+    if primary_navigation:
+        raise RuntimeError("Welcome page exposes audit navigation before the visitor enters the app")
+    if landing_count != 1:
+        raise RuntimeError(f"Welcome route must render exactly one landing page; found {landing_count!r}")
+    leaked_results = ("BAD_PREVIOUS_STATE", "LOCAL EVIDENCE: REJECTED", "EXACT MACHINE RESULT")
+    if any(marker in visible_body for marker in leaked_results):
+        raise RuntimeError("Welcome page reveals the challenge verdict before the visitor starts")
+    expected = (
+        "A backup can open and still be out of date.",
+        "Backup 1",
+        "Backup 3",
+        "Get started",
+        "Explore freely",
+        "SYNTHETIC LOCAL EXAMPLE",
+        "What this demo can and cannot show",
+    )
+    missing = [marker for marker in expected if marker.casefold() not in visible_body.casefold()]
+    sections = cdp.evaluate(
+        "(() => Array.from(document.querySelectorAll('.memory-landing section[id]'))"
+        ".map(section => section.id))()"
+    )
+    required_sections = {
+        "problem",
+        "how-it-works",
+        "evidence-boundary",
+        "inside-inspector",
+        "questions",
+    }
+    links = cdp.evaluate(
+        "(() => Array.from(document.querySelectorAll('.landing-hero-actions a')).map(link => ({"
+        "label: link.innerText, path: new URL(link.href).pathname})))()"
+    )
+    github = cdp.evaluate(
+        "(() => { const link = document.querySelector('.github-button'); return link ? {"
+        "path: new URL(link.href).pathname, icon: Boolean(link.querySelector('svg')), "
+        "label: link.getAttribute('aria-label')} : null; })()"
+    )
+    if missing or not isinstance(sections, list) or not required_sections.issubset(sections) \
+        or not isinstance(links, list) or len(links) != 2 \
+        or not any(
+            link.get("path") == "/app"
+            and link.get("label", "").strip().casefold().startswith("get started")
+            for link in links
+        ) \
+        or not any(
+            link.get("path") == "/overview"
+            and link.get("label", "").strip().casefold().startswith("explore freely")
+            for link in links
+        ) \
+        or not isinstance(github, dict) or github.get("icon") is not True:
+        raise RuntimeError(
+            f"Welcome choices or GitHub source button are incomplete; missing={missing!r}; "
+            f"sections={sections!r}; links={links!r}; github={github!r}; "
+            f"visible body: {visible_body[:700]!r}"
+        )
+    print("PASS landing / product story, clear entry paths, no verdict leak, GitHub source button")
+
+
+def verify_landing_scroll_reveal(cdp: CdpSocket) -> None:
+    state = cdp.evaluate("""(() => {
+      const root = document.querySelector('.memory-landing');
+      const target = root?.querySelector('.landing-contrast');
+      if (!root || !target) return null;
+      const nativeTimeline = CSS.supports('animation-timeline', 'view()');
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const style = getComputedStyle(target);
+      return {
+        nativeTimeline,
+        reducedMotion,
+        animationName: style.animationName,
+        animationTimeline: style.animationTimeline || style.getPropertyValue('animation-timeline'),
+        fallbackReady: root.dataset.scrollRevealReady === 'true',
+        fallbackObserver: Boolean(window.__memoryLineageRevealObserver),
+        revealTargets: root.querySelectorAll('.landing-contrast, .landing-flow, .landing-history-preview').length
+      };
+    })()""") or {}
+    if state.get("nativeTimeline") and not state.get("reducedMotion"):
+        if state.get("animationName") != "landing-scroll-rise" \
+            or "view(" not in str(state.get("animationTimeline", "")):
+            raise RuntimeError(f"native landing scroll animation is not attached to its section: {state!r}")
+    else:
+        if not state.get("fallbackReady") or not state.get("fallbackObserver"):
+            raise RuntimeError(f"landing scroll reveal fallback did not install: {state!r}")
+        if state.get("revealTargets", 0) < 3:
+            raise RuntimeError(f"landing scroll reveal has too few targets: {state!r}")
+        cdp.evaluate("document.querySelector('.landing-flow')?.scrollIntoView({block: 'center'})")
+        deadline = time.time() + 3
+        revealed = False
+        while time.time() < deadline:
+            revealed = cdp.evaluate(
+                "document.querySelector('.landing-flow')?.classList.contains('scroll-revealed')"
+            ) is True
+            if revealed:
+                break
+            time.sleep(0.05)
+        if not revealed:
+            raise RuntimeError("landing scroll reveal did not activate after scrolling to its target")
+        cdp.evaluate("window.scrollTo(0, 0)")
+    print("PASS landing / scroll reveal has a native timeline or installed observer fallback")
+
+
+def verify_overview_is_not_landing(cdp: CdpSocket) -> None:
+    state = cdp.evaluate("""(() => ({
+      path: location.pathname,
+      landingCount: document.querySelectorAll('.memory-landing').length,
+      heading: document.querySelector('h1')?.innerText || '',
+      challenge: (() => {
+        const link = document.querySelector('.overview-challenge-cta');
+        return link ? {path: new URL(link.href).pathname, label: link.innerText} : null;
+      })(),
+      body: document.body?.innerText || ''
+    }))()""") or {}
+    if state.get("path") != "/overview" or state.get("landingCount") != 0 \
+        or "recorded history" not in state.get("heading", "").casefold() \
+        or not isinstance(state.get("challenge"), dict) \
+        or state["challenge"].get("path") != "/challenge" \
+        or "one-minute challenge" not in state["challenge"].get("label", "").casefold():
+        raise RuntimeError(
+            f"Overview must stay distinct from the landing and offer the challenge without the tour: {state!r}"
+        )
+    print("PASS overview / technical page is distinct from the public landing page")
+
+
 def verify_home_problem_story(cdp: CdpSocket) -> None:
-    manifest = json.loads(
-        (ROOT / "fixtures/silent-rollback-v2/manifest.json").read_text()
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    visible_body = " ".join(body.split())
+    leaked_results = ("BAD_PREVIOUS_STATE", "LOCAL EVIDENCE: REJECTED", "EXACT MACHINE RESULT")
+    if any(marker in visible_body for marker in leaked_results):
+        raise RuntimeError("Home reveals the challenge verdict before the visitor starts")
+    expected = (
+        "Can this backup continue the shared history?",
+        "Backup 1",
+        "Backup 3",
+        "SYNTHETIC DEMO",
+        "No real agent or transaction",
     )
-    evidence = json.loads(
-        (ROOT / "evidence/local/demo_space_v2_evidence.json").read_text()
+    missing = [marker for marker in expected if marker.casefold() not in visible_body.casefold()]
+    primary = cdp.evaluate(
+        "(() => { const link = document.querySelector('.home-challenge-cta'); "
+        "return link ? {label: link.innerText, path: new URL(link.href).pathname} : null; })()"
     )
-    restored_sequence = manifest["attack"]["restoredSequence"]
-    attempted_sequence = manifest["attack"]["attemptedSequence"]
-    head_sequence = evidence["head"]["sequence"]
-    expected_reason = manifest["attack"]["expectedContractReason"]
-    expected = [
-        "old memory backup",
-        f"registry remains at state {head_sequence}",
-        f"state {restored_sequence}",
-        f"Transition {attempted_sequence}",
-        "stale predecessor root",
-        expected_reason,
-        "without publishing the private memory itself",
-        "existing Sepolia deployment is a separate observation",
-        "An old backup can look perfectly normal.",
-        "The agent remembers",
-        "An old backup is restored",
-        "The reviewer cannot tell",
-        "MEMORYLINEAGE ADDS THE MISSING CHECK",
-        "Follow one short path.",
-        "WHY A SHARED REGISTRY",
-        *[snapshot["visibleLabel"] for snapshot in manifest["snapshots"]],
-    ]
+    if missing or not isinstance(primary, dict) or primary.get("path") != "/challenge" \
+        or "one-minute challenge" not in primary.get("label", "").casefold():
+        raise RuntimeError(
+            f"Home challenge entry is incomplete; missing={missing!r}; primary={primary!r}; "
+            f"visible body: {visible_body[:700]!r}"
+        )
+    print("PASS app home / concise scenario, no verdict leak, one challenge action")
+
+
+def verify_guided_tour_step(
+    cdp: CdpSocket, step_label: str, expected_spotlight_count: int
+) -> None:
+    state = cdp.evaluate("""(() => ({
+      panel: document.querySelector('.guided-tour-panel')?.innerText || '',
+      spotlightCount: document.querySelectorAll('.tour-spotlight').length
+    }))()""") or {}
+    if step_label not in state.get("panel", "") \
+        or state.get("spotlightCount") != expected_spotlight_count:
+        raise RuntimeError(f"guided tour step {step_label!r} is incomplete: {state!r}")
+
+
+def verify_guided_next_state(cdp: CdpSocket, enabled: bool) -> None:
+    state = cdp.evaluate("""(() => {
+      const panel = document.querySelector('.guided-tour-panel');
+      const next = panel && Array.from(panel.querySelectorAll('button')).find(
+        button => button.innerText.trim() === 'Next'
+      );
+      return next ? { disabled: next.disabled } : null;
+    })()""")
+    if not isinstance(state, dict) or state.get("disabled") is enabled:
+        raise RuntimeError(f"guided tour Next enabled={enabled} expected, found {state!r}")
+
+
+def verify_free_entry(cdp: CdpSocket) -> None:
+    state = cdp.evaluate("""(() => ({
+      guided: Boolean(document.querySelector('.guided-tour-panel')),
+      navigation: Boolean(document.querySelector('.primary-nav'))
+    }))()""") or {}
+    if state.get("guided") or not state.get("navigation"):
+        raise RuntimeError(f"Explore freely should open the app without the tour: {state!r}")
+
+
+def select_challenge_answer(cdp: CdpSocket, answer: str) -> None:
+    label = json.dumps(answer)
+    clicked = cdp.evaluate(f"""(() => {{
+      const button = Array.from(document.querySelectorAll('button.challenge-answer')).find(
+        element => element.textContent && element.textContent.includes({label})
+      );
+      if (!button) return false;
+      button.click();
+      return true;
+    }})()""")
+    if clicked is not True:
+        raise RuntimeError(f"challenge answer is missing: {answer!r}")
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
-    body = ""
-    missing = expected
     while time.time() < deadline:
-        try:
-            body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
-        except (TimeoutError, socket.timeout):
-            time.sleep(0.5)
-            continue
-        body = " ".join(body.split())
-        missing = [marker for marker in expected if marker not in body]
-        if not missing:
-            primary = cdp.evaluate(
-                "(() => { const link = document.querySelector('.home-hero-copy a.button-primary'); "
-                "return link ? {label: link.innerText, path: new URL(link.href).pathname} : null; })()"
-            )
-            if not isinstance(primary, dict) or primary.get("path") != "/lab/silent-rollback" \
-                or "check an old restore" not in primary.get("label", "").casefold():
-                raise RuntimeError(f"Home primary restore action is missing: {primary!r}")
-            print("PASS home problem story / plain-language restore flow + canonical head + fixture labels")
+        selected = cdp.evaluate(f"""(() => {{
+          const button = Array.from(document.querySelectorAll('button.challenge-answer')).find(
+            element => element.textContent && element.textContent.includes({label})
+          );
+          return button ? button.getAttribute('aria-pressed') === 'true' : false;
+        }})()""")
+        if selected is True:
             return
-        time.sleep(0.25)
-    note_nodes = cdp.evaluate(
-        "Array.from(document.querySelectorAll('.home-source-note')).map(node => "
-        "({text: node.textContent, visibleText: node.innerText}))"
+        time.sleep(0.1)
+    raise RuntimeError(f"challenge answer did not expose its selected state: {answer!r}")
+
+
+def verify_first_run_challenge(cdp: CdpSocket) -> None:
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    if cdp.evaluate("Boolean(document.querySelector('.primary-nav'))"):
+        raise RuntimeError("challenge exposes advanced navigation before the visitor completes it")
+    if "BAD_PREVIOUS_STATE" in body or "CHECK PASSED" in body:
+        raise RuntimeError("first-run challenge reveals the result before an answer is checked")
+    if "Choose one answer, then check it." not in body:
+        raise RuntimeError("first-run challenge does not explain the next action")
+
+    disabled = cdp.evaluate("""(() => {
+      const button = Array.from(document.querySelectorAll('button')).find(
+        element => element.textContent && element.textContent.includes('Check my answer')
+      );
+      return button ? button.disabled : null;
+    })()""")
+    if disabled is not True:
+        raise RuntimeError("challenge check should stay disabled until the visitor chooses an answer")
+
+    select_challenge_answer(cdp, "It matches the latest history")
+    click_and_wait(cdp, "Check my answer", "CHECK PASSED")
+
+    body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    required = (
+        "Not quite",
+        "CHECK PASSED",
+        "RESTORE DECISION",
+        "Backup 1 is older than the shared history at Backup 3",
     )
-    raise RuntimeError(
-        f"home problem story is incomplete; missing source-backed context: {missing!r}; "
-        f"visible body: {' '.join(body.split())[:700]!r}; note nodes: {note_nodes!r}"
-    )
+    missing = [marker for marker in required if marker.casefold() not in body.casefold()]
+    if missing:
+        raise RuntimeError(f"challenge result does not explain the verified outcome; missing={missing!r}")
+
+    details = cdp.evaluate("""(() => {
+      const disclosure = document.querySelector('details.challenge-technical');
+      return {
+        exists: Boolean(disclosure),
+        closed: Boolean(disclosure && !disclosure.open),
+        hasMachineReason: Boolean(disclosure && disclosure.textContent.includes('BAD_PREVIOUS_STATE')),
+        reasonVisible: document.body?.innerText.includes('BAD_PREVIOUS_STATE') || false,
+        hasLiveStatus: Boolean(document.querySelector('.challenge-result[aria-live="polite"]')),
+      };
+    })()""") or {}
+    if not isinstance(details, dict) or not all(
+        details.get(key) is True for key in ("exists", "closed", "hasMachineReason", "hasLiveStatus")
+    ) or details.get("reasonVisible"):
+        raise RuntimeError(f"technical reason is not progressively disclosed: {details!r}")
+
+    opened = cdp.evaluate("""(() => {
+      const disclosure = document.querySelector('details.challenge-technical');
+      disclosure?.querySelector('summary')?.click();
+      return disclosure?.open === true;
+    })()""")
+    if opened is not True or "BAD_PREVIOUS_STATE" not in (
+        cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+    ):
+        raise RuntimeError("technical disclosure did not reveal BAD_PREVIOUS_STATE on request")
+
+    click_and_wait(cdp, "Try another answer", "Choose one answer, then check it.")
+    select_challenge_answer(cdp, "It is an older checkpoint")
+    click_and_wait(cdp, "Check my answer", "Good catch")
+    capture_demo_frame(cdp, "02-challenge.png", focus=".challenge-result")
+    print("PASS first-run challenge / predict, verify, separate check from decision, disclose exact reason")
 
 
 def verify_submission_context(cdp: CdpSocket, path: str) -> None:
@@ -686,7 +914,7 @@ def click_and_wait(cdp: CdpSocket, text: str, expected: str) -> None:
         except (TimeoutError, socket.timeout):
             time.sleep(1.0)
             continue
-        if expected in body:
+        if expected in normalize_visible_text(body):
             print(f"PASS interaction {text} -> {expected}")
             return
         time.sleep(0.25)
@@ -706,13 +934,20 @@ def click_and_wait_for_rollback(cdp: CdpSocket) -> None:
         raise RuntimeError("button not found: Run Silent Rollback")
 
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
-    terminal_states = {"LOCAL EVIDENCE: REJECTED", "LIVE RPC: REJECTED"}
+    terminal_states = {"CHECK PASSED", "LIVE RPC: REJECTED"}
     while time.time() < deadline:
         try:
             result = cdp.evaluate("""(() => {
               const heading = document.querySelector('.result-panel .result-heading strong');
               const detail = document.querySelector('.result-panel .result-heading small');
-              return { heading: heading?.textContent?.trim() || '', detail: detail?.textContent || '' };
+              const panel = document.querySelector('.result-panel');
+              const symbol = document.querySelector('.result-panel .result-symbol');
+              return {
+                heading: heading?.textContent?.trim() || '',
+                detail: detail?.textContent || '',
+                panelClass: panel?.className || '',
+                symbolClass: symbol?.className || '',
+              };
             })()""") or {}
         except (TimeoutError, socket.timeout):
             time.sleep(1.0)
@@ -722,6 +957,24 @@ def click_and_wait_for_rollback(cdp: CdpSocket) -> None:
         if heading in terminal_states:
             if "BAD_PREVIOUS_STATE" not in detail:
                 raise RuntimeError("rollback result omitted the exact BAD_PREVIOUS_STATE reason")
+            body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
+            expected = (
+                "The evidence check passed.",
+                "Backup 1 cannot continue the history at Snapshot 3.",
+                "HOLD OLD BACKUP",
+            )
+            missing = [marker for marker in expected if marker.casefold() not in body.casefold()]
+            if heading == "CHECK PASSED" and (
+                missing or "LOCAL EVIDENCE: REJECTED" in body
+            ):
+                raise RuntimeError(
+                    f"local rollback conflates evidence verification and restore decision; missing={missing!r}"
+                )
+            if heading == "CHECK PASSED" and (
+                "result-panel-verified" not in result.get("panelClass", "")
+                or "result-symbol-verified" not in result.get("symbolClass", "")
+            ):
+                raise RuntimeError("passed evidence result does not use a consistent verified status treatment")
             print(f"PASS interaction Run Silent Rollback -> {heading} / BAD_PREVIOUS_STATE")
             return
         if heading == "UNEXPECTED LIVE RESULT":
@@ -896,7 +1149,7 @@ def wait_for_body_text(cdp: CdpSocket, expected: str) -> None:
     deadline = time.time() + INTERACTION_TIMEOUT_SECONDS
     while time.time() < deadline:
         body = cdp.evaluate("document.body ? document.body.innerText : ''") or ""
-        if expected in body:
+        if expected in normalize_visible_text(body):
             return
         time.sleep(0.1)
     raise RuntimeError(f"Inspector did not show the expected import result: {expected!r}")
@@ -949,6 +1202,7 @@ def capture_requested_screenshots(cdp: CdpSocket) -> None:
     )
     for path, expected in ROUTES.items():
         navigate_via_history(cdp, path, expected)
+        cdp.evaluate("window.scrollTo(0, 0)")
         if path == "/lab":
             click_and_wait_for_rollback(cdp)
         payload = cdp.command(
@@ -982,7 +1236,7 @@ def capture_demo_frame(cdp: CdpSocket, filename: str, *, focus: str | None = Non
             f"document.querySelector({json.dumps(focus)})?.scrollIntoView({{block: 'center'}})"
         )
     else:
-        cdp.evaluate("window.scrollTo(0, 0)")
+        cdp.evaluate("window.scrollTo(0, 0); document.activeElement?.blur?.()")
     time.sleep(0.2)
     payload = cdp.command(
         "Page.captureScreenshot",
@@ -1063,8 +1317,22 @@ def main() -> int:
             },
         )
         wait_for_url(base, "/", ROUTES["/"], cdp)
+        verify_welcome_page(cdp)
+        capture_demo_frame(cdp, "00-landing.png")
+        navigate_via_internal_link(cdp, "/app", ROUTES["/app"])
         verify_home_problem_story(cdp)
+        verify_guided_tour_step(cdp, "STEP 1 OF 6", expected_spotlight_count=1)
         capture_demo_frame(cdp, "01-home.png")
+        click_and_wait(cdp, "Next", "STEP 2 OF 6")
+        verify_guided_tour_step(cdp, "STEP 2 OF 6", expected_spotlight_count=1)
+        verify_guided_next_state(cdp, enabled=False)
+        verify_first_run_challenge(cdp)
+        verify_guided_next_state(cdp, enabled=True)
+        navigate_via_internal_link(cdp, "/", ROUTES["/"])
+        verify_welcome_page(cdp)
+        verify_landing_scroll_reveal(cdp)
+        navigate_via_internal_link(cdp, "/overview", ROUTES["/overview"])
+        verify_overview_is_not_landing(cdp)
         navigate_via_internal_link(cdp, "/inspect", ROUTES["/inspect"])
         verify_restore_preflight(cdp)
         capture_demo_frame(cdp, "02-inspect.png")
@@ -1082,6 +1350,8 @@ def main() -> int:
                 if "UNKNOWN SCENARIO" not in unknown_scenario or "No lab scenario is registered" not in unknown_scenario:
                     raise RuntimeError("unknown lab slug did not render the not-found state")
                 print("PASS tampering lab / unknown slug renders not-found instead of Silent Rollback")
+            if path == "/challenge":
+                verify_first_run_challenge(cdp)
             if path in {"/inspect", "/history", "/verify", "/evidence"}:
                 verify_submission_context(cdp, path)
             if path == "/history":
@@ -1094,7 +1364,23 @@ def main() -> int:
         navigate_via_internal_link(cdp, "/lab", "Run Silent Rollback")
         verify_accessibility_and_keyboard(cdp, "/lab")
         navigate_via_internal_link(cdp, "/", ROUTES["/"])
-        navigate_via_internal_link(cdp, "/lab/silent-rollback", "Run Silent Rollback")
+        verify_welcome_page(cdp)
+        navigate_via_internal_link(
+            cdp,
+            "/overview",
+            ROUTES["/overview"],
+            link_label="Explore freely",
+        )
+        verify_overview_is_not_landing(cdp)
+        verify_free_entry(cdp)
+        navigate_via_internal_link(
+            cdp, "/challenge", ROUTES["/challenge"], link_label="Try the one-minute challenge"
+        )
+        if cdp.evaluate("Boolean(document.querySelector('.guided-tour-panel'))") is True:
+            raise RuntimeError("the free overview's challenge link unexpectedly starts the guided tour")
+        verify_first_run_challenge(cdp)
+        navigate_via_internal_link(cdp, "/lab", "Tampering Lab")
+        navigate_via_history(cdp, "/lab/silent-rollback", "Run Silent Rollback")
         verify_accessibility_and_keyboard(cdp, "/lab/silent-rollback")
         click_and_wait_for_rollback(cdp)
         capture_demo_frame(cdp, "03-rollback.png")
@@ -1121,6 +1407,7 @@ def main() -> int:
         )
         for path, expected in ROUTES.items():
             navigate_via_history(cdp, path, expected)
+            cdp.evaluate("window.scrollTo(0, 0)")
             if cdp.evaluate(
                 "document.documentElement.scrollWidth <= window.innerWidth"
             ) is not True:

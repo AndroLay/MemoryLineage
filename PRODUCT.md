@@ -46,10 +46,35 @@ briefing.
 
 ## Judge path
 
-The first review should fit one short incident rather than a tour of every
+The root page introduces the problem, the recovery-check approach, the limits
+of the local evidence, and the Inspector before offering two clear ways in:
+`Get started` opens the guided flow at `/app`; `Explore freely` opens the
+technical overview at `/overview` without starting the tour. The tour is
+optional and can be exited at any point. Its first two
+steps show the incident and prediction challenge as full-page views with a
+spotlight on the existing action area: the challenge entry on Home, then the
+answer and check controls on Challenge. Spotlight continues through Inspect,
+History, Tampering Lab, and Verify; it never invents a target when a page has
+none.
+Supporting technical pages stay available through normal navigation after the
+tour or through direct use. The tour asks the visitor to make and check the
+incident decision, then replay the local rollback before advancing through the
+evidence review. The free overview also links directly to the one-minute
+challenge without starting the tour.
+
+The review should still fit one short incident rather than a tour of every
 technical surface:
 
 ```text
+Open the MemoryLineage landing page
+  -> choose Get started or Explore freely
+  -> if exploring freely, open the one-minute challenge from the overview
+  -> predict whether restored Backup 1 is current
+  -> check the local evidence
+  -> learn that Backup 1 is older than the shared Backup 3 head
+  -> open the exact machine reason if desired
+  -> continue into the technical review
+
 Restore snapshot 1 locally
   -> compare it with the committed state-3 head
   -> receive BAD_PREVIOUS_STATE
@@ -58,9 +83,11 @@ Restore snapshot 1 locally
   -> restore the bundle and receive VERIFIED
 ```
 
-Home introduces this path, Inspect identifies the evidence head, History shows
-the authority-bound succession, Tampering Lab executes the negative path, and
-Verify lets a reviewer replay the same bundle independently. The automated
+Home starts with a one-minute predict-then-check challenge and withholds its
+verdict until the visitor checks the local evidence. The Overview preserves the
+full technical explanation. Inspect identifies the evidence head, History
+shows the authority-bound succession, Tampering Lab executes the negative
+path, and Verify lets a reviewer replay the same bundle independently. The automated
 `cargo xtask reproduce` command covers the repository path; external human
 reproduction remains a separately recorded evidence item.
 

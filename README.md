@@ -2,10 +2,11 @@
 
 > **Verify the history, not the memory.**
 
-MemoryLineage independently checks whether a private AI-agent snapshot is the
-authorized continuation of its history. Raw memory remains off-chain.
+MemoryLineage checks whether a restored snapshot extends supplied, replayable history.
+This local-first prototype uses synthetic demo fixtures; raw memory stays off-chain.
+It does not authenticate canonical chain provenance or integrate with production agents.
 
-Release baseline: **`v1.0.0`** · last recorded public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
+**Project version: `v1.0.2`.** Previous public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 
 Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev) (last recorded; current content unverified).
 Demo Space V2 remains local and is not deployed to Sepolia.
@@ -19,111 +20,69 @@ snapshot is current, a known checkpoint, or divergent.
 MemoryLineage records fixed-size commitments and transition metadata while raw
 memory remains off-chain. See the [problem, importance, impact, and scope note](docs/product/problem-and-impact.md).
 
+## Screenshots
+
+### The recovery problem
+
+[![MemoryLineage landing page frames the recovery problem](docs/submission/assets/devpost-website-preview.png)](docs/submission/assets/devpost-website-preview.png)
+
+It introduces the key question: does this readable backup continue the shared
+history?
+
+### Silent Rollback rehearsal
+
+[![Inspector rehearsal: Snapshot 1 is checked against the shared Snapshot 3 head](docs/submission/assets/lab-local.png)](docs/submission/assets/lab-local.png)
+
+This is a synthetic local case: the evidence check passes, while the attempted
+continuation from the older snapshot is rejected as `BAD_PREVIOUS_STATE`. No
+transaction is sent.
+
+### Evidence replay
+
+[![Inspector verifies the supplied evidence bundle and displays the scope](docs/submission/assets/verify-local.png)](docs/submission/assets/verify-local.png)
+
+`BUNDLE REPLAY VERIFIED` means the supplied bundle is internally consistent; it
+does not authenticate the registry address, deployed code, or canonical chain
+state.
+
 ## The important flows
 
 ### 1. System architecture
 
 ```mermaid
-flowchart TD
-    M[Private SQLite snapshots] --> C[Rust memory store<br/>canonical commitments]
-    C --> R[Solidity MemoryLineage Registry]
-    R --> L[Rust/revm local execution]
-    R --> S[Ethereum Sepolia<br/>read-only observation]
-    L --> I[Rust/WASM Inspector]
-    S --> I
-    R --> E[Portable evidence bundle]
-    I --> V[Independent Rust verifier<br/>and CLI]
-    E --> V
-```
-
-### 2. Reviewer journey
-
-```mermaid
 flowchart LR
-    H[Home<br/>Understand] --> I[Inspect<br/>Canonical]
-    I --> T[History<br/>Trace]
-    T --> L[Tampering Lab<br/>Attack]
-    L --> V[Verify<br/>Validate]
-    V --> C[Independent CLI<br/>Reproduce]
+    S[Synthetic SQLite snapshots<br/>raw values stay off-chain] --> M[Rust memory store]
+    M --> C[Fixed-size commitments<br/>and transitions]
+    C --> R[Checked-in Solidity behavior<br/>executed with local Rust/revm]
+    R --> E[Local Demo Space V2 evidence]
+    E --> I[Inspector / browser replay]
+    E --> V[Independent Rust verifier + CLI]
+    P[Earlier Sepolia deployment] -. Separate, read-only<br/>single-RPC observation .-> I
 ```
 
-The Inspector has 11 routes; primary tools are `/inspect`, `/history`, `/lab`,
-and `/verify`. Others cover home, detail, evidence, architecture, security,
-reproduction, and provenance.
+Demo Space V2 runs locally against the checked-in Solidity behavior. The
+earlier Sepolia deployment is a separate read-only observation, not the same
+history. The Inspector path is: try the challenge, inspect the head, trace the
+history, rehearse a rollback, then verify the evidence in the browser or CLI.
 
-### 3. The Silent Rollback
+### 2. Recovery decision
 
 ```mermaid
 flowchart TD
-    S1[Snapshot 1] --> S2[Snapshot 2]
-    S2 --> S3[Snapshot 3]
-    S3 --> H[Canonical committed head]
-    S1 -. restore locally .-> R[Restored Snapshot 1]
-    R --> A[Attempt transition 4<br/>using Snapshot 1 root]
-    H --> A
-    A --> X[REJECTED<br/>BAD_PREVIOUS_STATE]
-```
-
-The local Demo Space V2 uses synthetic SQLite snapshots 1 through 3. Restoring
-snapshot 1 remains possible locally, but its stale root cannot extend the later
-canonical head.
-
-### 4. Evidence verification
-
-```mermaid
-flowchart TD
-    E[Export evidence] --> I[Import bundle]
-    I --> V[Verify in Rust/WASM]
-    V --> T[Tamper one commitment]
-    T --> X[TRANSITION_ID_MISMATCH]
-    X --> R[Restore original bundle]
-    R --> P[OFFLINE BUNDLE REPLAY VERIFIED]
-    P --> C[Replay with independent Rust CLI]
-```
-
-### 5. Recovery decision
-
-```mermaid
-flowchart TD
-    C[Candidate snapshot] --> R[Replay named evidence history]
-    R --> D{Classification}
-    D -->|Current head| A[RESUME_ALLOWED]
-    D -->|Known historical| H[REHEARSE_ONLY]
-    D -->|Diverged| V[HOLD_FOR_REVIEW]
+    C[Restored snapshot + named evidence] --> R[Replay history and check authorization]
+    R --> D{Lineage and proof result}
+    D -->|Current head + valid proof| A[RESUME_ALLOWED]
+    D -->|Known earlier checkpoint| H[REHEARSE_ONLY]
+    D -->|Diverged history| V[HOLD_FOR_REVIEW]
+    D -->|Missing proof| U[BLOCK_UNVERIFIED]
     D -->|Invalid evidence| F[FAIL_CLOSED]
 ```
 
-### 6. Privacy boundary
-
-```mermaid
-flowchart LR
-    subgraph Private["PRIVATE / OFF-CHAIN"]
-        M[Raw memory<br/>documents, prompts, locators]
-    end
-    subgraph Public["PUBLIC VERIFICATION DOMAIN"]
-        C[Fixed-size commitments<br/>transition metadata]
-        R[Registry and observations]
-        E[Portable evidence]
-        C --> R --> E
-    end
-    M -. local derivation only .-> C
-```
-
-Raw memory remains outside the chain and portable evidence; see the [privacy
-profile boundary](docs/product/commitment-privacy-profile.md). Demo Space V2 is
-synthetic; the separate Sepolia readback is a distinct observation.
-
-### 7. Portability boundary
-
-```mermaid
-flowchart LR
-    E[Ethereum-local REVM] --> C[Compare transitions, roots, authority, rollback]
-    P[Polkadot Hub TestNet chain context] --> C
-    C --> R[LOCAL_REHEARSAL_PASS]
-    R --> N[Deployment and public RPC: NOT PERFORMED]
-```
-
-This is local portability preparation, not a public Polkadot deployment or cross-chain consensus claim.
+`RESUME_ALLOWED` is shown by the local reference recovery adapter only; a
+production agent framework is not integrated. Raw memory remains outside the
+chain and portable evidence; see the [privacy profile boundary](docs/product/commitment-privacy-profile.md).
+The Polkadot Hub work is a local chain-context rehearsal, not a public
+deployment or cross-chain consensus claim.
 
 ## What it verifies
 
@@ -229,7 +188,7 @@ The reviewer archive reproduction is automated evidence, not a claim of independ
 
 ## Verification status
 
-The release gate currently covers:
+The local release gate exercises:
 
 - Rust formatting, Clippy, workspace tests, and WASM compilation;
 - pinned vectors and independent evidence replay;
@@ -237,13 +196,13 @@ The release gate currently covers:
 - Rust/revm Silent Rollback, mutation, ERC-1271, and authority lanes;
 - reference agent-runtime recovery gating and bounded assurance;
 - local Polkadot Hub chain-context portability rehearsal with explicit limits;
-- 11-route browser smoke, accessibility, keyboard, responsive, tamper, and
-  restore flows;
+- 14-route browser smoke, the first-run challenge, accessibility, keyboard,
+  responsive, tamper, and restore flows;
 - public package boundaries and legacy EVM/Python compatibility checks.
 
-Dependency scans report no known vulnerability, unsoundness, or yanked package.
-RustSec flags two unmaintained crates, `derivative` and `paste`; these are not
-known exploits.
+The last recorded dependency scans found no known vulnerability, unsoundness,
+or yanked package. RustSec flags two unmaintained crates, `derivative` and
+`paste`; these are maintenance warnings, not known exploits.
 
 Still intentionally outside this repository release:
 
@@ -281,7 +240,7 @@ Still intentionally outside this repository release:
 - [Testing and evidence](docs/testing.md)
 - [Security assurance](docs/security/security-assurance.md)
 - [Dependency audit](docs/security/dependency-audit.md)
-- [Submission claim matrix](docs/submission/claim-matrix.md) · [Contribution and provenance](docs/submission/contribution-and-provenance.md) · [Local incident envelope](evidence/submission/README.md)
+- [Submission claim matrix](docs/submission/claim-matrix.md) · [Contribution and provenance](docs/submission/contribution-and-provenance.md) · [GitHub publication scope](docs/submission/github-publication-manifest.md) · [Local incident envelope](evidence/submission/README.md)
 - [Prior research](docs/research/README.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
@@ -296,5 +255,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the repository workflow.
 
 ## License
 
-MemoryLineage is released under the [MIT License](LICENSE). Third-party
-dependency notices are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Copyright © 2026 MemoryLineage contributors. Repository code and documentation
+are [MIT-licensed](LICENSE); see [third-party notices](THIRD_PARTY_NOTICES.md).

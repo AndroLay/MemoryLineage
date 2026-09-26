@@ -97,6 +97,14 @@ it does not promote the receipt to a live-chain or adoption claim.
 ## Product flow
 
 ```text
+present the Backup 1 / Backup 3 incident in plain language
+  -> ask for a prediction before revealing any verdict
+  -> verify the local evidence and explain the restore decision
+  -> disclose the machine reason on request
+  -> allow the reviewer to continue into the full audit
+```
+
+```text
 Inspect evidence source
   -> select restored checkpoint
   -> replay the named history independently

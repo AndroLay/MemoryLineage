@@ -1,8 +1,9 @@
 # Devpost description draft
 
 This draft is the short judge-facing description for MemoryLineage. It keeps
-the same wording as the repository and claim matrix. The last recorded public
-Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev);
+the same wording as the repository and claim matrix. The submission project
+version is `v1.0.2`; the preceding public Inspector release was `v1.0.1`. The
+last recorded Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev);
 current page content was not rechecked. This draft does not claim external
 adoption, semantic memory safety, or authorship of ERC-8350.
 
@@ -22,7 +23,7 @@ The question is precise:
 
 ## Solution
 
-MemoryLineage is an independent Restore Preflight and memory-history auditor.
+MemoryLineage is a local-first Restore Preflight prototype and memory-history auditor.
 It commits fixed-size state evidence to a Solidity registry and keeps raw
 memory off-chain. A Rust/WASM Inspector shows the canonical head, authority
 history, and exact failure reason. A separate Rust verifier can replay the
@@ -81,7 +82,7 @@ The repository includes:
 - a 20-case protocol mutation corpus;
 - deterministic SQLite fixture regeneration;
 - current and historical Recovery Decision Receipts;
-- a static Dioxus website with 11 evidence-workspace routes;
+- a static Dioxus website with 14 evidence-workspace route paths, including a short first-run challenge;
 - `cargo xtask reproduce` for the automated clean-checkout path;
 - an independent Rust verifier and preserved Python/JavaScript compatibility
   lanes.
@@ -95,11 +96,13 @@ safe, whether an AI reasoned correctly, whether an agent's action was caused by
 that memory, or whether an external runtime obeys the reference recovery gate.
 
 The next evidence step is external developer reproduction. The repository now
-contains an eight-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) and a
-45-second [captioned local demo](MemoryLineage-local-demo.mp4). The last
+contains a ten-slide [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf), a
+two-minute [narrated local demo](MemoryLineage-narrated-demo.mp4), and the
+original 37-second cue-only cut. The narration is English TTS generated locally;
+it is not a human recording. The demo follows the guided first-run flow. The last
 recorded public Inspector URL is
 [memorylineage.pages.dev](https://memorylineage.pages.dev); this workflow did
-not deploy candidate commit `675c707405ac2afea1fd067be44a67890b0a35f2`, and
+not deploy source candidate commit `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`; the onboarding updates in the current working tree are not part of that commit, and
 current page content was not rechecked. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete

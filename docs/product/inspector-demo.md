@@ -63,25 +63,44 @@ space and is labeled as a separate observation. An unavailable or unexpected
 RPC result does not replace or change the local result. No transaction is
 broadcast.
 
-The Home and Inspect primary buttons, **Check an old restore**, open the local
-Silent Rollback scenario directly. The Inspector still offers a separate
-Restore Preflight view for selecting a current, historical, or divergent
-snapshot.
+Home starts with a predict-then-check challenge: the visitor compares Backup 1
+with the shared history at Backup 3, chooses whether it is current, and checks
+the local evidence. The initial screen does not expose the machine verdict.
+Afterward, “CHECK PASSED” describes evidence replay and “Hold Backup 1” states
+the restore decision. The exact `BAD_PREVIOUS_STATE` reason is in a collapsed
+technical disclosure. The Inspector still offers the full Tampering Lab and a
+separate Restore Preflight view for classifying current, historical, or
+divergent snapshots.
+
+This one-minute browser interaction is MemoryLineage-specific. ExitDrill's
+documented three-minute CLI demo is an adjacent reference for clear
+before/after comparisons and dimension-by-dimension outcomes; its event
+membership and novice usability are not established. See the
+[design-quality notes](design-quality.md#bounded-drill-with-visible-outcomes)
+and [public project audit](../research/2026-09-20-3rd-web-hack-public-project-audit.md#event-membership-unresolved-not-scored-as-a-3rd-web-hack-entry).
 
 ## Judge flow
 
-1. On Home, choose **Check an old restore** to open `/lab/silent-rollback`
-   and run the local evidence replay. The separate
-   Sepolia probe is optional and visibly labeled as a different observation.
-2. Open `/inspect` to compare the local Demo Space V2 head and restored
+1. Open `/`. Choose **Get started** for the guided tour at `/app`, or
+   **Explore freely** to open the technical overview at `/overview` without the
+   tour. The guided route offers **Start the one-minute challenge** on Home;
+   the free overview offers **Try the one-minute challenge** directly, without
+   enabling the tour. Predict whether Backup 1 matches the latest shared
+   history, then check the local evidence. Expand the technical disclosure to
+   see `BAD_PREVIOUS_STATE`; no agent is loaded and no transaction is sent.
+2. Open `/lab` for the full rehearsal. Its local result distinguishes a
+   passed evidence check from the decision to reject the stale continuation.
+   The separate Sepolia probe is optional and labeled as a different
+   observation.
+3. Open `/inspect` to compare the local Demo Space V2 head and restored
    candidate, then `/history` to trace transitions 1–3 and authority rotation.
-3. Open `/verify`, export the bundle, tamper with `locatorCommitment`, and
+4. Open `/verify`, export the bundle, tamper with `locatorCommitment`, and
    restore the original. Expected results are `TRANSITION_ID_MISMATCH` and
    `VERIFIED`.
-4. In the Recovery Decision Receipt panel, export the current-head decision,
+5. In the Recovery Decision Receipt panel, export the current-head decision,
    tamper its reason code, and restore it. Expected results are
    `RECOVERY_DECISION_MISMATCH` and `RECEIPT VERIFIED`.
-5. Verify the same exported bundle and receipt with the independent Rust CLI.
+6. Verify the same exported bundle and receipt with the independent Rust CLI.
 
 The repository also exposes the runtime and assurance surfaces directly:
 

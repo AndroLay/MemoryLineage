@@ -1,7 +1,7 @@
 # Independent reviewer comprehension protocol
 
-This protocol measures whether a new technical reviewer can understand the
-Silent Rollback problem and the product boundary from the public materials.
+This protocol measures whether a new reviewer can understand the backup mismatch,
+complete the first-run challenge, and state the product boundary from the public materials.
 It is separate from automated reproduction and is not a measure of market
 adoption or security assurance.
 
@@ -15,19 +15,24 @@ interpretation of `BAD_PREVIOUS_STATE` before their first answer.
 ## Session
 
 1. Record the start time with timezone. Ask the participant to open Home.
-2. Let them navigate freely. Record the first confusion and the time of their
-   first correct explanation without prompting them toward an answer.
+2. Let them navigate freely. Record whether they can state the task in the
+   first 10 seconds, their first action, the challenge completion time, and the
+   first confusion. Do not prompt them toward an answer.
 3. Ask these two questions verbatim and preserve the answers unedited:
    - What does MemoryLineage check before an agent resumes from a private snapshot?
    - What does MemoryLineage explicitly not prove about the memory or the agent?
-4. Ask them to find the canonical head, use **Check an old restore**, observe
-   `BAD_PREVIOUS_STATE`, verify the original bundle, tamper one commitment,
-   restore the bundle, and run the independent CLI command.
+4. Ask them to find the canonical head, complete the Home challenge, explain
+   the difference between “CHECK PASSED” and “Hold Backup 1”, open the
+   `BAD_PREVIOUS_STATE` disclosure, verify the original bundle, tamper one
+   commitment, restore the bundle, and run the independent CLI command.
 5. Record each task result and command output in the
    [external developer report](external-developer-report.md). Do not fill a
    report on someone else's behalf.
 
-A correct first answer describes continuity with the canonical predecessor
+A successful first-run result is unaided completion in about one minute and a
+clear explanation that the evidence check passed while the older backup was
+held from continuing the latest history. A correct first answer describes
+continuity with the canonical predecessor
 and configured authorization. A correct second answer excludes semantic truth
 or safety of private memory and correctness of agent reasoning. A claim that
 the product detects malicious memory is a clarity failure; record it as such

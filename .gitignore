@@ -27,6 +27,10 @@ evidence/generated/
 # Private owner-supplied design and research references
 /internal/
 
+# Local-only session and internal review notes
+*.ses
+/docs/submission/demo-video-review.md
+
 # Local editor and OS files
 .DS_Store
 .idea/

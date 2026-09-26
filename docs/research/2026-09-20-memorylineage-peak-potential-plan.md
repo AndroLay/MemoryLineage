@@ -96,11 +96,14 @@ all of it.
 
 ## Lessons from the public 3rd-Web-Hack field
 
-The current public index is incomplete: the official gallery reports 242
-participants at the time of inspection and says the gallery has not been
-published by the managers. The following register is therefore the set of
-publicly resolved candidates and benchmarks, not a complete list of every
-submission.
+The current public index is incomplete: on 25 September 2026, the [official
+event page](https://3rd-web-hack.devpost.com/) showed 301 participants and the
+project gallery was still unpublished. The older 242-participant count in the
+original inspection is a historical snapshot, not the current count. The following register is
+therefore the set of publicly resolved candidates and benchmarks, not a
+complete list of every submission. ExitDrill's event membership is unverified
+and it is not counted as a 3rd-Web-Hack entry; see the
+[public project audit](./2026-09-20-3rd-web-hack-public-project-audit.md#event-membership-unresolved-not-scored-as-a-3rd-web-hack-entry).
 
 ### Forkline
 

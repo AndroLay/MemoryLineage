@@ -41,7 +41,11 @@ The current public competitor register is recorded in
 [`2026-09-20-3rd-web-hack-public-project-audit.md`](./2026-09-20-3rd-web-hack-public-project-audit.md).
 It records every public 3rd-Web-Hack candidate found in the current search,
 the repository and demo links that were resolved, adjacent non-entry
-benchmarks, and the unpublished-gallery limitation.
+benchmarks, projects with unverified event membership such as ExitDrill, and
+the unpublished-gallery limitation. ExitDrill is separately discussed as a
+bounded workflow reference in the
+[design-quality contract](../product/design-quality.md#bounded-drill-with-visible-outcomes)
+and the [uniqueness and adoption audit](./2026-09-20-memorylineage-uniqueness-impact-adoption-audit.md#exitdrill-adjacent-drill-and-explanation-pattern).
 
 The peak-potential product and evidence plan is recorded in
 [`2026-09-20-memorylineage-peak-potential-plan.md`](./2026-09-20-memorylineage-peak-potential-plan.md).

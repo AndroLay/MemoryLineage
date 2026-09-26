@@ -1,6 +1,8 @@
 # Submission claim matrix
 
 Use this matrix as the source for the website, README, pitch, and Devpost copy.
+It describes project/submission version `v1.0.2`; `v1.0.1` is the preceding
+public Inspector release.
 Keep the local Demo Space V2, the earlier Sepolia deployment, and the protocol
 mutation corpus separate in every explanation. The source classes and their
 readiness statuses are frozen in the
@@ -33,8 +35,8 @@ readiness statuses are frozen in the
 | Complete history recovery from chain data | Not implemented | “The registry exposes its head, known transition lookups, and events; it has no full-history query. Recovery requires retained event logs or bundles, followed by replay and comparison with an authenticated head. No indexer/rebuilder is included.” |
 | Privacy boundary | Verified within the protocol/evidence format | “The registry and portable bundle contain commitments, not raw memory. The public repository does contain synthetic sample SQLite fixtures for deterministic reproduction.” |
 | Secret-blinded snapshot helper | Preparation only | “The optional helper binds a snapshot to a space ID and caller-supplied secret. Demo Space V2 continues to use its deterministic synthetic profile; secret storage, rotation, migration, and production privacy are not demonstrated.” |
-| Pitch and demo media | Repository artifacts; not uploaded | “The repository contains an eight-slide PDF and a 45-second silent captioned video assembled from verified local browser states. Neither is uploaded to Devpost. The source candidate is pushed to `main`; whether that push deployed Pages and what the live site serves remain unverified.” |
-| Static Inspector website | Verified locally | “The release WASM build and Chromium smoke cover all 11 routes, the local rollback flow, evidence tampering/restoration, and page-level overflow at 390px.” |
+| Pitch and demo media | Local artifacts; owner-reviewed; not uploaded | “The repository contains a ten-slide PDF, a 120-second Chromium recording with cursor, scene captions, quiet UI cues, and locally synthesized English narration, plus an earlier 37-second cue-only cut. The project owner reviewed and accepted the narrated cut; the voice remains AI-generated, not a human performance, and no independent voice-quality assessment is claimed. The video shows synthetic local evidence and must be uploaded to Devpost. Project version is `v1.0.2`; hosted Pages status is verified separately.” |
+| Static Inspector website | Verified locally | “The release WASM build and Chromium smoke cover all 14 route paths, the predict-then-check challenge, local rollback flow, evidence tampering/restoration, and page-level overflow at 390px.” |
 | Automated clean-checkout path | Verified locally | “`cargo xtask reproduce` runs the local toolchain check, complete Rust/revm/evidence gates, static website build, browser smoke, and package boundary. It does not count as external human reproduction.” |
 | Reviewer source/evidence archive | Available after a clean commit | “`cargo xtask reviewer-package` creates and checks a dependency-free source/evidence archive from the exact committed `HEAD`; it does not change repository visibility or prove human reproduction.” |
 | Reviewer archive runnable without Git metadata | Owner-side gate | “`cargo xtask reviewer-reproduce` extracts the exact archive and runs the automated reproduction path; it remains automated evidence, not external human reproduction.” |
@@ -42,7 +44,7 @@ readiness statuses are frozen in the
 | Independent human clean-checkout reproduction | Not yet demonstrated | Do not imply external developers have reproduced the project. |
 | External reviewer comprehension | Not yet demonstrated | No independent participant answers or time-to-explanation reports exist yet; the controlled protocol is only a prepared instrument. |
 | Production agent adoption | Not yet demonstrated | The local reference runtime and executable example do not show use by an external production agent. |
-| Public static Inspector | Last confirmed release is prior candidate; current live content not rechecked | “The last confirmed Rust/WASM Inspector release is `v1.0.1` at [memorylineage.pages.dev](https://memorylineage.pages.dev). Source candidate `675c707405ac2afea1fd067be44a67890b0a35f2` was pushed to `main`; no manual Pages deployment was run, and any automatic deployment is unverified.” This does not mean Demo Space V2 is deployed to Sepolia. |
+| Public static Inspector | `v1.0.2` submission build; live deployment pending verification | “The current submission build is project version `v1.0.2`; the preceding confirmed public Inspector release was `v1.0.1`. Keep the v1.0.2 Pages deployment and live content unclaimed until the pushed build is verified. This does not mean Demo Space V2 is deployed to Sepolia.” |
 | Staging environment | Not provided | No separate staging environment is claimed. |
 | Semantic poisoning detection | Out of scope | Do not claim that MemoryLineage detects malicious meaning in otherwise valid memory. |
 | Memory truthfulness or AI reasoning correctness | Unsupported | Do not claim either property. |

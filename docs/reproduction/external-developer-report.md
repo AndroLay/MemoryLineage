@@ -17,6 +17,9 @@ results from CI, a previous report, or a private walkthrough.
 - Dioxus CLI version (`dx --version`):
 - Browser and version:
 - Session start time with timezone:
+- Time to identify the challenge and first action (target: 10 seconds or less):
+- Time to complete the challenge without help (target: about one minute):
+- Can distinguish “CHECK PASSED” from “Hold Backup 1” (`YES / NO`):
 - First correct explanation time (or `NOT_REACHED`):
 - First point of confusion (unedited note):
 
@@ -29,7 +32,8 @@ Record the exact commands and whether each completed successfully.
 | `cargo xtask reproduce` | `PASS / FAIL` | |
 | `cargo run -q -p ml-cli -- submission verify evidence/submission/manifest.json` | `PASS / FAIL` | Record the `VERIFIED_LOCAL_PACKAGE` verdict and any failed row |
 | static release server command | `PASS / FAIL` | |
-| `/lab/silent-rollback` browser flow | `PASS / FAIL` | |
+| `/challenge` predict-then-check flow | `PASS / FAIL` | Record time and whether help was needed |
+| `/lab` full Silent Rollback flow | `PASS / FAIL` | |
 | `/verify` original bundle | `PASS / FAIL` | |
 | `/verify` tampered bundle | `PASS / FAIL` | |
 | `/verify` restored bundle | `PASS / FAIL` | |
@@ -41,8 +45,9 @@ Record each task without a private prompt.
 | --- | --- | --- |
 | Open Home and explain the problem | | |
 | Find the current canonical head | | |
-| Use **Check an old restore** | | |
-| Observe `BAD_PREVIOUS_STATE` | | |
+| Start the Home challenge and make a prediction | | |
+| Distinguish the evidence check from the restore decision | | |
+| Open the technical disclosure and observe `BAD_PREVIOUS_STATE` | | |
 | Open Verify and observe `VERIFIED` | | |
 | Tamper one commitment and observe `TRANSITION_ID_MISMATCH` | | |
 | Restore the original and observe `VERIFIED` | | |

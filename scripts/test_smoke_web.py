@@ -120,14 +120,14 @@ class ChromiumIsolationTests(unittest.TestCase):
                 self.assertIn(flag, command)
         self.assertEqual(command[-1], "about:blank")
 
-    def test_chromium_profile_uses_the_build_volume_not_system_tmpfs(self) -> None:
-        with patch.object(smoke_web.tempfile, "mkdtemp", return_value="/profile") as mkdtemp:
-            self.assertEqual(smoke_web.create_chromium_profile_directory(), "/profile")
+    def test_chromium_profile_keeps_singleton_socket_under_linux_path_limit(self) -> None:
+        profile = "/tmp/mlsmoke-example"
+        with patch.object(smoke_web.tempfile, "mkdtemp", return_value=profile) as mkdtemp:
+            self.assertEqual(smoke_web.create_chromium_profile_directory(), profile)
 
-        mkdtemp.assert_called_once_with(
-            prefix="memorylineage-smoke-",
-            dir=smoke_web.ROOT / "target",
-        )
+        mkdtemp.assert_called_once_with(prefix="mlsmoke-", dir="/tmp")
+        singleton_socket = f"{profile}/SingletonSocket"
+        self.assertLess(len(singleton_socket.encode()), 108)
 
 
 if __name__ == "__main__":

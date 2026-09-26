@@ -4,6 +4,9 @@ This runbook is for a developer who has not received a private walkthrough of
 MemoryLineage. It tests whether the repository, evidence, and website explain
 the same claim from a fresh checkout.
 
+This reviewer packet targets project version `v1.0.2`; use the final tagged
+commit for that version once publication is complete.
+
 The result of `cargo xtask reproduce` is an automated local result. It must not
 be recorded as an external human reproduction. A human report is only valid
 when another developer runs the steps and completes the report template in
@@ -14,24 +17,32 @@ this directory.
 Give the reviewer:
 
 1. the repository URL;
-2. the exact commit to check out;
+2. the exact frozen commit SHA recorded below;
 3. this runbook;
 4. no additional explanation of the product.
 
-The source candidate is
-`675c707405ac2afea1fd067be44a67890b0a35f2`. It has been pushed to GitHub
-`main` and remains untagged. The earlier public release
+**Final reviewer SHA: NOT FROZEN.** The last recorded source snapshot is
+`497e8238915e6070c2bcb7fe3dd72a37ebc7860b`; local `main` and
+`origin/main` refs match it, but this environment could not freshly query
+GitHub. Current UX and media edits are uncommitted and are not included in that
+snapshot. Do not present that SHA as the final reviewer candidate for the
+current worktree. After the final changes are committed and the remote is
+checked, replace this status with the exact commit SHA and use the same SHA in
+the Devpost entry, release checklist, video notes, and reviewer report.
+
+The earlier public release
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
-predates the submission envelope and new website labels. The manifest keeps
-`submissionCommit: null` to avoid a self-referential hash; use the exact SHA
-above in any reviewer packet and report. A reviewer can check out this commit
-from GitHub or receive the clean reviewer archive.
+predates the submission envelope and current website labels. The manifest
+keeps `submissionCommit: null` to avoid a self-referential hash. A reviewer
+can check out the frozen final commit from GitHub or receive its clean reviewer
+archive.
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
 tree. The last recorded public Inspector is at
-[memorylineage.pages.dev](https://memorylineage.pages.dev). A Git push occurred,
-but no manual Pages deployment was run and automatic deployment status is
+[memorylineage.pages.dev](https://memorylineage.pages.dev). A push is recorded
+for the last source snapshot, but this environment could not freshly verify the
+remote. No manual Pages deployment was run and automatic deployment status is
 unverified; the current site content could not be fetched here. Reproduction
 does not depend on the hosted site or a new Sepolia deployment.
 
