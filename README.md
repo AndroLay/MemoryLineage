@@ -8,9 +8,20 @@ It does not authenticate canonical chain provenance or integrate with production
 
 **Project version: `v1.0.2`** · [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).
 Previous public release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
+Two-minute demo: [Watch on YouTube](https://youtu.be/K2QUHm4lJCo).
 
-Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev) (last recorded; current content unverified).
+Public site URL: [memorylineage.pages.dev](https://memorylineage.pages.dev). The `v1.0.2` static build was deployed to Cloudflare Pages production on 27 September 2026 with Wrangler from source commit `80257f74`; the deployment URL is [d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev). HTTP checks from this environment returned 403 for both URLs, so public browser reachability and served content remain unverified.
 Demo Space V2 remains local and is not deployed to Sepolia.
+
+## Experimental LangGraph integration
+
+The unreleased `codex/memorylineage-final-upgrade` branch adds an experimental
+LangGraph checkpoint gate and a versioned, blinded recovery receipt. It is not
+part of the published `v1.0.2` release or current Devpost submission. The
+integration is local and synthetic; it does not provide production secret
+management, protect a saver before deserialization, or authenticate canonical
+chain state. See [the integration guide](integrations/langgraph/README.md) and
+the [upgrade status](docs/research/2026-09-27-memorylineage-final-upgrade-status.md).
 
 ## The problem
 
@@ -210,7 +221,7 @@ Still intentionally outside this repository release:
 - formal third-party security audit;
 - external human clean-checkout reproduction and production adoption;
 - a new Sepolia deployment of Demo Space V2 and a separate staging environment;
-- Devpost media upload and live-site update.
+- confirmation that external visitors can reach the deployed Pages site.
 
 ## Repository map
 

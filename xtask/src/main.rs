@@ -34,6 +34,59 @@ fn step(label: &str, program: &str, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
+fn langgraph_verify() -> Result<(), String> {
+    step(
+        "Rust recovery CLI",
+        "cargo",
+        &["build", "-q", "-p", "ml-cli"],
+    )?;
+
+    let python = std::env::var("PYTHON").unwrap_or_else(|_| "python3".to_owned());
+    let import_check = Command::new(&python)
+        .args([
+            "-c",
+            "import sys; from langgraph.checkpoint.sqlite import SqliteSaver; from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver; assert sys.version_info[:2] == (3, 12)",
+        ])
+        .output()
+        .map_err(|error| format!("could not start {python}: {error}"))?;
+    if !import_check.status.success() {
+        return Err(
+            "LangGraph verification requires Python 3.12 and the installed integration extras; run `python3.12 -m pip install -e integrations/langgraph`".to_owned(),
+        );
+    }
+
+    let current_dir = std::env::current_dir()
+        .map_err(|error| format!("could not determine the repository root: {error}"))?;
+    let cli_path = current_dir
+        .join("target/debug")
+        .join(format!("ml-cli{}", std::env::consts::EXE_SUFFIX));
+    let output = Command::new(&python)
+        .args([
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "integrations/langgraph/tests",
+            "-p",
+            "test_*.py",
+            "-q",
+        ])
+        .env("PYTHONPATH", "integrations/langgraph/src")
+        .env("ML_CLI_PATH", &cli_path)
+        .output()
+        .map_err(|error| format!("could not start LangGraph tests: {error}"))?;
+    if output.status.success() {
+        println!("PASS LangGraph sync/async checkpoint gate");
+        Ok(())
+    } else {
+        Err(format!(
+            "LangGraph checkpoint gate tests failed\n{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        ))
+    }
+}
+
 fn verify_fixture_manifest() -> Result<(), String> {
     let destination = std::env::temp_dir().join(format!(
         "memorylineage-fixture-manifest-{}.json",
@@ -1394,9 +1447,10 @@ fn main() {
         "reviewer-reproduce" => reviewer_reproduce(),
         "smoke-web" => run("python3", &["scripts/smoke_web.py"]),
         "smoke-dev-web" => smoke_dev_web(),
+        "langgraph-verify" => langgraph_verify(),
         "release-manifest" => release_manifest(std::env::args().nth(2).as_deref()),
         other => Err(format!(
-            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, serve-web, package-check, release, reproduce, reviewer-package, reviewer-reproduce, smoke-web, smoke-dev-web, or release-manifest"
+            "unknown xtask command {other}; use doctor, verify, conformance, fixture, build-web, serve-web, package-check, release, reproduce, reviewer-package, reviewer-reproduce, smoke-web, smoke-dev-web, langgraph-verify, or release-manifest"
         )),
     };
 

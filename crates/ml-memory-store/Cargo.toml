@@ -10,4 +10,5 @@ ml-core = { path = "../ml-core" }
 ml-spec-types = { path = "../ml-spec-types" }
 rusqlite = { version = "=0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
+zeroize = "=1.9.0"
 thiserror = "2.0.20"

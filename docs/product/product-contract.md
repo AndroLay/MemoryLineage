@@ -60,7 +60,7 @@ the browser's SQLite database, or gate an actual agent runtime. The status
 
 ## Recovery Decision Receipt and protected resume gate
 
-The current Rust implementation emits
+The published v1.0.2 Rust implementation emits
 `memorylineage-recovery-receipt-v2`. The receipt binds the selected snapshot
 commitment, snapshot sequence, named evidence bundle, replayed head, decision
 classification, recommended action, assurance levels, and explicit limitations.
@@ -93,6 +93,18 @@ boundary. It is not yet a production agent loader, does not read an arbitrary
 runtime's private database, and does not prove that a separate runtime obeyed
 the decision. The website labels the source as local Demo Space V2 evidence;
 it does not promote the receipt to a live-chain or adoption claim.
+
+The unreleased upgrade branch adds a separate experimental LangGraph adapter
+and `memorylineage-recovery-receipt-v3`. V3 uses the blinded snapshot profile
+for a strict, JSON-compatible LangGraph checkpoint tuple and retains explicit
+limitations that the derivation of a supplied secret is not independently
+proven and that bundle replay does not authenticate registry identity or chain
+state. The adapter withholds retrieved state from graph execution unless its
+receipt verifies as `RESUME_ALLOWED`. It does not protect a checkpoint while
+the underlying saver reads or deserializes it, or provide a production secret
+lifecycle. This branch implementation is not part of v1.0.2 or the public
+submission. Its status is recorded in the
+[upgrade status](../research/2026-09-27-memorylineage-final-upgrade-status.md).
 
 ## Product flow
 

@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 MODE="${1:-working}"
 
-required=(README.md LICENSE THIRD_PARTY_NOTICES.md Cargo.toml Cargo.lock rust-toolchain.toml .cargo package.json package-lock.json contracts contracts/artifacts verifier evidence docs scripts apps crates fixtures xtask)
+required=(README.md LICENSE THIRD_PARTY_NOTICES.md Cargo.toml Cargo.lock rust-toolchain.toml .cargo package.json package-lock.json contracts contracts/artifacts verifier evidence docs scripts apps crates fixtures integrations xtask)
 for path in "${required[@]}"; do
   if [[ ! -e "$path" ]]; then
     echo "FAIL: required public path is missing: $path" >&2
@@ -20,12 +20,12 @@ for pattern in 'target/' 'node_modules/' '__pycache__/' 'evm/artifacts/' 'eviden
   fi
 done
 
-if rg -n --glob '!*.md' --glob '!*.json' --glob '!*.lock' '/home/andro/' contracts evm verifier apps crates fixtures xtask; then
+if rg -n --glob '!*.md' --glob '!*.json' --glob '!*.lock' '/home/andro/' contracts evm verifier apps crates fixtures integrations xtask; then
   echo "FAIL: executable source contains a machine-local absolute path" >&2
   exit 1
 fi
 
-if find contracts verifier evm scripts apps crates fixtures xtask -type f \( -name '*.pem' -o -name '*.key' -o -name '.env' \) -print -quit | grep -q .; then
+if find contracts verifier evm scripts apps crates fixtures integrations xtask -type f \( -name '*.pem' -o -name '*.key' -o -name '.env' \) -print -quit | grep -q .; then
   echo "FAIL: credential-shaped file is inside the public source boundary" >&2
   exit 1
 fi

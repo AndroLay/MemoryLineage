@@ -38,6 +38,14 @@ runtime loader outcomes for signed current-head, missing authorization,
 historical, diverged, and invalid evidence candidates. It is local integration
 evidence, not external adoption.
 
+Recovery Receipt V3 is used only by the unreleased blinded LangGraph adapter on
+the upgrade branch. Its structure is defined by
+`schemas/recovery-receipt-v3.schema.json`; V1 and V2 remain supported for
+backward compatibility. V3 binds a blinded commitment and records that bundle
+replay does not authenticate registry identity or canonical chain state. It
+does not establish production privacy or runtime enforcement outside the local
+adapter test.
+
 `local/security_assurance_report.json` records the bounded Rust/revm assurance
 pass over the pinned Solidity artifact. Its formal status is deliberately
 `NOT_FORMALLY_VERIFIED`; it is not a third-party security audit. The structural

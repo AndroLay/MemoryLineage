@@ -35,6 +35,21 @@ cargo xtask reviewer-reproduce
 This command checks the archive contents; it does not change GitHub visibility
 or create a hosted website.
 
+The experimental LangGraph integration has a pinned Python environment and
+tests both synchronous and asynchronous SQLite saver paths. On Python 3.12,
+install it explicitly and run:
+
+```bash
+python3.12 -m pip install -e integrations/langgraph
+cargo xtask langgraph-verify
+```
+
+The command builds `ml-cli`, checks that the pinned saver APIs are installed,
+then runs the real LangGraph/SQLite resume flow and fail-closed adapter tests.
+CI runs this gate for `main` and `codex/**` pushes. Local success is not
+external adoption or production deployment; see the upgrade status for checks
+available on this checkout.
+
 The gate includes Rust formatting, Clippy, workspace tests, reproducible legacy
 and Demo Space V2 fixture manifests, byte-for-byte Demo Space V2 evidence
 regeneration from freshly created SQLite files, snapshot/transition parity,

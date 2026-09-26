@@ -39,10 +39,18 @@ confusing technical reproducibility with market adoption.
 
 The current public competitor register is recorded in
 [`2026-09-20-3rd-web-hack-public-project-audit.md`](./2026-09-20-3rd-web-hack-public-project-audit.md).
-It records every public 3rd-Web-Hack candidate found in the current search,
+It records the public 3rd-Web-Hack candidates found in the current search,
 the repository and demo links that were resolved, adjacent non-entry
 benchmarks, projects with unverified event membership such as ExitDrill, and
-the unpublished-gallery limitation. ExitDrill is separately discussed as a
+the unpublished-gallery limitation. Its 27 September addendum corrects the
+Forkline source link and records the inspected branch commit. The
+evidence-adjusted comparison and MemoryLineage/Forkline criterion breakdown
+are in the
+[`2026-09-27 evidence-adjusted scorecard`](./2026-09-27-3rd-web-hack-evidence-adjusted-scorecard.md).
+The implementation progress and remaining evidence gates for the final
+upgrade are recorded in the
+[`2026-09-27 upgrade status`](./2026-09-27-memorylineage-final-upgrade-status.md).
+ExitDrill is separately discussed as a
 bounded workflow reference in the
 [design-quality contract](../product/design-quality.md#bounded-drill-with-visible-outcomes)
 and the [uniqueness and adoption audit](./2026-09-20-memorylineage-uniqueness-impact-adoption-audit.md#exitdrill-adjacent-drill-and-explanation-pattern).

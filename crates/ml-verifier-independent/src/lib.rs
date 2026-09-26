@@ -5,13 +5,14 @@ use ml_spec_types::{
     AuthorizationProof, EVIDENCE_V2, EvidenceBundleV2, PortabilityRehearsalReport,
     PublicReplayBundle, RECOVERY_BLOCK_UNVERIFIED, RECOVERY_CURRENT_HEAD,
     RECOVERY_HISTORICAL_CHECKPOINT, RECOVERY_HOLD_FOR_REVIEW,
-    RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1,
-    RECOVERY_RECEIPT_V1, RECOVERY_RECEIPT_V2, RECOVERY_REHEARSE_ONLY, RECOVERY_RESUME_ALLOWED,
+    RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2, RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V3,
+    RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1, RECOVERY_RECEIPT_V1, RECOVERY_RECEIPT_V2,
+    RECOVERY_RECEIPT_V3, RECOVERY_REHEARSE_ONLY, RECOVERY_RESUME_ALLOWED,
     RECOVERY_UNKNOWN_OR_DIVERGED, RECOVERY_UNVERIFIED, RecoveryAssurance, RecoveryBlockContext,
     RecoveryCandidate, RecoveryDecision, RecoveryDecisionReceipt, RecoveryEvidence,
-    SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_LEGACY_UNDECLARED,
-    SOURCE_PROTOCOL_CORPUS_LOCAL, SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME, SPEC_SNAPSHOT,
-    TransitionRecord,
+    SNAPSHOT_PROFILE_BLINDED_V1, SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2,
+    SOURCE_DEMO_SPACE_V2_LOCAL, SOURCE_LEGACY_UNDECLARED, SOURCE_PROTOCOL_CORPUS_LOCAL,
+    SOURCE_SEPOLIA_REFERENCE_OBSERVATION, SPEC_NAME, SPEC_SNAPSHOT, TransitionRecord,
 };
 use serde::Serialize;
 use std::path::Path;
@@ -119,6 +120,22 @@ const RECOVERY_LIMITATIONS: [&str; 3] = [
     "does_not_prove_off_chain_availability",
     "does_not_claim_runtime_enforcement",
 ];
+
+const BLINDED_RECOVERY_LIMITATIONS: [&str; 5] = [
+    "does_not_assess_semantic_truth",
+    "does_not_prove_off_chain_availability",
+    "does_not_claim_runtime_enforcement",
+    "snapshot_commitment_derivation_not_independently_proven",
+    "registry_identity_and_chain_state_not_authenticated_by_bundle_replay",
+];
+
+fn recovery_limitations(schema_version: &str) -> Option<&'static [&'static str]> {
+    match schema_version {
+        RECOVERY_RECEIPT_V1 | RECOVERY_RECEIPT_V2 => Some(&RECOVERY_LIMITATIONS),
+        RECOVERY_RECEIPT_V3 => Some(&BLINDED_RECOVERY_LIMITATIONS),
+        _ => None,
+    }
+}
 
 fn reject(message: impl Into<String>) -> VerificationError {
     VerificationError::Rejected(message.into())
@@ -922,7 +939,7 @@ fn recovery_decision_for_candidate(
 ) -> Result<RecoveryDecision, VerificationError> {
     if !matches!(
         candidate.snapshot_profile.as_str(),
-        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2
+        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2 | SNAPSHOT_PROFILE_BLINDED_V1
     ) {
         return Ok(RecoveryDecision {
             classification: RECOVERY_UNVERIFIED.to_owned(),
@@ -1050,7 +1067,10 @@ pub fn build_recovery_receipt_with_snapshot_profile(
     block_context: Option<RecoveryBlockContext>,
     snapshot_profile: &str,
 ) -> Result<RecoveryDecisionReceipt, VerificationError> {
-    if !matches!(snapshot_profile, SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2) {
+    if !matches!(
+        snapshot_profile,
+        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2 | SNAPSHOT_PROFILE_BLINDED_V1
+    ) {
         return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
     }
     let verification = verify_v2_bundle(bundle)?;
@@ -1067,10 +1087,21 @@ pub fn build_recovery_receipt_with_snapshot_profile(
         snapshot_sequence,
     };
     let decision = recovery_decision_for_candidate(&candidate, bundle, true, &verification)?;
+    let (schema_version, policy_id) = if snapshot_profile == SNAPSHOT_PROFILE_BLINDED_V1 {
+        (
+            RECOVERY_RECEIPT_V3,
+            RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V3,
+        )
+    } else {
+        (
+            RECOVERY_RECEIPT_V2,
+            RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2,
+        )
+    };
     let receipt = RecoveryDecisionReceipt {
-        schema_version: RECOVERY_RECEIPT_V2.to_owned(),
+        schema_version: schema_version.to_owned(),
         decision_id: String::new(),
-        policy_id: RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2.to_owned(),
+        policy_id: policy_id.to_owned(),
         candidate,
         evidence: RecoveryEvidence {
             source_class: source_class.to_owned(),
@@ -1083,7 +1114,8 @@ pub fn build_recovery_receipt_with_snapshot_profile(
         },
         decision,
         assurance: recovery_assurance(source_class, &authority_history, &authorization_proof),
-        limitations: RECOVERY_LIMITATIONS
+        limitations: recovery_limitations(schema_version)
+            .expect("the builder selects a supported receipt schema")
             .iter()
             .map(|limitation| (*limitation).to_owned())
             .collect(),
@@ -1101,7 +1133,7 @@ pub fn verify_recovery_receipt(
 ) -> Result<RecoveryVerificationReport, VerificationError> {
     if !matches!(
         receipt.schema_version.as_str(),
-        RECOVERY_RECEIPT_V1 | RECOVERY_RECEIPT_V2
+        RECOVERY_RECEIPT_V1 | RECOVERY_RECEIPT_V2 | RECOVERY_RECEIPT_V3
     ) {
         return Err(reject("RECOVERY_RECEIPT_SCHEMA_MISMATCH"));
     }
@@ -1110,6 +1142,7 @@ pub fn verify_recovery_receipt(
     {
         (RECOVERY_RECEIPT_V1, RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1) => false,
         (RECOVERY_RECEIPT_V2, RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2) => true,
+        (RECOVERY_RECEIPT_V3, RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V3) => true,
         _ => return Err(reject("RECOVERY_POLICY_MISMATCH")),
     };
     validate_source_class(&receipt.evidence.source_class)?;
@@ -1128,9 +1161,22 @@ pub fn verify_recovery_receipt(
     }
     if !matches!(
         receipt.candidate.snapshot_profile.as_str(),
-        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2
+        SNAPSHOT_PROFILE_V1 | SNAPSHOT_PROFILE_V2 | SNAPSHOT_PROFILE_BLINDED_V1
     ) {
         return Err(reject("RECOVERY_SNAPSHOT_PROFILE_UNSUPPORTED"));
+    }
+    match receipt.schema_version.as_str() {
+        RECOVERY_RECEIPT_V3
+            if receipt.candidate.snapshot_profile != SNAPSHOT_PROFILE_BLINDED_V1 =>
+        {
+            return Err(reject("RECOVERY_PROFILE_SCHEMA_MISMATCH"));
+        }
+        RECOVERY_RECEIPT_V1 | RECOVERY_RECEIPT_V2
+            if receipt.candidate.snapshot_profile == SNAPSHOT_PROFILE_BLINDED_V1 =>
+        {
+            return Err(reject("RECOVERY_PROFILE_SCHEMA_MISMATCH"));
+        }
+        _ => {}
     }
     let authorization_verified = verification.authorization_proof == "EOA_SIGNATURES_VERIFIED"
         && verification.authority_history == "TIMELINE_BOUND";
@@ -1154,7 +1200,8 @@ pub fn verify_recovery_receipt(
     if receipt.assurance != expected_assurance {
         return Err(reject("RECOVERY_ASSURANCE_MISMATCH"));
     }
-    let expected_limitations = RECOVERY_LIMITATIONS
+    let expected_limitations = recovery_limitations(&receipt.schema_version)
+        .ok_or_else(|| reject("RECOVERY_RECEIPT_SCHEMA_MISMATCH"))?
         .iter()
         .map(|limitation| (*limitation).to_owned())
         .collect::<Vec<_>>();

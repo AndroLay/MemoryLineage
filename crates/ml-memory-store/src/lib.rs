@@ -5,13 +5,24 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+use zeroize::Zeroize;
 
 pub const SCHEMA_VERSION: i64 = 1;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MemorySnapshot {
     pub sequence: u64,
     pub values: BTreeMap<String, String>,
+}
+
+impl Drop for MemorySnapshot {
+    fn drop(&mut self) {
+        for (mut key, mut value) in std::mem::take(&mut self.values) {
+            key.zeroize();
+            value.zeroize();
+        }
+    }
 }
 
 /// A public observation of a private snapshot. It deliberately contains only
@@ -182,13 +193,17 @@ pub fn snapshot_commitment_blinded_v1(
     if blinding_secret.iter().all(|byte| *byte == 0) {
         return Err(MemoryStoreError::ZeroBlindingSecret);
     }
+    let mut canonical = canonical_snapshot_v2_bytes(snapshot);
     let mut input = Vec::new();
     input.extend_from_slice(ml_spec_types::SNAPSHOT_PROFILE_BLINDED_V1.as_bytes());
     input.push(0);
     input.extend_from_slice(space_id);
     input.extend_from_slice(blinding_secret);
-    input.extend_from_slice(&canonical_snapshot_v2_bytes(snapshot));
-    Ok(ml_core::format_hex(&ml_core::keccak256(&input)))
+    input.extend_from_slice(&canonical);
+    let commitment = ml_core::format_hex(&ml_core::keccak256(&input));
+    canonical.zeroize();
+    input.zeroize();
+    Ok(commitment)
 }
 
 fn canonical_snapshot_v2_bytes(snapshot: &MemorySnapshot) -> Vec<u8> {

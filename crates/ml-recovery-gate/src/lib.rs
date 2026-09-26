@@ -1,11 +1,14 @@
 #![forbid(unsafe_code)]
 
+use ml_core::bytes32;
 use ml_memory_store::{
-    MemorySnapshot, MemoryStoreError, read_snapshot, snapshot_commitment, snapshot_commitment_v2,
+    MemorySnapshot, MemoryStoreError, read_snapshot, snapshot_commitment,
+    snapshot_commitment_blinded_v1, snapshot_commitment_v2,
 };
 use ml_spec_types::{
     EvidenceBundleV2, RECOVERY_BLOCK_UNVERIFIED, RECOVERY_HOLD_FOR_REVIEW, RECOVERY_REHEARSE_ONLY,
-    RECOVERY_RESUME_ALLOWED, RecoveryDecisionReceipt, SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2,
+    RECOVERY_RESUME_ALLOWED, RecoveryDecisionReceipt, SNAPSHOT_PROFILE_BLINDED_V1,
+    SNAPSHOT_PROFILE_V1, SNAPSHOT_PROFILE_V2,
 };
 use ml_verifier_independent::{
     VerificationError, build_recovery_receipt_with_snapshot_profile, verify_recovery_receipt,
@@ -78,6 +81,44 @@ pub fn preflight_snapshot_with_profile(
     Ok((snapshot, receipt))
 }
 
+/// Read and assess a snapshot using a local blinding secret. The secret is
+/// used only to derive the candidate commitment and is never added to the
+/// recovery receipt.
+pub fn preflight_snapshot_blinded(
+    snapshot_path: impl AsRef<Path>,
+    evidence: &EvidenceBundleV2,
+    source_class: &str,
+    blinding_secret: &[u8; 32],
+) -> Result<(MemorySnapshot, RecoveryDecisionReceipt), ProtectedResumeError> {
+    let snapshot = read_snapshot(snapshot_path)?;
+    preflight_memory_snapshot_blinded(snapshot, evidence, source_class, blinding_secret)
+}
+
+/// Assess an already-held snapshot value. This entry point lets framework
+/// adapters pass canonicalized data in memory without creating a temporary
+/// file containing private state.
+pub fn preflight_memory_snapshot_blinded(
+    snapshot: MemorySnapshot,
+    evidence: &EvidenceBundleV2,
+    source_class: &str,
+    blinding_secret: &[u8; 32],
+) -> Result<(MemorySnapshot, RecoveryDecisionReceipt), ProtectedResumeError> {
+    let space_id = bytes32(&evidence.registry.space_id)
+        .map_err(|_| VerificationError::Rejected("RECOVERY_SPACE_ID_INVALID".to_owned()))?;
+    let candidate_commitment =
+        snapshot_commitment_blinded_v1(&snapshot, &space_id, blinding_secret)?;
+    let receipt = build_recovery_receipt_with_snapshot_profile(
+        evidence,
+        &candidate_commitment,
+        snapshot.sequence,
+        source_class,
+        None,
+        SNAPSHOT_PROFILE_BLINDED_V1,
+    )?;
+    verify_recovery_receipt(&receipt, evidence)?;
+    Ok((snapshot, receipt))
+}
+
 /// Resume through a policy gate. The loader callback is called only after the
 /// receipt has been independently verified and its action is exactly
 /// `RESUME_ALLOWED`. Historical, divergent, and unverified snapshots return a
@@ -129,6 +170,36 @@ where
     })
 }
 
+/// Invoke a protected loader only after the blinded snapshot profile has
+/// produced and independently verified an authorized current-head receipt.
+pub fn protected_resume_blinded<T, F>(
+    snapshot_path: impl AsRef<Path>,
+    evidence: &EvidenceBundleV2,
+    source_class: &str,
+    blinding_secret: &[u8; 32],
+    loader: F,
+) -> Result<ProtectedResume<T>, ProtectedResumeError>
+where
+    F: FnOnce(&MemorySnapshot) -> Result<T, String>,
+{
+    let (snapshot, receipt) =
+        preflight_snapshot_blinded(snapshot_path, evidence, source_class, blinding_secret)?;
+    if receipt.decision.recommended_action != RECOVERY_RESUME_ALLOWED {
+        return Err(ProtectedResumeError::ResumeHeld {
+            classification: receipt.decision.classification.clone(),
+            action: receipt.decision.recommended_action.clone(),
+            receipt: Box::new(receipt),
+        });
+    }
+
+    let loaded = loader(&snapshot).map_err(ProtectedResumeError::Loader)?;
+    Ok(ProtectedResume {
+        snapshot_sequence: snapshot.sequence,
+        receipt,
+        loaded,
+    })
+}
+
 pub fn is_protected_resume_hold(receipt: &RecoveryDecisionReceipt) -> bool {
     matches!(
         receipt.decision.recommended_action.as_str(),
@@ -138,9 +209,15 @@ pub fn is_protected_resume_hold(receipt: &RecoveryDecisionReceipt) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{ProtectedResumeError, is_protected_resume_hold, protected_resume_with_profile};
-    use ml_memory_store::write_snapshot;
-    use ml_spec_types::{EvidenceBundleV2, SNAPSHOT_PROFILE_V2, SOURCE_DEMO_SPACE_V2_LOCAL};
+    use super::{
+        ProtectedResumeError, is_protected_resume_hold, protected_resume_blinded,
+        protected_resume_with_profile,
+    };
+    use ml_memory_store::{read_snapshot, snapshot_commitment_blinded_v1, write_snapshot};
+    use ml_spec_types::{
+        EvidenceBundleV2, SNAPSHOT_PROFILE_BLINDED_V1, SNAPSHOT_PROFILE_V2,
+        SOURCE_DEMO_SPACE_V2_LOCAL,
+    };
     use std::collections::BTreeMap;
     use std::path::PathBuf;
     use std::sync::{
@@ -158,6 +235,31 @@ mod tests {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!(
             "../../fixtures/silent-rollback-v2/snapshot-{sequence}.db"
         ))
+    }
+
+    fn blinded_evidence() -> (EvidenceBundleV2, [u8; 32]) {
+        let template = ml_local_evm::run_demo_space_v2(&[
+            format!("0x{:064x}", 1),
+            format!("0x{:064x}", 2),
+            format!("0x{:064x}", 3),
+        ])
+        .expect("local REVM template evidence should be created");
+        let space_id =
+            ml_core::bytes32(&template.registry.space_id).expect("template has a valid space id");
+        let secret = [0x5au8; 32];
+        let snapshots = [1, 2, 3].map(|sequence| {
+            read_snapshot(snapshot(sequence)).expect("synthetic checkpoint should be readable")
+        });
+        let commitments = snapshots
+            .iter()
+            .map(|snapshot| {
+                snapshot_commitment_blinded_v1(snapshot, &space_id, &secret)
+                    .expect("synthetic commitment should be blinded")
+            })
+            .collect::<Vec<_>>();
+        let evidence = ml_local_evm::run_demo_space_v2(&commitments)
+            .expect("blinded local evidence should be created");
+        (evidence, secret)
     }
 
     #[test]
@@ -288,5 +390,89 @@ mod tests {
             |_| -> Result<(), String> { panic!("invalid evidence must not reach the loader") },
         );
         assert!(matches!(result, Err(ProtectedResumeError::Verification(_))));
+    }
+
+    #[test]
+    fn blinded_current_snapshot_passes_and_historical_snapshot_is_held() {
+        let (evidence, secret) = blinded_evidence();
+        let current = protected_resume_blinded(
+            snapshot(3),
+            &evidence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            &secret,
+            |snapshot| Ok(snapshot.sequence),
+        )
+        .expect("the correctly blinded current snapshot should be allowed");
+
+        assert_eq!(current.loaded, 3);
+        assert_eq!(
+            current.receipt.candidate.snapshot_profile,
+            SNAPSHOT_PROFILE_BLINDED_V1
+        );
+        assert_eq!(
+            current.receipt.decision.recommended_action,
+            "RESUME_ALLOWED"
+        );
+
+        let held = protected_resume_blinded(
+            snapshot(1),
+            &evidence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            &secret,
+            |_| -> Result<(), String> { panic!("historical snapshot must not reach loader") },
+        );
+        match held {
+            Err(ProtectedResumeError::ResumeHeld { receipt, .. }) => {
+                assert_eq!(
+                    receipt.decision.classification,
+                    "KNOWN_HISTORICAL_CHECKPOINT"
+                );
+                assert_eq!(receipt.decision.recommended_action, "REHEARSE_ONLY");
+                assert_eq!(
+                    receipt.candidate.snapshot_profile,
+                    SNAPSHOT_PROFILE_BLINDED_V1
+                );
+                assert!(
+                    !serde_json::to_string(&receipt)
+                        .expect("receipt serializes")
+                        .contains("agent_private_value")
+                );
+            }
+            other => panic!("expected a blinded historical hold, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn blinded_profile_fails_closed_for_wrong_or_zero_secret() {
+        let (evidence, secret) = blinded_evidence();
+        let wrong_secret = [0x91; 32];
+        let held = protected_resume_blinded(
+            snapshot(3),
+            &evidence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            &wrong_secret,
+            |_| -> Result<(), String> { panic!("wrong-secret snapshot must not reach loader") },
+        );
+        assert!(matches!(held, Err(ProtectedResumeError::ResumeHeld { .. })));
+
+        let zero_secret = [0; 32];
+        let invalid = protected_resume_blinded(
+            snapshot(3),
+            &evidence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            &zero_secret,
+            |_| -> Result<(), String> { panic!("zero-secret snapshot must not reach loader") },
+        );
+        assert!(matches!(invalid, Err(ProtectedResumeError::Snapshot(_))));
+
+        let current = protected_resume_blinded(
+            snapshot(3),
+            &evidence,
+            SOURCE_DEMO_SPACE_V2_LOCAL,
+            &secret,
+            |snapshot| Ok(snapshot.sequence),
+        )
+        .expect("the valid secret should remain usable");
+        assert_eq!(current.snapshot_sequence, 3);
     }
 }

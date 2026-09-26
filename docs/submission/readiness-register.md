@@ -94,8 +94,9 @@ protocol intentionally does not evaluate it.
 | Remote CI green | — | NOT_YET_DEMONSTRATED | A hosted runner executes the workflow past its first step |
 | Production agent-runtime adoption | — | NOT_YET_DEMONSTRATED | A real external runtime is integrated and recorded |
 | New Sepolia deployment of Demo Space V2 | — | OUT_OF_SCOPE | Only if separately authorized; not part of this slice |
-| Pitch PDF and external demo link | PDF in repository; YouTube upload owner-reported | PDF VERIFIED / LINK UNCHECKED | The PDF fails to render, or a supplied YouTube URL fails to show the described demo |
-| Public Devpost upload / staging environment | — | NOT_YET_DEMONSTRATED / NOT_PROVIDED | A real upload or separately hosted staging environment is provided |
+| Experimental LangGraph gate | Upgrade-branch implementation; Python 3.12 packages unavailable locally | CODE PRESENT / REAL LANGGRAPH TEST NOT RUN LOCALLY | Pinned sync/async LangGraph and SQLite tests pass in hosted CI; this still does not demonstrate production adoption |
+| Pitch PDF and external demo link | PDF in repository; owner supplied YouTube URL and screenshot of embedded player | PDF VERIFIED / URL SUPPLIED / PLAYBACK UNCHECKED | The PDF fails to render, or playback does not show the described demo |
+| Public Devpost page / staging environment | Owner screenshot shows project page / no staging | PAGE SHOWN IN SCREENSHOT / STAGING NOT PROVIDED | The public entry differs materially from the supplied screenshot, or a separate staging environment is claimed |
 | Semantic memory truth / poisoning detection | — | OUT_OF_SCOPE | The protocol does not evaluate semantic meaning |
 | Formal third-party security audit | — | OUT_OF_SCOPE | Not performed; bounded assurance is not an audit |
 
@@ -228,3 +229,30 @@ completed. The project owner reports that the demo video is hosted on YouTube;
 its URL and the Devpost video field are not recorded here. The pitch PDF is
 retained and attached to the GitHub Release. No video or audio production
 assets are reachable from the final source tag.
+
+## Cloudflare Pages deployment — 27 September 2026
+
+Wrangler 4.141.0, authenticated to the project's Cloudflare account, confirmed
+the Pages project `memorylineage` and deployed the static `v1.0.2` build to
+production on branch `main`, source commit
+`80257f74fbb0887fd2c6c5d0fedaeb89bccabf88`. The deployment URL is
+[`d001a7dc.memorylineage.pages.dev`](https://d001a7dc.memorylineage.pages.dev).
+The preceding production deployment remains available in Pages as a rollback
+target. HTTP checks from this environment returned 403 for both the deployment
+URL and `memorylineage.pages.dev`; therefore public browser reachability and
+the content served to visitors remain unverified. This does not affect the
+separate local verification evidence and does not deploy Demo Space V2 to
+Sepolia.
+
+## Devpost entry review — 27 September 2026
+
+The project owner supplied a screenshot of the Devpost project page and the
+two-minute demo URL, <https://youtu.be/K2QUHm4lJCo>. The screenshot shows the
+project title as “Memory Lineage,” an embedded YouTube player, and a live
+Inspector link. It also shows a duplicated GitHub link in the Try it out list
+and an empty contribution-description field. The selected tags are `cli`,
+`cryptography`, `dioxus`, `eip-712`, `ethereum`, `revm`, `rust`, `solidity`,
+`sqlite`, and `webassembly`. This records what the supplied screenshot showed;
+the page and video were not opened independently, so playback, link targets,
+and current public contents remain unverified. The copy-ready corrections are
+in [`devpost-submission.md`](devpost-submission.md).

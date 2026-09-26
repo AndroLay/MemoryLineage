@@ -16,12 +16,31 @@ Devpost page could not be retrieved, and the official project gallery remains
 unpublished. Do not count it as a same-event competitor until its submission
 status is confirmed.
 
+**27 September public-index refresh:** Devpost search results now expose two
+additional pages that explicitly list 3rd-Web-Hack under “Submitted to”:
+RugGuard AI and Heka. The same check reconfirmed that ArcLight AI, DEDSEC
+Shadow NET, and PrithviScan list the event; their existing entries below remain
+the source notes. The refresh did not independently run these applications or
+audit their repositories. The official gallery page still says the organizers
+have not published it, so the search results do not form a complete submission
+census.
+
+**27 September Forkline source correction:** an earlier version of this audit
+linked `sauravvenkat/forkline`, which is a different agent-tracing project. The
+Forkline submission source is the `forkline-outbox-20260908` branch in
+`josepha-mayo/Joseph-Portfolio`. The branch ref was confirmed at commit
+`a58fe2c44cc3c8d19ac3300b8b29f91dcb4fd8af`; this correction replaces the prior
+description and score evidence for Forkline below. The source was inspected
+read-only and its recorded checks were reviewed, but its commands were not
+rerun in this assessment.
+
 ## Coverage boundary
 
-The official project gallery is currently unpublished. Devpost shows the
-participant count, but states that the hackathon managers have not published
-the gallery. Therefore this document is a public-index audit, not a complete
-census of all submissions.
+As checked on 27 September, the official project-gallery page says the
+organizers have not published the gallery. Individual Devpost project pages
+and search results can confirm some event listings, but they do not establish
+a complete census of submissions. Treat this document as a partial
+public-index audit, not a complete ranking of entrants.
 
 Official references:
 
@@ -39,33 +58,56 @@ The entries below are separated into:
 Projects whose event membership cannot be verified are listed separately and
 are not included in the competitor count.
 
+The evidence-adjusted comparison and criterion-by-criterion MemoryLineage
+rating are in the [27 September scorecard](./2026-09-27-3rd-web-hack-evidence-adjusted-scorecard.md).
+
 ## Public 3rd-Web-Hack candidates
 
 ### Forkline — Rehearse the Rollback
 
 - Devpost: <https://devpost.com/software/forkline-rehearse-the-rollback>
-- Public repository audited: <https://github.com/sauravvenkat/forkline>
+- Submission source branch: <https://github.com/josepha-mayo/Joseph-Portfolio/tree/forkline-outbox-20260908>
+- Audited branch commit: `a58fe2c44cc3c8d19ac3300b8b29f91dcb4fd8af`
 - Category: direct benchmark / high priority
-- Publicly visible strengths:
-  - replay-first local artifacts;
-  - deterministic offline replay;
-  - first-divergence detection;
-  - CLI and CI integration;
-  - schema versioning and redaction policy;
-  - clear local-first developer workflow.
+- Source-backed strengths:
+  - a Solidity `DemoOrders` fixture is compiled and exercised in local Ganache;
+  - the engine checks observed block ancestry, event identity, confirmation
+    policy, duplicates, and reorg effects;
+  - the Delivery Lab connects that engine to a durable SQLite outbox and a
+    separate loopback HTTP receiver with its own SQLite ticket ledger;
+  - dispatch rechecks eligibility, persists send intent, binds receipts to
+    payload hashes, pauses on uncertain acknowledgements, and reconciles by
+    receipt lookup instead of blindly reposting;
+  - tests and recorded evidence cover stale queued work, duplicate/idempotent
+    requests, reorgs before and after dispatch, lost acknowledgements, process
+    restart, and database integrity;
+  - screenshots and a recorded browser run show the side-by-side failure case
+    and the guarded result.
 - Risks and limits:
-  - the public GitHub README currently emphasizes agent tracing and replay and
-    does not visibly expose an Ethereum or Algorand layer;
-  - the Devpost page was not retrievable by the current crawler, so the exact
-    relationship between the Devpost rollback story and the current GitHub
-    tree must be checked again before making a definitive score;
-  - replay evidence does not by itself prove blockchain canonicality.
-- Audit conclusion: strongest public benchmark for problem clarity,
-  reproducibility, and a compact developer workflow. It is not clearly ahead
-  of MemoryLineage on Web3-specific trust anchoring unless its Devpost
-  implementation contains additional evidence not visible in the repository.
-- Confidence: medium for the combined Devpost/repository assessment; high for
-  the public GitHub README and file structure.
+  - this is a single-worker local prototype; Node 22's built-in SQLite is
+    documented as experimental, and the pinned Ganache version is archived;
+  - its EVM observations are supplied by a local fixture, not authenticated
+    headers, inclusion proofs, or a production RPC/consensus client;
+  - a chain reorg can still occur after the last observation or after an
+    external action; the prototype cannot make a chain read and an external
+    effect atomic;
+  - receiver idempotency is specific to the local receiver and does not prove
+    exactly-once behavior for arbitrary external APIs;
+  - tickets and orders are synthetic local rows, not real admissions or assets;
+  - the branch is part of a larger portfolio repository and contains substantial
+    generated evidence and retained prior work; reviewers need the branch link
+    and its README to find the submitted slice;
+  - the recorded release/browser evidence was not rerun in this comparison.
+- Audit conclusion: a stronger source-backed implementation than the prior
+  note recorded. Forkline currently shows a more complete local path from a
+  chain event observation through an irreversible-effect boundary than
+  MemoryLineage's reference resume adapter. MemoryLineage has deeper signed
+  snapshot and independent-verifier semantics. Neither project proves public
+  chain canonicality or production adoption.
+- Confidence: high that the inspected branch source and evidence exist at the
+  recorded commit; medium that the archived runs reproduce today, because they
+  were not rerun; low for comparative user adoption, which neither artifact set
+  establishes.
 
 ### FinalityDesk
 
@@ -121,6 +163,56 @@ are not included in the competitor count.
   evidence.
 - Confidence: high for repository structure and published deployment records;
   medium for execution and decentralization claims.
+
+### RugGuard AI — The Web3 Scam Detector
+
+- Devpost: <https://devpost.com/software/rugguard-ai-the-web3-scam-detector-jbqfwg>
+- Public interfaces listed on Devpost: <https://rugguard-ai.ai.studio> and
+  <https://rugguard-ai-88if.onrender.com>
+- Event membership: Devpost lists 3rd-Web-Hack under “Submitted to.”
+- Publicly described strengths:
+  - addresses a familiar user problem: checking token and project scam risk;
+  - combines AI summaries and market/on-chain data, including trade simulation
+    and bytecode checks as described by the submission;
+  - describes a community scam registry whose contract was deployed to
+    Ethereum Sepolia and Base Sepolia.
+- Risks and limits:
+  - the repository link could not be resolved from the indexed page in this
+    pass, and neither application nor contract deployment was independently
+    tested;
+  - risk-classification accuracy, false-positive/negative behavior, and the
+    claimed testnet deployments therefore remain project-published claims;
+  - the problem is directly relevant to Web3 security but is not a close
+    functional substitute for snapshot recovery or agent-memory continuity.
+- Audit conclusion: a significant additional competitor for immediate
+  problem clarity and visible Web3 activity. Do not score its implementation
+  above MemoryLineage without inspecting the source, live behavior, and
+  deployment evidence.
+- Confidence: high for the public description and event listing; low for
+  implementation and deployment claims not independently checked.
+
+### Heka
+
+- Devpost: <https://devpost.com/software/heka-edzt7q>
+- Live interface listed on Devpost:
+  <https://heka-web.ulofeuduokhai.workers.dev>
+- Event membership: Devpost lists 3rd-Web-Hack under “Submitted to,” alongside
+  several other events.
+- Publicly described strengths:
+  - turns a spatial question into an explainable map and evidence;
+  - lists GIS-oriented components including Cesium, GeoJSON, OpenStreetMap,
+    and Cloudflare Workers;
+  - offers a concrete product workflow that is easier to picture than
+    MemoryLineage’s recovery trust problem.
+- Risks and limits:
+  - the indexed submission material does not show a clear blockchain or
+    on-chain component;
+  - the app and repository were not independently inspected in this refresh.
+- Audit conclusion: useful benchmark for making a technical product’s first
+  user task concrete, but not currently a direct Web3 or memory-lineage
+  competitor based on the public material reviewed.
+- Confidence: high for the indexed description and event listing; low for
+  implementation details not inspected.
 
 ### ArcLight AI
 
@@ -274,15 +366,22 @@ other hackathons. They must not be counted as 3rd-Web-Hack competitors.
 
 ## Comparative conclusion
 
-No publicly discoverable 3rd-Web-Hack entry audited in this pass is clearly
-stronger than Forkline across problem clarity, evidence discipline, Web3 fit,
-and presentation at the same time.
+Within this partial public set, Forkline remains the clearest combined
+benchmark for problem explanation, reproducibility, and demo packaging. This
+is not a claim that it outranks every entrant. RugGuard AI is a notable
+challenger on familiar problem framing and claimed live testnet activity, but
+its implementation and deployment evidence need independent review before a
+technical comparison is justified.
 
 - Forkline remains the clarity/reproducibility benchmark.
 - Kinetic is the strongest additional Web3 threat by ambition and breadth.
 - FinalityDesk is the strongest narrow verifier benchmark.
-- ArcLight, DEDSEC, and PrithviScan are useful presentation or product
-  benchmarks but have no visible current Web3 layer.
+- RugGuard AI is an additional direct Web3-security competitor with a more
+  immediately familiar user problem; its deployment and detection claims need
+  source-level verification before technical comparison.
+- Heka, ArcLight, DEDSEC, and PrithviScan are useful user-workflow or
+  presentation benchmarks, but their reviewed public material does not show a
+  clear current on-chain role.
 - MemLineage is the most important adjacent research risk for uniqueness and
   naming, but it is not a 3rd-Web-Hack submission.
 
@@ -303,7 +402,8 @@ Current limitations that affect competitive confidence:
 - the reference agent runtime is fixture-scoped, not production adoption;
 - V2 encoding is unambiguous, while a production privacy profile still needs
   private blinding-secret management and an independently reviewed migration;
-- the official gallery is unpublished, so hidden competitors remain possible.
+- the official gallery remained unpublished on the 27 September check, so
+  additional public or unindexed competitors may remain.
 
 This file is an audit record, not a claim that MemoryLineage will win or that
 any listed project violates hackathon rules.

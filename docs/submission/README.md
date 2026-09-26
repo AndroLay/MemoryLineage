@@ -10,6 +10,7 @@ Space V2 evidence separate from the earlier Sepolia observation.
 | Artifact | Purpose |
 | --- | --- |
 | [Devpost description](devpost-description.md) | Judge-facing problem, solution, evidence, and limitations |
+| [Devpost submission copy](devpost-submission.md) | Copy-ready project overview, story, tags, links, media, and publication notes |
 | [Claim matrix](claim-matrix.md) | Source of truth for supported and unsupported claims |
 | [Pitch deck source](pitch-deck.md) | Ten-slide outline with talk track, architecture, recovery flow, impact, limitations, and future scope |
 | [Pitch PDF](MemoryLineage-3rd-Web-Hack.pdf) | Ten-slide presentation generated from editable HTML |
@@ -37,15 +38,19 @@ tag. See the [release checklist](release-checklist.md) for the local gate
 evidence and its limits.
 
 The public Pages URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
-The latest check from this environment received Cloudflare HTTP 403, error
-1010; that response does not establish whether the new deployment completed or
-what the site serves. The project owner reports that the two-minute demo video
-is uploaded to YouTube. Its URL is not recorded in this repository. The pitch
-PDF remains in the repository and is attached to the GitHub Release. Video,
-audio, scripts, and production sources were purged from the reachable history
-of `main` and `v1.0.2`. The Devpost entry's video link has not been
-independently checked. There is no separate staging environment or external
-human reproduction report.
+On 27 September 2026, Wrangler confirmed a production deployment for project
+`memorylineage`, branch `main`, source commit `80257f74`; its deployment URL is
+[d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev).
+HTTP checks from this environment returned 403 for both URLs, so public browser
+reachability and the content served to visitors remain unverified. The prior
+production deployment remains available in Cloudflare Pages for rollback. The
+project owner supplied the two-minute [YouTube demo](https://youtu.be/K2QUHm4lJCo),
+and an owner-provided screenshot shows the Devpost project page with its
+embedded player. Playback and public page reachability were not independently
+checked. The pitch PDF remains in the repository and is attached to the
+GitHub Release. Video, audio, scripts, and production sources were purged from
+the reachable history of `main` and `v1.0.2`. There is no separate staging
+environment or external human reproduction report.
 
 The local session file `:memory:.ses` is not a project artifact and must never
 be published.

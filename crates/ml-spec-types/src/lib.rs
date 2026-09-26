@@ -8,6 +8,7 @@ pub const EVIDENCE_V1: &str = "memorylineage-evidence-v1";
 pub const EVIDENCE_V2: &str = "memorylineage-evidence-v2";
 pub const RECOVERY_RECEIPT_V1: &str = "memorylineage-recovery-receipt-v1";
 pub const RECOVERY_RECEIPT_V2: &str = "memorylineage-recovery-receipt-v2";
+pub const RECOVERY_RECEIPT_V3: &str = "memorylineage-recovery-receipt-v3";
 pub const SNAPSHOT_PROFILE_V1: &str = "memorylineage/private-snapshot/v1";
 pub const SNAPSHOT_PROFILE_V2: &str = "memorylineage/private-snapshot/v2";
 pub const SNAPSHOT_PROFILE_BLINDED_V1: &str = "memorylineage/private-snapshot/blinded-v1";
@@ -15,6 +16,7 @@ pub const PORTABILITY_REHEARSAL_V1: &str = "memorylineage-portability-v1";
 pub const POLKADOT_HUB_TESTNET_CHAIN_ID: &str = "420420417";
 pub const RECOVERY_POLICY_STRICT_CURRENT_HEAD_V1: &str = "strict-current-head-only-v1";
 pub const RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V2: &str = "strict-authorized-current-head-v2";
+pub const RECOVERY_POLICY_AUTHORIZED_CURRENT_HEAD_V3: &str = "strict-authorized-current-head-v3";
 
 pub const SOURCE_DEMO_SPACE_V2_LOCAL: &str = "DEMO_SPACE_V2_LOCAL";
 pub const SOURCE_PROTOCOL_CORPUS_LOCAL: &str = "PROTOCOL_CORPUS_LOCAL";

@@ -2,7 +2,7 @@ name: Verify MemoryLineage
 
 on:
   push:
-    branches: [main]
+    branches: [main, "codex/**"]
   pull_request:
   workflow_dispatch:
 
@@ -26,6 +26,16 @@ jobs:
         run: cargo install dioxus-cli --version 0.8.0-alpha.1 --locked
       - name: Verify Rust workspace
         run: cargo xtask verify
+      - name: Set up Python 3.12 for LangGraph integration
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: integrations/langgraph/pyproject.toml
+      - name: Install pinned LangGraph integration
+        run: python -m pip install --disable-pip-version-check --no-input -e integrations/langgraph
+      - name: Verify LangGraph checkpoint gate
+        run: cargo xtask langgraph-verify
       - name: Build static Dioxus Inspector
         run: cargo xtask build-web
       - name: Smoke-test Inspector routes and evidence flows

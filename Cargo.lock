@@ -3835,6 +3835,7 @@ version = "0.1.0"
 dependencies = [
  "ml-agent-runtime",
  "ml-conformance",
+ "ml-core",
  "ml-ethereum",
  "ml-evidence",
  "ml-local-evm",
@@ -3846,6 +3847,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "zeroize",
 ]
 
 [[package]]
@@ -3917,6 +3919,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "thiserror 2.0.20",
+ "zeroize",
 ]
 
 [[package]]
@@ -3933,6 +3936,8 @@ dependencies = [
 name = "ml-recovery-gate"
 version = "0.1.0"
 dependencies = [
+ "ml-core",
+ "ml-local-evm",
  "ml-memory-store",
  "ml-spec-types",
  "ml-verifier-independent",

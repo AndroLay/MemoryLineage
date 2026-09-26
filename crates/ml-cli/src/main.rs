@@ -5,19 +5,99 @@ use ml_conformance::run_pinned;
 use ml_ethereum::{inspect_registry, simulate_silent_rollback_with_predecessor};
 use ml_evidence::{load_public_replay_bundle, public_replay_to_v2, write_v2_bundle};
 use ml_memory_store::{
-    create_demo_space_v2_fixture, create_silent_rollback_fixture, demo_space_v2_observations,
-    inspect_demo_space_v2_fixture, inspect_silent_rollback_fixture, restore_snapshot,
-    snapshot_observations,
+    MemorySnapshot, create_demo_space_v2_fixture, create_silent_rollback_fixture,
+    demo_space_v2_observations, inspect_demo_space_v2_fixture, inspect_silent_rollback_fixture,
+    restore_snapshot, snapshot_commitment_blinded_v1, snapshot_observations,
 };
 use ml_portability::run_polkadot_hub_rehearsal;
 use ml_recovery_gate::{
-    ProtectedResumeError, preflight_snapshot_with_profile, protected_resume_with_profile,
+    ProtectedResumeError, preflight_memory_snapshot_blinded, preflight_snapshot_with_profile,
+    protected_resume_with_profile,
 };
-use ml_spec_types::EvidenceBundleV2;
+use ml_spec_types::{
+    EvidenceBundleV2, RECOVERY_RECEIPT_V3, SNAPSHOT_PROFILE_BLINDED_V1, SOURCE_DEMO_SPACE_V2_LOCAL,
+};
 use ml_verifier_independent::{verify_file, verify_portability_file, verify_recovery_receipt};
+use serde::Deserialize;
+use std::io::Read;
 use std::path::{Path, PathBuf};
+use zeroize::Zeroize;
 
 mod submission;
+
+const MAX_BLINDED_STDIN_BYTES: usize = 16 * 1024 * 1024;
+const BLINDED_EVIDENCE_INPUT_V1: &str = "memorylineage-blinded-evidence-input-v1";
+const RECOVERY_INPUT_V1: &str = "memorylineage-recovery-input-v1";
+
+struct SensitiveInput(Vec<u8>);
+
+impl Drop for SensitiveInput {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(transparent)]
+struct SensitiveSecretHex(String);
+
+impl Drop for SensitiveSecretHex {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+struct SensitiveSecret([u8; 32]);
+
+impl Drop for SensitiveSecret {
+    fn drop(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct BlindedEvidenceInput {
+    schema_version: String,
+    snapshot_profile: String,
+    blinding_secret: SensitiveSecretHex,
+    snapshots: Vec<MemorySnapshot>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct BlindedRecoveryInput {
+    schema_version: String,
+    snapshot_profile: String,
+    source_class: String,
+    blinding_secret: SensitiveSecretHex,
+    snapshot: MemorySnapshot,
+}
+
+fn read_bounded_sensitive_stdin() -> Result<SensitiveInput, Box<dyn std::error::Error>> {
+    let mut input = SensitiveInput(Vec::new());
+    std::io::stdin()
+        .take((MAX_BLINDED_STDIN_BYTES + 1) as u64)
+        .read_to_end(&mut input.0)?;
+    if input.0.len() > MAX_BLINDED_STDIN_BYTES {
+        return Err("blinded recovery input exceeds 16 MiB".into());
+    }
+    Ok(input)
+}
+
+fn parse_sensitive_secret(
+    secret: &SensitiveSecretHex,
+) -> Result<SensitiveSecret, Box<dyn std::error::Error>> {
+    let mut decoded =
+        ml_core::bytes32(&secret.0).map_err(|_| "blinding secret must be 32-byte hex")?;
+    if decoded.iter().all(|byte| *byte == 0) {
+        decoded.zeroize();
+        return Err("blinding secret must not be all zeroes".into());
+    }
+    let parsed = SensitiveSecret(decoded);
+    decoded.zeroize();
+    Ok(parsed)
+}
 
 fn repository_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -53,8 +133,11 @@ fn usage() {
   cargo run -p ml-cli -- portability verify [REPORT]\n  \
   cargo run -p ml-cli -- evidence export-v2 [SOURCE] [DESTINATION]\n  \
   cargo run -p ml-cli -- evidence demo-v2 [FIXTURE_ROOT] [DESTINATION]\n  \
+  cargo run -p ml-cli -- evidence demo-v2-blinded-json <INPUT_ON_STDIN>\n  \
   cargo run -p ml-cli -- recover preflight <SNAPSHOT> [EVIDENCE] [RECEIPT] [SOURCE]\n  \
   cargo run -p ml-cli -- recover verify <RECEIPT> [EVIDENCE]\n  \
+  cargo run -p ml-cli -- recover preflight-json <EVIDENCE> <INPUT_ON_STDIN>\n  \
+  cargo run -p ml-cli -- recover verify-json <EVIDENCE> <RECEIPT_ON_STDIN>\n  \
   cargo run -p ml-cli -- recover enforce <SNAPSHOT> [EVIDENCE]\n  \
   cargo run -p ml-cli -- agent reference-demo [FIXTURE_ROOT] [EVIDENCE] [OUTPUT]\n  \
   cargo run -p ml-cli -- demo silent-rollback [FIXTURE_ROOT]\n  \
@@ -311,6 +394,43 @@ fn revm_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
 
 fn evidence_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     match args.first().map(String::as_str) {
+        Some("demo-v2-blinded-json") => {
+            let input_bytes = read_bounded_sensitive_stdin()?;
+            let input: BlindedEvidenceInput = serde_json::from_slice(&input_bytes.0)?;
+            let BlindedEvidenceInput {
+                schema_version,
+                snapshot_profile,
+                blinding_secret,
+                snapshots,
+            } = input;
+            if schema_version != BLINDED_EVIDENCE_INPUT_V1
+                || snapshot_profile != SNAPSHOT_PROFILE_BLINDED_V1
+            {
+                return Err("unsupported blinded evidence input profile".into());
+            }
+            if snapshots.len() != 3
+                || snapshots
+                    .iter()
+                    .enumerate()
+                    .any(|(index, snapshot)| snapshot.sequence != index as u64 + 1)
+            {
+                return Err("blinded demo requires snapshot sequences 1, 2, and 3".into());
+            }
+            let secret = parse_sensitive_secret(&blinding_secret)?;
+            let template = ml_local_evm::run_demo_space_v2(&[
+                format!("0x{:064x}", 1),
+                format!("0x{:064x}", 2),
+                format!("0x{:064x}", 3),
+            ])?;
+            let space_id = ml_core::bytes32(&template.registry.space_id)?;
+            let commitments = snapshots
+                .iter()
+                .map(|snapshot| snapshot_commitment_blinded_v1(snapshot, &space_id, &secret.0))
+                .collect::<Result<Vec<_>, _>>()?;
+            let evidence = ml_local_evm::run_demo_space_v2(&commitments)?;
+            println!("{}", serde_json::to_string_pretty(&evidence)?);
+            Ok(())
+        }
         Some("export-v2") => {
             let source = args.get(1).map(PathBuf::from).unwrap_or_else(|| {
                 repository_root().join("evidence/local/memory_lineage_evm_evidence.json")
@@ -394,6 +514,53 @@ fn recovery_preflight(
 fn recover_command(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let action = args.first().map(String::as_str).unwrap_or("");
     match action {
+        "preflight-json" => {
+            let evidence_path = args
+                .get(1)
+                .ok_or("recover preflight-json requires an evidence bundle path")?;
+            if args.len() != 2 {
+                return Err("recover preflight-json accepts only one evidence path".into());
+            }
+            let input_bytes = read_bounded_sensitive_stdin()?;
+            let input: BlindedRecoveryInput = serde_json::from_slice(&input_bytes.0)?;
+            let BlindedRecoveryInput {
+                schema_version,
+                snapshot_profile,
+                source_class,
+                blinding_secret,
+                snapshot,
+            } = input;
+            if schema_version != RECOVERY_INPUT_V1
+                || snapshot_profile != SNAPSHOT_PROFILE_BLINDED_V1
+                || source_class != SOURCE_DEMO_SPACE_V2_LOCAL
+            {
+                return Err("unsupported blinded recovery input profile".into());
+            }
+            let evidence = load_v2_evidence(evidence_path)?;
+            let secret = parse_sensitive_secret(&blinding_secret)?;
+            let (_snapshot, receipt) =
+                preflight_memory_snapshot_blinded(snapshot, &evidence, &source_class, &secret.0)?;
+            if receipt.schema_version != RECOVERY_RECEIPT_V3 {
+                return Err("blinded preflight produced an unexpected receipt version".into());
+            }
+            println!("{}", serde_json::to_string_pretty(&receipt)?);
+            Ok(())
+        }
+        "verify-json" => {
+            let evidence_path = args
+                .get(1)
+                .ok_or("recover verify-json requires an evidence bundle path")?;
+            if args.len() != 2 {
+                return Err("recover verify-json accepts only one evidence path".into());
+            }
+            let input_bytes = read_bounded_sensitive_stdin()?;
+            let receipt: ml_spec_types::RecoveryDecisionReceipt =
+                serde_json::from_slice(&input_bytes.0)?;
+            let evidence = load_v2_evidence(evidence_path)?;
+            let report = verify_recovery_receipt(&receipt, &evidence)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
+            Ok(())
+        }
         "preflight" => {
             let receipt = recovery_preflight(&args[1..])?;
             if let Some(destination) = args.get(3) {

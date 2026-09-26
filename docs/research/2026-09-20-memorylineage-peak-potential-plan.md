@@ -66,29 +66,36 @@ regression test.
 
 ## The central distinction from the strongest public benchmark
 
-The public Forkline material is a useful benchmark for clarity, replayability,
-and a complete developer-facing story. Its public repository describes
-replay-first agent tracing, deterministic offline replay, first divergence,
-redaction, schema checks, and CI-oriented use.
+**27 September correction:** an earlier draft linked the unrelated
+`sauravvenkat/forkline` agent-tracing project. The 3rd-Web-Hack Forkline source
+is the [`forkline-outbox-20260908` branch](https://github.com/josepha-mayo/Joseph-Portfolio/tree/forkline-outbox-20260908),
+reviewed at commit `a58fe2c44cc3c8d19ac3300b8b29f91dcb4fd8af`. It contains a
+local-EVM reorg rehearsal connected to a SQLite outbox and a separate local
+HTTP/SQLite receiver. Its stored results cover dispatch revalidation and
+uncertain-acknowledgement reconciliation. Those records are useful evidence,
+but the checks were not rerun for this review.
 
 MemoryLineage should not imitate that product. The products answer different
 questions:
 
 ```text
-Forkline       Where did an execution diverge, and can I replay it?
+Forkline       Can this observed event still authorize an irreversible delivery?
 MemoryLineage  May this private snapshot be loaded as the authorized history?
 ```
 
-The difference becomes meaningful only when MemoryLineage has a real pre-load
-integration point and a receipt that another party can verify. Until then,
-“recovery gate” is a product target, not a proven adoption claim.
+MemoryLineage now has a local reference runtime and a recovery-decision receipt;
+it still lacks adoption by an external agent framework. Its offline verifier
+checks the supplied bundle's internal signatures and history, but does not
+authenticate the registry address or canonical public-chain state. Forkline
+likewise trusts the supplied local-EVM observations. Neither project has shown
+production use or consensus-level chain verification.
 
-The competitive goal is therefore measurable:
+The remaining comparative goal is therefore measurable:
 
 ```text
-match Forkline on problem clarity and reproduction simplicity
-exceed it on public-chain authorization, private-snapshot recovery decisions,
-portable evidence, independent verification, and explicit trust boundaries
+match Forkline's concise incident framing and connected local reproduction
+make MemoryLineage's snapshot authorization decision equally visible and easy to replay
+improve the external runtime and chain-provenance evidence before claiming either capability
 ```
 
 This is a target, not a claim that the current submission has already achieved
@@ -110,22 +117,30 @@ and it is not counted as a 3rd-Web-Hack entry; see the
 Public material:
 
 - [Devpost entry](https://devpost.com/software/forkline-rehearse-the-rollback)
-- [public repository](https://github.com/sauravvenkat/forkline)
+- [submission source branch](https://github.com/josepha-mayo/Joseph-Portfolio/tree/forkline-outbox-20260908)
+- audited branch commit: `a58fe2c44cc3c8d19ac3300b8b29f91dcb4fd8af`
 
 What to learn:
 
 - one failure story is easier to judge than a broad platform story;
-- replay, redaction, schema validation, and CLI/CI usage make technical claims
-  reproducible;
+- connect the event/reorg story to the durable outbox, receiver ledger, receipt,
+  and visible incident outcome;
+- distinguish an acknowledged external effect from an uncertain response and
+  reconcile the latter without a blind retry;
 - a narrow workflow can feel more complete than a larger but disconnected
   protocol.
 
 What MemoryLineage must add:
 
 - a first-viewport explanation that is equally immediate;
-- one coherent incident from private snapshot to on-chain rejection;
-- a real pre-load decision path, not only an inspector;
-- evidence that can be exported and independently replayed.
+- keep one coherent synthetic incident from restored snapshot through the local
+  authority/succession check and recovery decision;
+- make the existing local reference-runtime gate visible in the main challenge
+  path, while labeling it as a reference integration;
+- collect external runtime and reviewer evidence before claiming production
+  adoption or first-time-user comprehension;
+- bind offline replay to an authenticated chain/registry source before claiming
+  public-chain provenance.
 
 The Devpost page was not fully retrievable during the current public-index
 pass. Claims about its exact Web3 implementation must therefore be checked
@@ -580,7 +595,7 @@ Primary event and project sources used for this plan:
 - [3rd-Web-Hack event page](https://3rd-web-hack.devpost.com/)
 - [3rd-Web-Hack public gallery](https://3rd-web-hack.devpost.com/project-gallery)
 - [Forkline](https://devpost.com/software/forkline-rehearse-the-rollback) and
-  [repository](https://github.com/sauravvenkat/forkline)
+  [submission source branch](https://github.com/josepha-mayo/Joseph-Portfolio/tree/forkline-outbox-20260908)
 - [FinalityDesk](https://devpost.com/software/finalitydesk)
 - [Kinetic](https://devpost.com/software/kinetic-m9i5gv) and
   [repository](https://github.com/Shivanikinagi/KINETIC)

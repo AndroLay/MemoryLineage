@@ -3,9 +3,10 @@
 This draft is the short judge-facing description for MemoryLineage. It keeps
 the same wording as the repository and claim matrix. The submission project
 version is `v1.0.2`; the preceding public Inspector release was `v1.0.1`. The
-last recorded Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev);
-current page content was not rechecked. This draft does not claim external
-adoption, semantic memory safety, or authorship of ERC-8350.
+`v1.0.2` build was deployed to Cloudflare Pages production on 27 September
+2026; HTTP checks from this environment returned 403, so public browser
+reachability and served content remain unverified. This draft does not claim
+external adoption, semantic memory safety, or authorship of ERC-8350.
 
 ## Problem
 
@@ -66,6 +67,8 @@ around pinned semantics:
 
 - Restore Preflight classification for current, historical, divergent, and
   unverified candidates;
+- snapshot-level recovery decisions rather than per-entry origin or derivation
+  tracking; MemoryLineage does not detect semantic memory poisoning;
 - policy-bound current-head and historical recovery receipts;
 - authority timeline binding for Demo Space V2 EIP-712 proofs;
 - Rust reference and independent replay paths;
@@ -91,22 +94,27 @@ The repository includes:
 
 MemoryLineage verifies committed ordering, predecessor continuity, configured
 authorization, authority history, commitment integrity, and replayable
-evidence. It does not determine whether private memory is semantically true or
-safe, whether an AI reasoned correctly, whether an agent's action was caused by
-that memory, or whether an external runtime obeys the reference recovery gate.
+evidence. It checks whole-snapshot recovery state; it does not trace each
+memory entry's origin or derivation. It does not determine whether private
+memory is semantically true or safe, detect memory poisoning, assess whether
+an AI reasoned correctly, establish whether an agent's action was caused by
+that memory, or prove that an external runtime obeys the reference recovery
+gate.
 
 The next evidence step is external developer reproduction. The repository
 contains a ten-page [pitch PDF](MemoryLineage-3rd-Web-Hack.pdf). The project
-owner reports uploading the two-minute narrated demo to YouTube; the URL is not
-stored in this repository. Video, voice-over, scripts, and production sources
-are absent from the reachable `main` and `v1.0.2` histories. The last recorded
-public Inspector URL is
-[memorylineage.pages.dev](https://memorylineage.pages.dev). The v1.0.2 source
-tag is published, but the latest
-request from this environment returned Cloudflare HTTP 403, error 1010; the
-hosted version and deployment status therefore remain unverified. `VERIFIED` in the CLI
+owner supplied the two-minute [YouTube demo](https://youtu.be/K2QUHm4lJCo), and
+an owner-provided screenshot shows the embedded player on Devpost; playback is
+not independently verified. Video, voice-over, scripts, and production sources
+are absent from the reachable `main` and `v1.0.2` histories. The public
+Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
+Wrangler confirms a production deployment for branch `main`, source commit
+`80257f74`, at
+[d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev).
+HTTP checks from this environment returned 403 for both URLs, so public browser
+reachability and served content remain unverified. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete
 history recovery requires retained event logs or bundles; historical ERC-1271
 replay is unsupported, and the interactive Sepolia probe uses one RPC endpoint.
-Media upload, hosted-site update, and separate staging are not claimed here.
+There is no separate staging environment or external human reproduction report.

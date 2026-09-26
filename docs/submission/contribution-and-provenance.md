@@ -42,7 +42,7 @@ or first-in-field status. Third-party license information is in
 | Rust and Rust/WASM replay verify ordered state, predecessor, authority, and evidence integrity | `crates/ml-verifier-independent/`, `/verify`, `ml-cli verify` | A bundle's source label is a declaration without external provenance |
 | Solidity behavior and Silent Rollback are executed against checked-in bytecode | `contracts/`, `crates/ml-local-evm/`, `evidence/submission/` | Demo Space V2 is local Rust/revm, not a Sepolia transaction history |
 | A separate earlier Sepolia deployment and reread demonstrate public registry observation | `evidence/sepolia/` | Different space from Demo Space V2; never combine the two as one incident |
-| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The `v1.0.2` source tag is public. The Pages URL returned Cloudflare HTTP 403, error 1010, in the latest check, so the hosted build and deployment status remain unverified. |
+| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | Wrangler confirmed the `v1.0.2` production deployment for `main` at `d001a7dc.memorylineage.pages.dev`, sourced from commit `80257f74`. This environment received Cloudflare HTTP 403, so external reachability and served content remain unverified. |
 
 The narrow product contribution is a verifiable recovery decision when the
 runtime operator must not be the only party trusted to preserve the canonical

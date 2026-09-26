@@ -26,9 +26,9 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Polkadot Hub portability rehearsal | PASS / local only | Nested Ethereum and target-context bundles replayed by the independent Rust verifier; deployment and public RPC remain `NOT_PERFORMED` |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
-| Public static website | DEPLOYMENT UNVERIFIED | The `main` push may trigger hosting automation. The latest request received Cloudflare HTTP 403, error 1010; this does not establish whether deployment completed or what the live site serves. |
+| Public static website | DEPLOYED; PUBLIC REACHABILITY UNVERIFIED | Wrangler confirmed a production deployment to project `memorylineage`, branch `main`, source commit `80257f74`, at `d001a7dc.memorylineage.pages.dev`. HTTP checks from this environment returned 403 for the deployment URL and custom domain, so visitor access and served content remain unverified. |
 | Pitch deck | PASS / local only | Ten-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf) labels The Problem, The Solution, The Innovation, The Impact, Current Limitations, and Future Scope; generated from editable HTML and visually reviewed |
-| Demo video | OWNER REPORTS YOUTUBE UPLOAD | The project owner reports the two-minute demo is on YouTube. Its URL is not stored in this repository and has not been independently checked. The video and production files are absent from the reachable `main` and `v1.0.2` histories. |
+| Demo video | URL SUPPLIED; EMBED VISIBLE IN OWNER SCREENSHOT | The project owner supplied <https://youtu.be/K2QUHm4lJCo>; a screenshot shows the Devpost page with an embedded player. Playback is not independently verified. The video and production files are absent from the reachable `main` and `v1.0.2` histories. |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
 
 ## Automated verification
@@ -60,8 +60,9 @@ the operating system limit. The static browser checks cover first-run choices,
 six tour steps with spotlights on steps 1–2, the one-minute challenge, the free
 Overview-to-challenge link without the tour, route semantics, keyboard focus,
 and 390px page overflow. The ten-page PDF was rendered and visually reviewed.
-The project owner reports the demo is on YouTube; its URL and presence in the
-Devpost video field have not been verified here.
+The project owner supplied <https://youtu.be/K2QUHm4lJCo>. The owner-provided
+screenshot shows an embedded player on the Devpost page; playback has not been
+verified here.
 
 These results document the tagged local source and evidence. They do not
 substitute for novice comprehension sessions, external clean-checkout
@@ -91,8 +92,8 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
 | GitHub source tag and Release page | PUBLISHED | The sanitized annotated `v1.0.2` tag and matching GitHub Release are published; the PDF is the only attached project artifact. |
-| Cloudflare Pages deployment | UNVERIFIED | The latest request received Cloudflare HTTP 403, error 1010; deployment completion and served version cannot be inferred from that response |
-| Devpost video link / live-demo update | NOT VERIFIED | Project owner reports the video is on YouTube; its URL and the Devpost field were not supplied for verification. The pitch PDF remains in the repository. |
+| Cloudflare Pages deployment | CONFIRMED VIA WRANGLER; HTTP ACCESS UNVERIFIED | Production deployment URL `d001a7dc.memorylineage.pages.dev`, branch `main`, source commit `80257f74`; this environment received HTTP 403 from both that URL and `memorylineage.pages.dev`. Previous production deployment remains available for rollback. |
+| Devpost page and demo video | SCREENSHOT PROVIDED; PLAYBACK UNVERIFIED | The owner-provided screenshot shows the project page and embedded video player, and the owner supplied <https://youtu.be/K2QUHm4lJCo>. Playback and external Pages access remain unverified from this environment. The pitch PDF remains in the repository. |
 
 ## Finalization rule
 
