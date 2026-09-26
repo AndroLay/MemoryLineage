@@ -31,17 +31,22 @@ a short preview. Use the two-minute narrated cut as the submission video.
 
 ## Publication status
 
-The last recorded public site is [memorylineage.pages.dev](https://memorylineage.pages.dev);
-its current contents have not been verified. The last recorded source snapshot
-is `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`. Local `main` and
-`origin/main` refs match it, but this environment could not freshly query
-GitHub. Current UX and media edits remain uncommitted and are not part of that
-snapshot.
+The `v1.0.2` source release is tagged at commit
+`56ed787a678c8267dd4410db463a7ac177f90bc7`; both `main` and the annotated tag
+were pushed to GitHub on 26 September 2026. It follows the previous public
+release, `v1.0.1`.
 
-The previous `v1.0.1` release remains the last confirmed public release. No
-new tag, Pages deployment, or Devpost upload was made during this documentation
-review. The narrated video and pitch PDF have not been uploaded to Devpost.
-There is no separate staging environment or external human reproduction report.
+GitHub Actions run [36248726652](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652)
+and its retry failed before any job step started; the API reported no steps and
+no assigned runner, so they provide no test result for this commit. See the
+[release checklist](release-checklist.md) for the local gate evidence.
+
+The public Pages URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
+The latest check from this environment received Cloudflare HTTP 403, error
+1010; that response does not establish whether the new deployment completed or
+what the site serves. The narrated video and pitch PDF are prepared locally but
+have not been uploaded to Devpost. There is no separate staging environment or
+external human reproduction report.
 
 The internal heuristic score memo `demo-video-review.md` is intentionally
 excluded from the public packet. The local session file `:memory:.ses` is not

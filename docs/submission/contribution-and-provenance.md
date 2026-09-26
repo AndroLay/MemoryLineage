@@ -17,8 +17,8 @@ able to attest to authorship and eligibility in the Devpost account.
 | 19 September 2026, 03:06 UTC+8 | Initial Git commit `2c36366` | A substantial code and research baseline entered this repository at once. The commit alone does not date when each file was written. |
 | 22 September 2026, 02:48 UTC+8 | `v1.0.1` commit `44a5751` | Public release baseline for the previously hosted Inspector. |
 | 24 September 2026 | Earlier source candidate `675c707405ac2afea1fd067be44a67890b0a35f2` | This candidate was recorded as pushed to `main` at the time. It was later superseded by source snapshot `497e823`; neither has a release tag newer than `v1.0.1`. |
-| 26 September 2026 | Last locally recorded source snapshot `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` | Local `main` and `origin/main` refs match this snapshot. A fresh remote query was unavailable; current UX/media edits remain uncommitted and are not in it. |
-| 26 September 2026 | Project/submission version `v1.0.2` | Release version assigned to the current final candidate; publish only after the clean-commit release gate passes. |
+| 26 September 2026 | Previous source baseline `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` | This was the `main` tip before the final submission package was committed. |
+| 26 September 2026 | Project version `v1.0.2`, commit `56ed787a678c8267dd4410db463a7ac177f90bc7` | The commit and annotated `v1.0.2` tag were pushed to GitHub. The local combined release gate did not fully pass its Chromium startup step; the hosted GitHub Actions job failed before any step ran. |
 
 The older research notes under [`docs/research/`](../research/README.md) are
 historical source material. Their dates and internal scores are not hackathon
@@ -41,7 +41,7 @@ or first-in-field status. Third-party license information is in
 | Rust and Rust/WASM replay verify ordered state, predecessor, authority, and evidence integrity | `crates/ml-verifier-independent/`, `/verify`, `ml-cli verify` | A bundle's source label is a declaration without external provenance |
 | Solidity behavior and Silent Rollback are executed against checked-in bytecode | `contracts/`, `crates/ml-local-evm/`, `evidence/submission/` | Demo Space V2 is local Rust/revm, not a Sepolia transaction history |
 | A separate earlier Sepolia deployment and reread demonstrate public registry observation | `evidence/sepolia/` | Different space from Demo Space V2; never combine the two as one incident |
-| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The last confirmed hosted `v1.0.1` release predates source snapshot `497e823`; the current uncommitted onboarding changes have not been deployed |
+| The Inspector presents the evidence and failure reason in a browser | `apps/inspector/`, `scripts/smoke_web.py` | The `v1.0.2` source tag is public. The Pages URL returned Cloudflare HTTP 403, error 1010, in the latest check, so the hosted build and deployment status remain unverified. |
 
 The narrow product contribution is a verifiable recovery decision when the
 runtime operator must not be the only party trusted to preserve the canonical

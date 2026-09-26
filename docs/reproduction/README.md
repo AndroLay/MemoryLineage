@@ -4,8 +4,9 @@ This runbook is for a developer who has not received a private walkthrough of
 MemoryLineage. It tests whether the repository, evidence, and website explain
 the same claim from a fresh checkout.
 
-This reviewer packet targets project version `v1.0.2`; use the final tagged
-commit for that version once publication is complete.
+This reviewer packet targets project version `v1.0.2` at commit
+`56ed787a678c8267dd4410db463a7ac177f90bc7`. The commit and annotated tag were
+pushed to GitHub on 26 September 2026.
 
 The result of `cargo xtask reproduce` is an automated local result. It must not
 be recorded as an external human reproduction. A human report is only valid
@@ -21,14 +22,9 @@ Give the reviewer:
 3. this runbook;
 4. no additional explanation of the product.
 
-**Final reviewer SHA: NOT FROZEN.** The last recorded source snapshot is
-`497e8238915e6070c2bcb7fe3dd72a37ebc7860b`; local `main` and
-`origin/main` refs match it, but this environment could not freshly query
-GitHub. Current UX and media edits are uncommitted and are not included in that
-snapshot. Do not present that SHA as the final reviewer candidate for the
-current worktree. After the final changes are committed and the remote is
-checked, replace this status with the exact commit SHA and use the same SHA in
-the Devpost entry, release checklist, video notes, and reviewer report.
+**Final reviewer SHA: `56ed787a678c8267dd4410db463a7ac177f90bc7`.** Use this
+exact commit for a clean checkout or reviewer archive. The Devpost entry has
+not yet been updated with this SHA.
 
 The earlier public release
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1)
@@ -39,12 +35,11 @@ archive.
 
 The repository is intentionally able to run the core path without deployment:
 the public synthetic fixture and portable evidence are bundled in the source
-tree. The last recorded public Inspector is at
-[memorylineage.pages.dev](https://memorylineage.pages.dev). A push is recorded
-for the last source snapshot, but this environment could not freshly verify the
-remote. No manual Pages deployment was run and automatic deployment status is
-unverified; the current site content could not be fetched here. Reproduction
-does not depend on the hosted site or a new Sepolia deployment.
+tree. The public Inspector URL is
+[memorylineage.pages.dev](https://memorylineage.pages.dev). A request from the
+current environment returned Cloudflare HTTP 403, error 1010, so the hosted
+version and automatic deployment status remain unverified. Reproduction does
+not depend on the hosted site or a new Sepolia deployment.
 
 ## Automated path
 

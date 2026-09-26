@@ -11,12 +11,12 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| Project release version | TARGET `v1.0.2` | Repository release identifier for this source, Inspector, and submission package; Rust workspace crates retain their independent `0.1.0` package versions. |
-| Last recorded source snapshot | LOCAL `main` = `origin/main`; remote not freshly queried; no newer tag | `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` |
-| Current prototype worktree | LOCAL / NOT COMMITTED | The reviewed UX, free-overview challenge entry, refreshed screenshots, PDF, and video are local changes on top of the pushed baseline. |
+| Project release version | PUBLISHED TAG `v1.0.2` | The annotated repository tag points to the release commit below; Rust workspace crates retain their independent `0.1.0` package versions. |
+| Release source commit | PUSHED | `56ed787a678c8267dd4410db463a7ac177f90bc7`; pushed to `main` and tag `v1.0.2` on 26 September 2026. |
+| Release worktree contents | INCLUDED IN `v1.0.2` | The reviewed UX, free-overview challenge entry, screenshots, PDF, and 120-second narrated video are in the tagged source commit. |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
-| Dioxus Inspector and first-run routes | PASS / CURRENT LOCAL RELEASE GATE | Landing → Get started tour, Explore freely → `/overview`, then its one-minute challenge link, all without enabling the tour; current release smoke passes. |
-| Local preview | PASS / RUNNING | `http://127.0.0.1:8080` is served by `cargo xtask serve-web`; direct browser smoke passes with exactly one landing page. A stale earlier dev-server process was replaced. |
+| Dioxus Inspector and first-run routes | IMPLEMENTED / BROWSER GATE UNSTABLE | The routes and challenge interactions are included in `v1.0.2`; see the automated verification record below for Chromium smoke results. |
+| Local preview | LAST RECORDED PASS | `http://127.0.0.1:8080` was previously served by `cargo xtask serve-web`; it was not rechecked during the v1.0.2 publication step. |
 | Judge-facing first minute | IMPLEMENTED / NOT USER-VALIDATED | The answer is withheld until check; the result separates check status from the restore decision and exposes the exact machine reason afterward. No novice sessions or 4/4 heuristic scores are claimed. |
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
 | Evidence tamper/restore | PASS | `TRANSITION_ID_MISMATCH` then `VERIFIED` in browser smoke |
@@ -26,14 +26,15 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Polkadot Hub portability rehearsal | PASS / local only | Nested Ethereum and target-context bundles replayed by the independent Rust verifier; deployment and public RPC remain `NOT_PERFORMED` |
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
-| Public static website | AUTO-DEPLOYMENT / LIVE STATUS UNVERIFIED | No manual Pages deployment was run; a Git push occurred, but whether hosting automation deployed it and what the live site serves could not be verified |
+| Public static website | DEPLOYMENT UNVERIFIED | The `main` push may trigger hosting automation. The latest request received Cloudflare HTTP 403, error 1010; this does not establish whether deployment completed or what the live site serves. |
 | Pitch deck | PASS / local only | Ten-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf) labels The Problem, The Solution, The Innovation, The Impact, Current Limitations, and Future Scope; generated from editable HTML and visually reviewed |
 | Demo video | PASS / owner-reviewed locally; upload pending | Revised 120-second [narrated cut](MemoryLineage-narrated-demo.mp4) keeps the challenge result distinct from the Lab replay, improves guided-result legibility, and gives each supporting page its own caption and narration. The 1:58 WAV uses local male Kokoro TTS at 1.08×. The project owner reviewed and accepted the cut; no independent voice-quality assessment is claimed. The public site match and Devpost upload remain to be confirmed |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
 
 ## Automated verification
 
-Run from a clean checkout:
+The v1.0.2 release commit is `56ed787a678c8267dd4410db463a7ac177f90bc7`.
+Run these commands from a clean checkout for a fresh reproduction:
 
 ```bash
 cargo xtask verify
@@ -42,30 +43,30 @@ cargo xtask reviewer-reproduce
 npm run verify
 ```
 
-Latest local gate after the onboarding and free-overview changes:
-`TMPDIR=/var/tmp cargo xtask release --quiet` PASS, including formatting,
-Clippy, workspace tests, evidence replay, WASM compile, package boundary,
-static build, Chromium smoke, and release package boundary.
-`TMPDIR=/var/tmp npm run verify --silent` PASS for the nine-step compatibility
-lane (EVM, local audit, replay, Python, Inspector typecheck/build, and package
-boundaries). The browser smoke also exported current desktop/mobile captures;
-its checks cover the first-run choices, six tour steps with spotlights on steps
-1–2, the one-minute challenge, the free Overview-to-challenge link without the
-tour, route semantics, keyboard focus, and 390px page overflow. The ten-page
-PDF was rendered and visually reviewed; the 37-second video was recorded from
-current guided browser interactions, then checked for its H.264/AAC streams
-and reviewed at opening, evidence-tamper, and restored-result frames. In this runner `/tmp` produces SQLite `disk I/O error`,
-so the local commands use `TMPDIR=/var/tmp`; an independent SQLite write and
-the runtime test both pass there.
+On the release commit, `cargo xtask release --quiet` passed formatting, Clippy,
+workspace tests, fixture and evidence checks, portability replay, recovery and
+runtime gates, Solidity/revm scenarios, WASM compilation, package boundary, and
+static build. It then failed at the Chromium step with
+`Chromium page debugging target did not start`; therefore the combined release
+gate did not exit successfully. A standalone browser smoke passed once with
+Chromium stderr captured to a temporary file, while other standard smoke
+attempts could not start the page target. Treat the browser smoke as unstable,
+not as a consistently passing gate.
 
-The 120-second narrated video and separate 1:59 voice track were created after
-those release gates. Their media metadata and full video decode were checked;
-human listening review of TTS pronunciation and perceived naturalness remains
-pending. Neither file has been uploaded to Devpost.
+`python3 -m unittest scripts.test_smoke_web -q` passed all 8 tests, including
+the regression check that keeps Chromium's Linux singleton socket path below
+the operating system limit. The static browser checks cover first-run choices,
+six tour steps with spotlights on steps 1–2, the one-minute challenge, the free
+Overview-to-challenge link without the tour, route semantics, keyboard focus,
+and 390px page overflow. The ten-page PDF was rendered and visually reviewed.
+The narrated video was checked for H.264/AAC streams and full decode; the owner
+reviewed and accepted the synthetic narration and final cut. Neither file has
+been uploaded to Devpost.
 
-These checks prove the current local worktree, not a clean pushed commit or a
-public deployment. They do not substitute for novice comprehension sessions,
-external clean-checkout reproduction, or hosted CI.
+These results document the tagged local source and evidence. They do not
+substitute for novice comprehension sessions, external clean-checkout
+reproduction, a successful hosted CI run, or confirmation of the public Pages
+deployment.
 
 The static Dioxus release path and Chromium smoke are the supported browser
 release path. Local development is supported through `cargo xtask serve-web`,
@@ -82,15 +83,15 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| Remote CI for source candidate | NOT RECHECKED FOR THIS REVISION | This local UX review did not query GitHub Actions for `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` |
+| Remote CI for v1.0.2 source commit | FAILED BEFORE ANY STEP | Run [`36248726652`](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652) and its retry ended with no steps or assigned runner; they provide no CI test result for the commit. |
 | GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this source candidate |
 | Previous GitHub Release | PUBLISHED / prior candidate | [MemoryLineage v1.0.1](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1); remote CI for that release ended before runner startup |
 | New Sepolia Demo Space V2 deployment | OUT OF SCOPE | Demo Space V2 remains local Rust/revm evidence; the existing Sepolia observation is separate |
 | Separate staging environment | NOT PROVIDED | Only the public static website is hosted |
-| GitHub source push / new release | LAST RECORDED SNAPSHOT / NO NEW TAG OR RELEASE | Local `main` and `origin/main` both point to `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`; the remote could not be freshly queried in this environment. `v1.0.1` remains the last confirmed release |
-| Cloudflare Pages deployment | NO MANUAL DEPLOY / AUTO-DEPLOY UNVERIFIED | No manual deployment was attempted; the live site could not be fetched to determine whether a push-triggered build completed |
+| GitHub source push and version tag | PUBLISHED | Commit `56ed787a678c8267dd4410db463a7ac177f90bc7` and annotated tag `v1.0.2` were pushed; no separate GitHub Release page was created |
+| Cloudflare Pages deployment | UNVERIFIED | The latest request received Cloudflare HTTP 403, error 1010; deployment completion and served version cannot be inferred from that response |
 | Devpost media upload / live-demo update | NOT YET PERFORMED | Local pitch PDF and demo MP4 exist; no Devpost upload was performed, and current Pages content was not rechecked |
 
 ## Finalization rule

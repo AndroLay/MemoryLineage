@@ -213,3 +213,18 @@ The project and submission version assigned to this final candidate is
 The project owner reviewed and accepted the final narrated cut on 26 September;
 the narration remains disclosed as synthetic, with no independent voice-quality
 assessment claimed.
+
+## v1.0.2 publication status — 26 September 2026
+
+The v1.0.2 commit `56ed787a678c8267dd4410db463a7ac177f90bc7` and annotated tag
+were pushed to GitHub. The GitHub Actions job and its retry failed before any
+step started and had no assigned runner, so they produced no CI test result. The
+local release gate passed its code, evidence, contract, WASM, package, and static
+build checks, but the combined gate did not complete its Chromium smoke step
+reliably. A standalone browser smoke passed once with Chromium output captured;
+other attempts could not start the page debugging target.
+
+The public Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
+check in this environment. That does not confirm whether the v1.0.2 deployment
+completed. The Devpost video and pitch PDF remain prepared locally and have not
+been uploaded.

@@ -101,9 +101,10 @@ two-minute [narrated local demo](MemoryLineage-narrated-demo.mp4), and the
 original 37-second cue-only cut. The narration is English TTS generated locally;
 it is not a human recording. The demo follows the guided first-run flow. The last
 recorded public Inspector URL is
-[memorylineage.pages.dev](https://memorylineage.pages.dev); this workflow did
-not deploy source candidate commit `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`; the onboarding updates in the current working tree are not part of that commit, and
-current page content was not rechecked. `VERIFIED` in the CLI
+[memorylineage.pages.dev](https://memorylineage.pages.dev). The v1.0.2 source
+commit `56ed787a678c8267dd4410db463a7ac177f90bc7` was pushed, but the latest
+request from this environment returned Cloudflare HTTP 403, error 1010; the
+hosted version and deployment status therefore remain unverified. `VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete
 history recovery requires retained event logs or bundles; historical ERC-1271

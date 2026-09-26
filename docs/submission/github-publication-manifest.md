@@ -1,29 +1,25 @@
-# GitHub publication scope
+# GitHub publication record and scope
 
 **Checked:** 26 September 2026
 
-**Target project version:** `v1.0.2`
+**Published project version:** [`v1.0.2`](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2)
 
-**Purpose:** identify the public source snapshot, the intended publication files,
-and local-only exclusions. This is a scope note, not a release or a record of a
-push performed in this review.
+**Release commit:** `56ed787a678c8267dd4410db463a7ac177f90bc7`
 
-## Pre-publication repository state checked
+## Publication status
 
-- Local `HEAD`, `main`, and `origin/main` resolve to
-  `497e8238915e6070c2bcb7fe3dd72a37ebc7860b`.
-- The working tree contains uncommitted changes; nothing is staged. Those edits
-  are not part of the commit currently at `HEAD`. A Git push transfers commits,
-  not unstaged or uncommitted files.
-- A read-only `git ls-remote origin main` check could not resolve
-  `github.com`. The matching local `origin/main` ref and earlier push notes
-  are the available evidence; the current remote branch was not freshly
-  confirmed.
-- The last confirmed release tag is `v1.0.1`, at commit
-  `44a5751c90cb66c943c8329238c1cb9802fe8ee9`. No newer release tag is
-  recorded.
-- The Pages URL is known, but its current content and any automatic deployment
-  are unverified. The Devpost media have not been uploaded.
+- Commit `56ed787a678c8267dd4410db463a7ac177f90bc7` advanced `main` from
+  `497e8238915e6070c2bcb7fe3dd72a37ebc7860b` and was pushed successfully.
+- Annotated tag `v1.0.2` points to that commit and was pushed successfully.
+- The release contains 49 reviewed public files. The session artifact and
+  internal video-review memo listed below were excluded.
+- GitHub Actions run [36248726652](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652)
+  and its retry ended before any job step; the job has no runner assignment or
+  step results.
+- The Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
+  check in this environment. Deployment and live content remain unverified.
+- The Devpost video and pitch deck have not been uploaded. The Git tag exists;
+  no separate GitHub Release page was created.
 
 ## Intended public commit contents
 
