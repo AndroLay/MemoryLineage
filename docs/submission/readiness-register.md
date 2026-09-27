@@ -94,7 +94,7 @@ protocol intentionally does not evaluate it.
 | Remote CI green | — | NOT_YET_DEMONSTRATED | A hosted runner executes the workflow past its first step |
 | Production agent-runtime adoption | — | NOT_YET_DEMONSTRATED | A real external runtime is integrated and recorded |
 | New Sepolia deployment of Demo Space V2 | — | OUT_OF_SCOPE | Only if separately authorized; not part of this slice |
-| Experimental LangGraph gate | Upgrade-branch implementation; Python 3.12 packages unavailable locally | CODE PRESENT / REAL LANGGRAPH TEST NOT RUN LOCALLY | Pinned sync/async LangGraph and SQLite tests pass in hosted CI; this still does not demonstrate production adoption |
+| Experimental LangGraph gate | Upgrade branch; pinned Python 3.12 integration packages | REAL SYNC/ASYNC LANGGRAPH + SQLITE GATE PASSES LOCALLY / HOSTED CI PENDING | Successful hosted CI improves remote reproducibility; this still does not demonstrate production adoption |
 | Pitch PDF and external demo link | PDF in repository; owner supplied YouTube URL and screenshot of embedded player | PDF VERIFIED / URL SUPPLIED / PLAYBACK UNCHECKED | The PDF fails to render, or playback does not show the described demo |
 | Public Devpost page / staging environment | Owner screenshot shows project page / no staging | PAGE SHOWN IN SCREENSHOT / STAGING NOT PROVIDED | The public entry differs materially from the supplied screenshot, or a separate staging environment is claimed |
 | Semantic memory truth / poisoning detection | — | OUT_OF_SCOPE | The protocol does not evaluate semantic meaning |

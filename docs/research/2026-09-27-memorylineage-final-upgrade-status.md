@@ -7,7 +7,7 @@ pre-release; it is not a claim that MemoryLineage outranks another project.
 **Branch:** `codex/memorylineage-final-upgrade`
 
 **Latest stable baseline:** `v1.0.2`
-**Evaluation pre-release:** `v1.1.0-rc.1`
+**Evaluation pre-release:** `v1.1.0-rc.2`
 **Video:** no new video, narration, or video source was created or added. The
 owner-supplied YouTube URL remains an external link; the pitch PDF remains the
 only presentation media stored in the repository.
@@ -22,9 +22,10 @@ only presentation media stored in the repository.
   blinding secret are not placed in command arguments, public evidence, or the
   receipt. Rust-owned secret buffers are zeroized on drop; Python cannot promise
   reliable erasure of immutable temporary strings or runtime copies.
-- Added a strict LangGraph checkpoint tuple profile that binds config, the
-  complete supported checkpoint object, metadata, parent config, and pending
-  writes. Unsupported versions, fields, custom values, non-finite numbers, and
+- Added a strict LangGraph checkpoint canonical profile v2 that binds persisted
+  saver identity, the complete supported checkpoint object, metadata, parent
+  config, and pending writes. Pinned checkpoint versions 1, 2, and 4 are
+  accepted; version 3, unknown fields, custom values, non-finite numbers, and
   inputs beyond set limits fail closed.
 - Added a LangGraph checkpointer wrapper for synchronous and asynchronous
   retrieval. It independently verifies the receipt and returns a checkpoint
@@ -42,20 +43,17 @@ only presentation media stored in the repository.
 | --- | --- | --- |
 | `cargo test -q -p ml-recovery-gate blinded_` | PASS: 2 tests | Rust local fixture only |
 | `cargo test -q -p ml-cli --test recover_blinded_stdin` | PASS: 1 test | Rust CLI/local REVM fixture |
-| Python canonicalization tests | PASS: 5 tests | Python 3.14.7; stdlib profile only |
-| Python adapter/CLI tests | PASS: 4 tests | Python 3.14.7 and fake saver; async subprocess path exercised |
-| Full integration unittest discovery | PASS: 9 passed, 2 skipped | The two real-framework methods skip because pinned packages are absent |
+| Python canonicalization, adapter, and LangGraph tests | PASS: 13 tests | Python 3.12 with pinned LangGraph 1.2.12 and SQLite checkpoint 3.1.1; includes sync and async SQLite close/reopen graph gates |
 | `cargo xtask verify` | PASS | Local Rust, REVM, evidence, WASM, and package gates |
-| `cargo xtask release --quiet` | PASS | Static build, Chromium route/keyboard/responsive smoke, and release package gate |
+| `cargo xtask release --quiet` | PASS | Formatting, Clippy, workspace tests, evidence and revm gates, WASM, Chromium route/keyboard/responsive smoke, and release package gate |
 | `npm run verify --silent` | PASS | All nine existing EVM, Python, Inspector, audit, replay, and package checks |
-| Real LangGraph/SQLite integration tests | NOT RUN locally | Python 3.12 and pinned packages are absent; package download was blocked by network DNS |
-| `cargo xtask langgraph-verify` | BLOCKED AT PREREQUISITE CHECK | Correctly requires Python 3.12 and installed LangGraph packages; does not report skipped framework tests as a pass |
-| Hosted CI for candidate source | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260) and its retry for code commit `e87be2e` ended with `runner_id: 0` and zero steps; they provide no test result. |
+| `cargo xtask langgraph-verify` | PASS | 13 Python integration tests with the pinned Python 3.12 dependencies; a temporary 10 ms event-loop pulse was needed only for this sandbox runtime's thread callback wakeup |
+| Hosted CI for `v1.1.0-rc.1` | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260) and its retry for code commit `e87be2e` ended with `runner_id: 0` and zero steps; they provide no test result. |
 
 ## Still required before calling the upgrade stable or complete
 
 1. A successful hosted run of the pinned LangGraph tests and repository CI on
-   the release candidate commit.
+   the `v1.1.0-rc.2` candidate commit.
 2. Two independent developer clean-checkout reproductions and at least five
    first-time user sessions using the pre-registered protocol. These results
    cannot be authored on behalf of participants.
@@ -89,3 +87,21 @@ treated as fully CI-verified or stable. Local release-gate results are recorded
 above; the real LangGraph + SQLite close/reopen gate still needs a successful
 hosted or equivalent Python 3.12 run. The Pages preview alias returned HTTP
 200; production remains on `main` at stable `v1.0.2`.
+
+## v1.1.0-rc.2 verification update — 27 September 2026
+
+The rc.2 candidate revises the LangGraph canonical profile to v2, based on the
+persisted saver configuration, and supports the v4 checkpoint format emitted
+by pinned LangGraph 1.2.12 while continuing to reject the unreviewed v3 format.
+It also fixes the `BaseCheckpointSaver` clone and default-serializer paths found
+by the real integration suite.
+
+On this checkout, all 13 pinned Python integration tests passed, including
+real synchronous and asynchronous LangGraph + SQLite close/reopen resume tests.
+`cargo xtask langgraph-verify`, `cargo xtask release --quiet`, and
+`npm run verify --silent` passed. The isolated Python 3.12 environment needed
+a temporary event-loop pulse in its test runner; that diagnostic workaround is
+outside the repository. Hosted CI for the new candidate, independent user
+sessions, and fair comparison results remain outstanding. The stable
+`v1.0.2` production and Devpost references stay unchanged until those external
+gates are addressed.

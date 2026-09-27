@@ -5,7 +5,7 @@ Every claim follows the [claim matrix](claim-matrix.md), keeping local Demo
 Space V2 evidence separate from the earlier Sepolia observation.
 
 **Stable project and submission version: `v1.0.2`.** The evaluation
-pre-release is [`v1.1.0-rc.1`](release-notes-v1.1.0-rc.1.md); it is not the
+pre-release is [`v1.1.0-rc.2`](release-notes-v1.1.0-rc.2.md); it is not the
 current Devpost build. The preceding stable release is
 [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 
@@ -20,7 +20,7 @@ current Devpost build. The preceding stable release is
 | [Thumbnail source](assets/devpost-thumbnail.html) | Editable source using [the website preview image](assets/devpost-website-preview.png) |
 | [Contribution and provenance](contribution-and-provenance.md) | Project contribution, repository history, standards, and claim limits |
 | [Release checklist](release-checklist.md) | Local verification record and outstanding external gates |
-| [v1.1.0-rc.1 release notes](release-notes-v1.1.0-rc.1.md) | Evaluation candidate changes, verification status, and limits |
+| [v1.1.0-rc.2 release notes](release-notes-v1.1.0-rc.2.md) | Evaluation candidate changes, verification status, and limits |
 | [Local incident envelope](../../evidence/submission/README.md) | Demo Space V2 artifacts and offline verification command |
 | [Historical claim audit](claim-audit-report.md) | Audit of the 24 September source candidate; it does not describe v1.0.2 |
 | [GitHub publication record](github-publication-manifest.md) | Source snapshot, included files, exclusions, and publication limits |
@@ -58,9 +58,10 @@ environment or external human reproduction report.
 The local session file `:memory:.ses` is not a project artifact and must never
 be published.
 
-The `v1.1.0-rc.1` evaluation candidate is available as a separate GitHub
-pre-release and Cloudflare Pages preview. The current production deployment
-and Devpost entry remain on the stable `v1.0.2` baseline. Hosted CI for the
-candidate implementation commit could not obtain a runner, so the pre-release
-notes describe which local checks passed and which LangGraph integration tests
-remain unverified.
+The `v1.1.0-rc.2` evaluation candidate is available as a separate GitHub
+pre-release and is being published to its own Cloudflare Pages preview. The
+current production deployment and Devpost entry remain on the stable `v1.0.2`
+baseline. The pinned local
+LangGraph sync/async integration gate passes; hosted CI and independent human
+reproduction remain separate evidence gates. See the current release notes
+and checklist before treating the candidate as stable.

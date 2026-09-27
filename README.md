@@ -7,25 +7,25 @@ This local-first prototype uses synthetic demo fixtures; raw memory stays off-ch
 It does not authenticate canonical chain provenance or integrate with production agents.
 
 **Latest stable release: `v1.0.2`** · [GitHub Release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2).
-**Current pre-release candidate: `v1.1.0-rc.1`** · [Release notes](docs/submission/release-notes-v1.1.0-rc.1.md) · [GitHub pre-release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.1.0-rc.1) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.1.0-rc.1). This candidate is for evaluation; it is not the stable Devpost build.
+**Current pre-release candidate: `v1.1.0-rc.2`** · [Release notes](docs/submission/release-notes-v1.1.0-rc.2.md) · [GitHub pre-release](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.1.0-rc.2) · [Source tag](https://github.com/AndroLay/MemoryLineage/tree/v1.1.0-rc.2). This candidate is for evaluation; it is not the stable Devpost build.
 Previous stable release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 Two-minute demo: [Watch on YouTube](https://youtu.be/K2QUHm4lJCo).
 
-Production site: [memorylineage.pages.dev](https://memorylineage.pages.dev), still serving the stable `v1.0.2` build from source commit `80257f74`. The candidate preview is deployed separately at [ml-v1-1-0-rc-1.memorylineage.pages.dev](https://ml-v1-1-0-rc-1.memorylineage.pages.dev); it does not replace production. Public browser reachability must be checked from the visitor's network if Cloudflare Access or bot protection blocks automated requests.
+Production site: [memorylineage.pages.dev](https://memorylineage.pages.dev), still serving the stable `v1.0.2` build from source commit `80257f74`. The `v1.1.0-rc.2` preview target is [ml-v1-1-0-rc-2.memorylineage.pages.dev](https://ml-v1-1-0-rc-2.memorylineage.pages.dev); its deployment status is recorded in the [release checklist](docs/submission/release-checklist.md). It does not replace production.
 Demo Space V2 remains local and is not deployed to Sepolia.
 
 ## Experimental LangGraph integration
 
-The `v1.1.0-rc.1` pre-release adds an experimental LangGraph checkpoint gate
+The `v1.1.0-rc.2` pre-release adds an experimental LangGraph checkpoint gate
 and a versioned, blinded recovery receipt. These additions are not part of the
 stable `v1.0.2` release or current Devpost submission. The integration uses
 local synthetic data; it does not provide production secret management,
 protect a saver before deserialization, or authenticate canonical chain state.
-GitHub Actions for code commit `e87be2e` and its retry ended before any workflow
-step because GitHub assigned no runner (`runner_id: 0`), so the real
-LangGraph/SQLite integration gate still needs a successful hosted run.
-See [the integration guide](integrations/langgraph/README.md),
-[release notes](docs/submission/release-notes-v1.1.0-rc.1.md), and the
+Pinned LangGraph 1.2.12 sync/async SQLite integration tests and the local
+release gates pass; the current candidate's hosted CI status is recorded in the
+release checklist. No production agent adoption or production secret lifecycle
+is claimed. See [the integration guide](integrations/langgraph/README.md),
+[release notes](docs/submission/release-notes-v1.1.0-rc.2.md), and the
 [upgrade status](docs/research/2026-09-27-memorylineage-final-upgrade-status.md).
 
 ## The problem

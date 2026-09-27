@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-CHECKPOINT_PROFILE = "memorylineage/langgraph-checkpoint/v1"
+CHECKPOINT_PROFILE = "memorylineage/langgraph-checkpoint/v2"
 SNAPSHOT_PROFILE = "memorylineage/private-snapshot/blinded-v1"
 SOURCE_CLASS = "DEMO_SPACE_V2_LOCAL"
 RECOVERY_INPUT_SCHEMA = "memorylineage-recovery-input-v1"
@@ -26,6 +26,8 @@ _CHECKPOINT_REQUIRED = {
     "updated_channels",
 }
 _CHECKPOINT_OPTIONAL = {"pending_sends"}
+_SUPPORTED_CHECKPOINT_VERSIONS = frozenset({1, 2, 4})
+_EPHEMERAL_RUNTIME_CONFIG_KEY = "__pregel_runtime"
 _TUPLE_FIELDS = ("config", "checkpoint", "metadata", "parent_config", "pending_writes")
 
 
@@ -78,6 +80,24 @@ def _required_attr(value: Any, name: str) -> Any:
         raise CanonicalizationError(f"checkpoint tuple is missing {name}") from error
 
 
+def _persistent_config_projection(config: Any) -> Any:
+    """Project config to the persisted saver identity, excluding run options."""
+
+    if not isinstance(config, Mapping):
+        raise CanonicalizationError("checkpoint config must be a mapping")
+    configurable = config.get("configurable")
+    if not isinstance(configurable, Mapping):
+        raise CanonicalizationError("checkpoint config requires a configurable mapping")
+
+    projected_configurable = dict(configurable)
+    # LangGraph injects this execution object while invoking a graph. It is
+    # neither persisted checkpoint state nor stable JSON configuration.
+    projected_configurable.pop(_EPHEMERAL_RUNTIME_CONFIG_KEY, None)
+    # Top-level callbacks, tracing metadata, tags, and recursion controls are
+    # invocation options; the saver persists and returns only `configurable`.
+    return {"configurable": projected_configurable}
+
+
 def canonicalize_checkpoint_tuple(checkpoint_tuple: Any) -> CanonicalSnapshot:
     """Bind config, checkpoint, metadata, parent and pending writes together.
 
@@ -102,7 +122,7 @@ def canonicalize_checkpoint_tuple(checkpoint_tuple: Any) -> CanonicalSnapshot:
         raise CanonicalizationError("checkpoint contains unreviewed fields")
 
     version = checkpoint["v"]
-    if type(version) is not int or version not in (1, 2):
+    if type(version) is not int or version not in _SUPPORTED_CHECKPOINT_VERSIONS:
         raise CanonicalizationError("unsupported LangGraph checkpoint format version")
     channel_values = checkpoint["channel_values"]
     if not isinstance(channel_values, Mapping):
@@ -116,7 +136,7 @@ def canonicalize_checkpoint_tuple(checkpoint_tuple: Any) -> CanonicalSnapshot:
     normalized_checkpoint = dict(checkpoint)
     normalized_checkpoint.setdefault("pending_sends", [])
     normalized_tuple = {
-        "config": tuple_data["config"],
+        "config": _persistent_config_projection(tuple_data["config"]),
         "checkpoint": normalized_checkpoint,
         "metadata": tuple_data["metadata"],
         "parent_config": tuple_data["parent_config"],
@@ -138,7 +158,7 @@ def canonicalize_checkpoint_tuple(checkpoint_tuple: Any) -> CanonicalSnapshot:
         raise CanonicalizationError("checkpoint cannot be encoded by the canonical profile") from error
     if len(encoded_bytes) > MAX_CANONICAL_BYTES:
         raise CanonicalizationError("checkpoint exceeds the supported canonical size")
-    return CanonicalSnapshot(sequence=sequence, values={"langgraph_checkpoint_tuple_v1": encoded})
+    return CanonicalSnapshot(sequence=sequence, values={"langgraph_checkpoint_tuple_v2": encoded})
 
 
 def make_recovery_input(checkpoint_tuple: Any, blinding_secret: bytes) -> dict[str, Any]:

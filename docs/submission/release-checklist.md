@@ -12,11 +12,11 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | Project release version | PUBLISHED TAG AND RELEASE `v1.0.2` | The annotated tag and GitHub Release use the same sanitized source snapshot; Rust workspace crates retain their independent `0.1.0` package versions. |
-| Current upgrade candidate | PRE-RELEASE `v1.1.0-rc.1` | The annotated candidate tag and GitHub pre-release are for evaluation only; `v1.0.2` remains the stable Devpost baseline. See the [candidate release notes](release-notes-v1.1.0-rc.1.md). |
+| Current upgrade candidate | PRE-RELEASE `v1.1.0-rc.2` | The annotated candidate tag and GitHub pre-release are for evaluation only; `v1.0.2` remains the stable Devpost baseline. See the [candidate release notes](release-notes-v1.1.0-rc.2.md). |
 | Release source history | PURGED AND PUBLISHED | The reachable `main` and `v1.0.2` histories exclude the MP4, WAV, narration, and video production files. Older version tags are unchanged. |
 | Release artifacts | PUBLISHED | The ten-page pitch PDF remains in the repository and is attached to the GitHub Release. No video or audio files are attached. |
 | Rust workspace and pinned toolchain | PASS | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` |
-| Dioxus Inspector and first-run routes | IMPLEMENTED / BROWSER GATE UNSTABLE | The routes and challenge interactions are included in `v1.0.2`; see the automated verification record below for Chromium smoke results. |
+| Dioxus Inspector and first-run routes | IMPLEMENTED / CURRENT CHROMIUM GATE PASS | The routes and challenge interactions are included in `v1.0.2`; the current release gate also rebuilt and smoke-tested the candidate. |
 | Local preview | LAST RECORDED PASS | `http://127.0.0.1:8080` was previously served by `cargo xtask serve-web`; it was not rechecked during the v1.0.2 publication step. |
 | Judge-facing first minute | IMPLEMENTED / NOT USER-VALIDATED | The answer is withheld until check; the result separates check status from the restore decision and exposes the exact machine reason afterward. No novice sessions or 4/4 heuristic scores are claimed. |
 | Silent Rollback exact result | PASS | `BAD_PREVIOUS_STATE` in local Demo Space V2 Rust/revm evidence |
@@ -28,7 +28,7 @@ are recorded in the [Top-1 readiness register](readiness-register.md).
 | Public package boundary | PASS | `scripts/check-public-package.sh --release` |
 | Reviewer archive tooling | PASS / automated local only | `cargo xtask reviewer-package` and `cargo xtask reviewer-reproduce` passed from a clean committed candidate |
 | Public static website | DEPLOYED; PUBLIC REACHABILITY UNVERIFIED | Wrangler confirmed a production deployment to project `memorylineage`, branch `main`, source commit `80257f74`, at `d001a7dc.memorylineage.pages.dev`. HTTP checks from this environment returned 403 for the deployment URL and custom domain, so visitor access and served content remain unverified. |
-| Candidate website preview | DEPLOYED; HTTP 200 | Wrangler 4.141.0 deployed source commit `e87be2e` to preview branch `ml-v1-1-0-rc-1`; direct URL [`0d9339b4.memorylineage.pages.dev`](https://0d9339b4.memorylineage.pages.dev) and branch alias [`ml-v1-1-0-rc-1.memorylineage.pages.dev`](https://ml-v1-1-0-rc-1.memorylineage.pages.dev). A HEAD request returned HTTP 200. Production `main` remains unchanged. |
+| Candidate website preview | PENDING DEPLOYMENT | The `v1.1.0-rc.2` static Inspector will use its own preview branch; production `main` remains on the stable `v1.0.2` build. |
 | Pitch deck | PASS / local only | Ten-page [`pitch PDF`](MemoryLineage-3rd-Web-Hack.pdf) labels The Problem, The Solution, The Innovation, The Impact, Current Limitations, and Future Scope; generated from editable HTML and visually reviewed |
 | Demo video | URL SUPPLIED; EMBED VISIBLE IN OWNER SCREENSHOT | The project owner supplied <https://youtu.be/K2QUHm4lJCo>; a screenshot shows the Devpost page with an embedded player. Playback is not independently verified. The video and production files are absent from the reachable `main` and `v1.0.2` histories. |
 | Secret-blinded commitment helper | PASS / preparation only | A separate opt-in helper binds a V2-encoded snapshot, space ID, and caller secret; no production secret lifecycle or Demo Space V2 migration is claimed |
@@ -44,17 +44,20 @@ cargo xtask reviewer-reproduce
 npm run verify
 ```
 
-The recorded local checks were run on the same application source before the
-history cleanup. That cleanup removed only media and production files and did
-not modify application code. `cargo xtask release --quiet` passed formatting,
-Clippy, workspace tests, fixture and evidence checks, portability replay,
-recovery and runtime gates, Solidity/revm scenarios, WASM compilation, package
-boundary, and static build. It then failed at the Chromium step with
-`Chromium page debugging target did not start`; therefore the combined release
-gate did not exit successfully. A standalone browser smoke passed once with
-Chromium stderr captured to a temporary file, while other standard smoke
-attempts could not start the page target. Treat the browser smoke as unstable,
-not as a consistently passing gate.
+The `v1.1.0-rc.2` source passed `cargo xtask release --quiet`, including
+formatting, Clippy, workspace and evidence tests, Solidity/revm scenarios,
+WASM compilation, public-package checks, static build, Chromium browser smoke,
+and release-package boundary. The gate required permission to bind local
+Chromium/HTTP sockets in this environment. `npm run verify --silent` also
+passed all nine compatibility, Inspector, evidence, and package checks.
+
+`PYTHON=/path/to/python3.12 cargo xtask langgraph-verify` passed the pinned
+LangGraph 1.2.12 synchronous and asynchronous SQLite boundary tests (13 tests
+total across the integration suite). This sandbox's isolated Python 3.12
+selector needed a temporary 10 ms event-loop pulse during test execution and
+shutdown; the pulse was installed only in the temporary test environment and
+is not a repository dependency or adapter change. A normal Python 3.12 runtime
+should run the documented gate directly.
 
 `python3 -m unittest scripts.test_smoke_web -q` passed all 8 tests, including
 the regression check that keeps Chromium's Linux singleton socket path below
@@ -86,7 +89,7 @@ vulnerabilities. RustSec still reports two transitive maintenance warnings:
 | Gate | Status | Why |
 | --- | --- | --- |
 | External human clean-checkout report | NOT YET DEMONSTRATED | `evidence/reproduction/` contains no self-authored report |
-| Hosted CI for candidate | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260), including its retry, for code commit `e87be2e` ended with `runner_id: 0` and zero steps. This supplies no test result; a successful hosted run remains required before stable `v1.1.0`. |
+| Hosted CI for `v1.1.0-rc.2` | PENDING | The pre-release source has local release and LangGraph evidence; record the new hosted workflow result after GitHub processes the pushed candidate commit. The previous `v1.1.0-rc.1` run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260) and retry stopped before workflow steps with `runner_id: 0`. |
 | GitHub Actions for previous `v1.0.1` | BLOCKED BY HOSTED RUNNER | Runs [`35639481534`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639481534), [`35639669674`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639669674), [`35639841420`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639841420), and [`35639973599`](https://github.com/AndroLay/MemoryLineage/actions/runs/35639973599) ended before the first step with `runner_id: 0` |
 | Previous release candidate | ARCHIVED | `v1.0.1-rc.3` remains available as the preceding review candidate |
 | Previous public release tag | PUBLISHED / prior candidate | `v1.0.1` points to baseline commit `44a5751`; it does not contain this source candidate |

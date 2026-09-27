@@ -48,13 +48,19 @@ PYTHONPATH=integrations/langgraph/src python -m unittest discover \
 
 ## Supported checkpoint profile
 
-`memorylineage/langgraph-checkpoint/v1` binds the full checkpoint tuple:
-configuration, all checkpoint fields, metadata, parent configuration, and
-pending writes. It accepts JSON-compatible values, checkpoint versions 1 and 2,
-and a positive `memorylineage_sequence` channel. It rejects unknown checkpoint
-fields, unsupported versions, custom Python objects, non-finite numbers,
-excessive depth, and values beyond the documented size budget. A LangGraph
-format change requires an explicit profile review and version bump.
+`memorylineage/langgraph-checkpoint/v2` binds the persisted checkpoint tuple:
+the persisted `configurable` saver identity (excluding LangGraph's per-run
+`__pregel_runtime` object and top-level invocation options), all checkpoint
+fields, metadata, parent configuration, and pending writes. It accepts
+JSON-compatible values, checkpoint versions 1, 2,
+and 4, and a positive `memorylineage_sequence` channel. Version 4 is emitted by
+the pinned LangGraph 1.2.12 runtime. Version 3 remains unreviewed and is
+rejected. Unknown checkpoint fields, other versions, custom Python objects,
+non-finite numbers, excessive depth, and values beyond the documented size
+budget also fail closed. Version 2 makes the persisted-config projection
+explicit and uses a distinct canonical value key, so it does not collide with
+the earlier `v1.1.0-rc.1` candidate's v1 projection. A change to fields or
+normalization requires a new MemoryLineage profile version.
 
 The recovery secret is a caller responsibility and must remain local. The
 receipt contains the blinded commitment and evidence references, not the raw

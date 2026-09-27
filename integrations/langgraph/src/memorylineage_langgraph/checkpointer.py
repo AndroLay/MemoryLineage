@@ -226,11 +226,16 @@ class MemoryLineageCheckpointer(BaseCheckpointSaver):
         self._on_receipt = on_receipt
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._inner, name)
+        try:
+            inner = object.__getattribute__(self, "_inner")
+        except AttributeError:
+            raise AttributeError(name) from None
+        return getattr(inner, name)
 
     @property
     def serde(self) -> Any:
-        return self._inner.serde
+        default_serde = getattr(BaseCheckpointSaver, "serde", None)
+        return getattr(self._inner, "serde", default_serde)
 
     @serde.setter
     def serde(self, value: Any) -> None:

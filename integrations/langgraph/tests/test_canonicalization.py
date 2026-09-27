@@ -34,9 +34,9 @@ class CanonicalCheckpointTests(unittest.TestCase):
         snapshot = canonicalize_checkpoint_tuple(sample_tuple())
 
         self.assertEqual(snapshot.sequence, 3)
-        encoded = snapshot.values["langgraph_checkpoint_tuple_v1"]
+        encoded = snapshot.values["langgraph_checkpoint_tuple_v2"]
         decoded = json.loads(encoded)
-        self.assertEqual(decoded["profile"], "memorylineage/langgraph-checkpoint/v1")
+        self.assertEqual(decoded["profile"], "memorylineage/langgraph-checkpoint/v2")
         self.assertEqual(
             set(decoded["tuple"]),
             {"config", "checkpoint", "metadata", "parent_config", "pending_writes"},
@@ -46,6 +46,38 @@ class CanonicalCheckpointTests(unittest.TestCase):
         self.assertEqual(
             encoded,
             json.dumps(decoded, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(",", ":")),
+        )
+
+    def test_accepts_pinned_langgraph_checkpoint_format_v4(self):
+        checkpoint_tuple = sample_tuple()
+        checkpoint_tuple.checkpoint = {**checkpoint_tuple.checkpoint, "v": 4}
+
+        snapshot = canonicalize_checkpoint_tuple(checkpoint_tuple)
+
+        decoded = json.loads(snapshot.values["langgraph_checkpoint_tuple_v2"])
+        self.assertEqual(snapshot.sequence, 3)
+        self.assertEqual(decoded["tuple"]["checkpoint"]["v"], 4)
+
+    def test_excludes_ephemeral_runtime_from_persistent_config_projection(self):
+        checkpoint_tuple = sample_tuple()
+        checkpoint_tuple.config = {
+            **checkpoint_tuple.config,
+            "callbacks": object(),
+            "metadata": object(),
+            "recursion_limit": 25,
+            "tags": ["synthetic-trace"],
+            "configurable": {
+                **checkpoint_tuple.config["configurable"],
+                "__pregel_runtime": object(),
+            },
+        }
+
+        snapshot = canonicalize_checkpoint_tuple(checkpoint_tuple)
+
+        decoded = json.loads(snapshot.values["langgraph_checkpoint_tuple_v2"])
+        self.assertEqual(
+            decoded["tuple"]["config"],
+            {"configurable": {"thread_id": "synthetic-thread", "checkpoint_id": "cp-3"}},
         )
 
     def test_recovery_input_keeps_secret_out_of_snapshot_values(self):
@@ -58,6 +90,11 @@ class CanonicalCheckpointTests(unittest.TestCase):
         self.assertNotIn(payload["blindingSecret"], json.dumps(payload["snapshot"]))
 
     def test_rejects_unsupported_checkpoint_version_and_extra_fields(self):
+        unreviewed_version = sample_tuple()
+        unreviewed_version.checkpoint = {**unreviewed_version.checkpoint, "v": 3}
+        with self.assertRaises(CanonicalizationError):
+            canonicalize_checkpoint_tuple(unreviewed_version)
+
         unsupported = sample_tuple()
         unsupported.checkpoint = {**unsupported.checkpoint, "v": 99}
         with self.assertRaises(CanonicalizationError):
