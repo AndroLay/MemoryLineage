@@ -11,7 +11,8 @@ It does not authenticate canonical chain provenance or integrate with production
 Previous stable release: [`v1.0.1`](https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.1).
 Two-minute demo: [Watch on YouTube](https://youtu.be/K2QUHm4lJCo).
 
-Production site: [memorylineage.pages.dev](https://memorylineage.pages.dev), still serving the stable `v1.0.2` build from source commit `80257f74`. The `v1.1.0-rc.2` preview target is [ml-v1-1-0-rc-2.memorylineage.pages.dev](https://ml-v1-1-0-rc-2.memorylineage.pages.dev); its deployment status is recorded in the [release checklist](docs/submission/release-checklist.md). It does not replace production.
+Production site: [memorylineage.pages.dev](https://memorylineage.pages.dev). Cloudflare Pages now serves the static Inspector built from `main` at source commit `6f03984` ([deployment](https://2ad1796d.memorylineage.pages.dev)); HTTP and production browser smoke checks pass. This is the `v1.1.0-rc.2` evaluation candidate, not a stable release: `v1.0.2` remains the stable GitHub release and Devpost baseline. The prior production deployment from `80257f74` remains available at [d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev). A separate preview for the earlier candidate build remains at [ml-v1-1-0-rc-2.memorylineage.pages.dev](https://ml-v1-1-0-rc-2.memorylineage.pages.dev).
+See the [release checklist](docs/submission/release-checklist.md) for evidence and limits.
 Demo Space V2 remains local and is not deployed to Sepolia.
 
 ## Experimental LangGraph integration
@@ -226,7 +227,7 @@ Still intentionally outside this repository release:
 - formal third-party security audit;
 - external human clean-checkout reproduction and production adoption;
 - a new Sepolia deployment of Demo Space V2 and a separate staging environment;
-- confirmation that external visitors can reach the deployed Pages site.
+- independent novice-comprehension sessions and a same-panel comparison with Forkline.
 
 ## Repository map
 

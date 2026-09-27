@@ -1,6 +1,6 @@
 # GitHub publication record and scope
 
-**Checked:** 26 September 2026
+**Checked:** 27 September 2026
 
 **Published project version:** [`v1.0.2`](https://github.com/AndroLay/MemoryLineage/tree/v1.0.2)
 
@@ -8,15 +8,20 @@
 
 ## Publication status
 
-- The annotated `v1.0.2` tag points to the sanitized release source and is
-  aligned with the published `main` history.
+- The annotated `v1.0.2` tag points to the sanitized stable release snapshot.
+  After that release, `main` advanced to the `v1.1.0-rc.2` evaluation
+  candidate at `6f03984`; the stable tag intentionally remains pinned to its
+  original release commit.
 - The GitHub Release uses tag `v1.0.2` and attaches the ten-page pitch PDF.
   The local session artifact was excluded.
 - GitHub Actions run [36248726652](https://github.com/AndroLay/MemoryLineage/actions/runs/36248726652)
   and its retry refer to the original pre-cleanup revision and ended before any
   job step; the rewritten tag has no hosted CI result.
-- The Pages URL returned Cloudflare HTTP 403, error 1010, from the latest
-  check in this environment. Deployment and live content remain unverified.
+- Wrangler deployed Pages production from branch `main`, source `6f03984`,
+  deployment ID `2ad1796d-6fac-44ff-b644-37351d6be2a4`. The production domain
+  and deployment URL returned HTTP 200, and the production browser smoke
+  passed. The previous production deployment at source `80257f74` remains
+  available at `d001a7dc.memorylineage.pages.dev` and returned HTTP 200.
 - The project owner reports uploading the two-minute demo to YouTube; its URL
   is not recorded here. The Devpost video field was not independently checked.
 - The video, audio, narration, and production files are absent from the
@@ -25,8 +30,10 @@
 
 ## Intended public commit contents
 
-Current `main` and the published `v1.0.2` tag contain the public source and
-review materials without video or audio production history.
+Current `main` and the published `v1.0.2` stable tag contain the public source
+and review materials without video or audio production history. `main` includes
+the newer evaluation candidate; the stable tag and Devpost submission remain
+at `v1.0.2`.
 
 - Repository entry points and interface source: `.gitignore`, `README.md`,
   `DESIGN.md`, `PRODUCT.md`, `apps/inspector/`, and the relevant browser

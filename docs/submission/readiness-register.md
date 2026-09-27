@@ -300,3 +300,34 @@ no CI test result. Wrangler deployed the static candidate to the preview alias
 from source commit `9ecc54d`; an HTTP HEAD request returned 200. Independent
 developer reproduction, novice comprehension, production agent adoption, and
 a same-panel Forkline comparison remain unverified.
+
+## Main merge and production Pages deployment — 27 September 2026
+
+The upgrade branch was fast-forwarded into `main` and pushed to GitHub at
+source commit `6f0398424f5f8367f8bcf5c31006da4d922b7683` (the annotated
+`v1.1.0-rc.2` candidate tag). On the merged `main` checkout,
+`cargo xtask release --quiet`, `npm run verify --silent`, and the pinned
+LangGraph sync/async checkpoint gate passed. The production browser smoke
+`python3 scripts/smoke_web.py --base-url https://memorylineage.pages.dev`
+passed the landing page, guided challenge, Inspector, evidence tamper/restore,
+keyboard focus, accessibility labels, and 390px responsive checks. The
+optional Sepolia RPC probe was skipped; Demo Space V2 remains local.
+
+Wrangler 4.141.0 deployed the static Inspector to Cloudflare Pages project
+`memorylineage`, environment `Production`, branch `main`, source `6f03984`.
+Deployment ID is `2ad1796d-6fac-44ff-b644-37351d6be2a4` at
+[`2ad1796d.memorylineage.pages.dev`](https://2ad1796d.memorylineage.pages.dev).
+Both that URL and [`memorylineage.pages.dev`](https://memorylineage.pages.dev)
+returned HTTP 200. The prior production deployment from source `80257f74`
+remains at [`d001a7dc.memorylineage.pages.dev`](https://d001a7dc.memorylineage.pages.dev)
+and returned HTTP 200; it is retained as a rollback target.
+
+The GitHub Actions run for the pushed `main` commit,
+[`36288452284`](https://github.com/AndroLay/MemoryLineage/actions/runs/36288452284),
+ended with `runner_id: 0` and no workflow steps. It provides no hosted test
+result; this is not a test failure in project code. The stable GitHub release
+and Devpost submission remain `v1.0.2`; Pages production now serves the static
+Inspector built from the `v1.1.0-rc.2` evaluation candidate. No stable `v1.1.0`
+release or Devpost edit was made. Independent human reproduction, novice
+comprehension, production-agent adoption, and a same-panel Forkline comparison
+remain unverified.

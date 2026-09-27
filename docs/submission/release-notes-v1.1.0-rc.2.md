@@ -1,7 +1,10 @@
 # MemoryLineage v1.1.0-rc.2
 
-This evaluation pre-release follows `v1.1.0-rc.1`. The latest stable release,
-production site, and current Devpost build remain `v1.0.2`.
+This evaluation pre-release follows `v1.1.0-rc.1`. The stable GitHub release
+and current Devpost submission remain `v1.0.2`. The candidate was fast-forwarded
+to `main` at `6f03984`, and that source now serves the static Inspector in Pages
+production. This website deployment does not promote the GitHub pre-release to
+a stable release.
 
 ## Changes since rc.1
 
@@ -32,6 +35,9 @@ production site, and current Devpost build remain `v1.0.2`.
   Run [`36287384859`](https://github.com/AndroLay/MemoryLineage/actions/runs/36287384859)
   and its retry both had `runner_id: 0` and zero steps. They provide no code
   test result.
+- The post-push `main` run for `6f03984`,
+  [`36288452284`](https://github.com/AndroLay/MemoryLineage/actions/runs/36288452284),
+  also ended with `runner_id: 0` and no steps; it provides no test result.
 
 The sandbox's isolated Python 3.12 runtime did not wake its selector reliably
 for thread callbacks. A temporary 10 ms test-runner pulse was used only in the
@@ -48,9 +54,16 @@ Independent developer reproduction, novice comprehension sessions, and a
 same-panel comparison with Forkline remain unmeasured; no superiority score is
 claimed.
 
-The candidate preview alias is
+The earlier candidate preview alias is
 <https://ml-v1-1-0-rc-2.memorylineage.pages.dev>; it returned HTTP 200 after
-deployment of source commit `9ecc54d`. Production remains on stable `v1.0.2`. The
-existing demo stays on YouTube; the pitch PDF remains the only
+deployment of source commit `9ecc54d`. The current production deployment uses
+branch `main`, source commit `6f03984`, deployment ID
+`2ad1796d-6fac-44ff-b644-37351d6be2a4`, and URL
+<https://2ad1796d.memorylineage.pages.dev>. Both it and
+<https://memorylineage.pages.dev> return HTTP 200; the production browser smoke
+passed. The previous production deployment from `80257f74` remains available
+at <https://d001a7dc.memorylineage.pages.dev> and returns HTTP 200. The stable
+GitHub release and Devpost submission remain `v1.0.2`; the existing demo stays
+on YouTube; the pitch PDF remains the only
 presentation file in the repository and release. No new video or audio was
 created.

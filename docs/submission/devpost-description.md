@@ -1,12 +1,12 @@
 # Devpost description draft
 
 This draft is the short judge-facing description for MemoryLineage. It keeps
-the same wording as the repository and claim matrix. The submission project
-version is `v1.0.2`; the preceding public Inspector release was `v1.0.1`. The
-`v1.0.2` build was deployed to Cloudflare Pages production on 27 September
-2026; HTTP checks from this environment returned 403, so public browser
-reachability and served content remain unverified. This draft does not claim
-external adoption, semantic memory safety, or authorship of ERC-8350.
+the same wording as the repository and claim matrix. The Devpost submission
+baseline remains `v1.0.2`; the stable GitHub release is unchanged. The current
+Cloudflare Pages production site is built from `main` at `6f03984`, the
+`v1.1.0-rc.2` evaluation candidate. Its custom domain returned HTTP 200 and the
+production browser smoke passed. This does not claim external adoption,
+semantic memory safety, or authorship of ERC-8350.
 
 ## Problem
 
@@ -108,11 +108,13 @@ an owner-provided screenshot shows the embedded player on Devpost; playback is
 not independently verified. Video, voice-over, scripts, and production sources
 are absent from the reachable `main` and `v1.0.2` histories. The public
 Inspector URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
-Wrangler confirms a production deployment for branch `main`, source commit
-`80257f74`, at
-[d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev).
-HTTP checks from this environment returned 403 for both URLs, so public browser
-reachability and served content remain unverified. `VERIFIED` in the CLI
+Wrangler confirms the current production deployment for branch `main`, source
+commit `6f03984`, at
+[2ad1796d.memorylineage.pages.dev](https://2ad1796d.memorylineage.pages.dev);
+both this URL and the custom domain returned HTTP 200, and the production
+browser smoke passed. The previous deployment from source `80257f74` remains
+available at [d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev).
+`VERIFIED` in the CLI
 report is scoped by `OFFLINE_BUNDLE_REPLAY`: the verifier checks bundle
 consistency and address syntax, not canonical registry provenance. Complete
 history recovery requires retained event logs or bundles; historical ERC-1271

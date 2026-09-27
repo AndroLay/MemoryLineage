@@ -46,16 +46,26 @@ criteria.
   `a58fe2c44cc3c8d19ac3300b8b29f91dcb4fd8af`. I read its source, tests,
   documentation, workflows, and recorded evidence and inspected the saved
   interface captures. I did **not** execute the Forkline tests or demo.
-- MemoryLineage's local implementation scores draw on the current source and
-  recorded release evidence in the [readiness register](../submission/readiness-register.md)
-  and [project README](../../README.md). GitHub `main` and the annotated
-  `v1.0.2` tag both resolve to `80257f74fbb0887fd2c6c5d0fedaeb89bccabf88`,
+- MemoryLineage's local implementation scores draw on the source and recorded
+  release evidence available during this score review in the [readiness
+  register](../submission/readiness-register.md) and [project
+  README](../../README.md). At that time GitHub `main` and the annotated
+  `v1.0.2` tag both resolved to `80257f74fbb0887fd2c6c5d0fedaeb89bccabf88`,
   matching this checkout. I did **not** rerun its tests in this score review.
 - The Devpost pages were not fetched in this pass. The latest available owner
   screenshot shows a duplicate GitHub link and an empty contribution-description
   field; treat those two presentation observations as screenshot-bound and
-  potentially stale. The latest recorded Pages check returned HTTP 403, so the
-  currently served content and public reachability remain unverified.
+  potentially stale. The Pages check available during this review returned
+  HTTP 403.
+
+### State update after this score review
+
+Later on 27 September, `v1.1.0-rc.2` was fast-forwarded to `main` at
+`6f03984` and the static Inspector was deployed to Cloudflare Pages production.
+The custom domain and deployment URL returned HTTP 200, and the production
+browser smoke passed. The `v1.0.2` stable tag and Devpost baseline remain
+unchanged. The rubric scores above have not been recalculated from the newer
+evaluation candidate; see the current [readiness register](../submission/readiness-register.md).
 
 ## MemoryLineage rubric breakdown
 

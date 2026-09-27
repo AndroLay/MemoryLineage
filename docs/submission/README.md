@@ -41,28 +41,30 @@ tag. See the [release checklist](release-checklist.md) for the local gate
 evidence and its limits.
 
 The public Pages URL is [memorylineage.pages.dev](https://memorylineage.pages.dev).
-On 27 September 2026, Wrangler confirmed a production deployment for project
-`memorylineage`, branch `main`, source commit `80257f74`; its deployment URL is
-[d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev).
-HTTP checks from this environment returned 403 for both URLs, so public browser
-reachability and the content served to visitors remain unverified. The prior
-production deployment remains available in Cloudflare Pages for rollback. The
+On 27 September 2026, Wrangler 4.141.0 deployed the static Inspector to
+production from branch `main`, source commit `6f03984`, deployment ID
+`2ad1796d-6fac-44ff-b644-37351d6be2a4`; its direct URL is
+[2ad1796d.memorylineage.pages.dev](https://2ad1796d.memorylineage.pages.dev).
+Both the direct URL and custom domain returned HTTP 200, and the production
+browser smoke passed. This production site uses the `v1.1.0-rc.2` evaluation
+candidate; the stable GitHub release and Devpost submission remain `v1.0.2`.
+The earlier production deployment from source `80257f74` remains available at
+[d001a7dc.memorylineage.pages.dev](https://d001a7dc.memorylineage.pages.dev)
+and returned HTTP 200 as a rollback target. The
 project owner supplied the two-minute [YouTube demo](https://youtu.be/K2QUHm4lJCo),
 and an owner-provided screenshot shows the Devpost project page with its
-embedded player. Playback and public page reachability were not independently
-checked. The pitch PDF remains in the repository and is attached to the
-GitHub Release. Video, audio, scripts, and production sources were purged from
+embedded player. Playback was not independently checked. The pitch PDF remains
+in the repository and is attached to the GitHub Release. Video, audio, scripts,
+and production sources were purged from
 the reachable history of `main` and `v1.0.2`. There is no separate staging
 environment or external human reproduction report.
 
 The local session file `:memory:.ses` is not a project artifact and must never
 be published.
 
-The `v1.1.0-rc.2` evaluation candidate is available as a separate GitHub
-pre-release and Cloudflare Pages preview. The preview alias returned HTTP 200;
-see the release checklist for its exact deployment source. The current
-production deployment and Devpost entry remain on the stable `v1.0.2`
-baseline. The pinned local LangGraph sync/async integration gate passes;
-hosted CI and independent human reproduction remain separate evidence gates.
-See the current release notes and checklist before treating the candidate as
-stable.
+The `v1.1.0-rc.2` evaluation candidate is available as a GitHub pre-release and
+is now merged into `main`. Its static Inspector is deployed to Pages production;
+the stable release and Devpost entry remain at `v1.0.2`. The pinned local
+LangGraph sync/async integration gate passes, while hosted CI did not start a
+workflow step and independent human reproduction remains unproven. See the
+current release notes and checklist before treating the candidate as stable.

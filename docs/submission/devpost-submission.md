@@ -125,7 +125,7 @@ the technologies used in the repository:
 
 Add these links:
 
-1. **Live Inspector** — <https://memorylineage.pages.dev> *(Wrangler confirms the production deployment; this environment received HTTP 403, so verify that an external visitor can open it.)*
+1. **Live Inspector** — <https://memorylineage.pages.dev> *(Current Pages production is from `main` at `6f03984`; HTTP 200 and production browser smoke passed. The stable GitHub release and Devpost baseline remain `v1.0.2`.)*
 2. **Source code** — <https://github.com/AndroLay/MemoryLineage>
 3. **v1.0.2 release and pitch PDF** — <https://github.com/AndroLay/MemoryLineage/releases/tag/v1.0.2>
 

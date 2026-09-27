@@ -4,7 +4,8 @@
 an evidence-based comparison with Forkline. This record tracks the evaluation
 pre-release; it is not a claim that MemoryLineage outranks another project.
 
-**Branch:** `codex/memorylineage-final-upgrade`
+**Source branch:** `codex/memorylineage-final-upgrade`, fast-forwarded to
+`main` at `6f0398424f5f8367f8bcf5c31006da4d922b7683`
 
 **Latest stable baseline:** `v1.0.2`
 **Evaluation pre-release:** `v1.1.0-rc.2`
@@ -70,9 +71,11 @@ only presentation media stored in the repository.
    candidate. The candidate is separate from v1.0.2 and does not silently
    update the Devpost submission.
 
-These remaining gates limit stable-release, production, and evaluation claims.
-The candidate remains an opt-in preview; it does not change the v1.0.2 tag,
-production Pages deployment, or Devpost entry. No new video was created.
+These remaining gates limit stable-release, production-adoption, and evaluation
+claims. The candidate remains a pre-release: the `v1.0.2` tag and Devpost entry
+are unchanged. Its static Inspector is now deployed from `main` to Pages
+production; this website deployment does not make the candidate a stable
+release. No new video was created.
 
 ## v1.1.0-rc.1 candidate publication — 27 September 2026
 
@@ -105,6 +108,26 @@ a temporary event-loop pulse in its test runner; that diagnostic workaround is
 outside the repository. GitHub Actions run [`36287384859`](https://github.com/AndroLay/MemoryLineage/actions/runs/36287384859)
 and its retry both ended before test steps (`runner_id: 0`). Cloudflare Pages
 deployed code commit `9ecc54d` to the RC2 preview branch; the alias returned
-HTTP 200. The stable `v1.0.2` production and Devpost references remain
-unchanged. Independent user sessions and a fair same-panel comparison remain
-unmeasured.
+HTTP 200. At the time of this preview publication, the stable `v1.0.2`
+production and Devpost references remained unchanged. Independent user
+sessions and a fair same-panel comparison remain unmeasured.
+
+## Main merge and Pages production update — 27 September 2026
+
+The candidate branch was fast-forwarded and pushed to `main` at
+`6f0398424f5f8367f8bcf5c31006da4d922b7683`. The merged checkout passed
+`cargo xtask release --quiet`, `npm run verify --silent`, and the pinned
+LangGraph sync/async checkpoint gate. Cloudflare Pages project `memorylineage`
+now serves the static Inspector from production branch `main`, source
+`6f03984`, deployment ID `2ad1796d-6fac-44ff-b644-37351d6be2a4` at
+[`2ad1796d.memorylineage.pages.dev`](https://2ad1796d.memorylineage.pages.dev).
+The direct URL and custom domain returned HTTP 200, and the production browser
+smoke passed. Previous deployment `d001a7dc` from source `80257f74` remains
+available and returned HTTP 200.
+
+GitHub Actions run
+[`36288452284`](https://github.com/AndroLay/MemoryLineage/actions/runs/36288452284)
+for the pushed commit ended before its first step with `runner_id: 0`; it has
+no remote test result. Local gates passed independently. `v1.0.2` remains the
+stable tag and Devpost baseline, and `v1.1.0-rc.2` remains an evaluation
+pre-release. No stable `v1.1.0` release or Devpost update was made.
