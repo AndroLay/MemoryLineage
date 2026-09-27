@@ -3,9 +3,11 @@
 This document is the copy-ready project entry for Devpost. The story below is
 written in English to match the submission form. The project owner supplied a
 screenshot showing the public Devpost page and its embedded video player, and
-provided the YouTube link below. This confirms what the screenshot displayed;
-video playback and public Inspector reachability were not independently
-verified from this environment.
+provided the YouTube link below. The current production Inspector now returns
+HTTP 200 and passes the production browser smoke after deployment from `main`
+at `6f03984`. The video player was visible in the supplied screenshot, but
+playback has not been independently verified. The stable Devpost source
+baseline remains `v1.0.2`.
 
 ## Project overview
 
