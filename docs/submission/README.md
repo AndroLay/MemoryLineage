@@ -59,9 +59,10 @@ The local session file `:memory:.ses` is not a project artifact and must never
 be published.
 
 The `v1.1.0-rc.2` evaluation candidate is available as a separate GitHub
-pre-release and is being published to its own Cloudflare Pages preview. The
-current production deployment and Devpost entry remain on the stable `v1.0.2`
-baseline. The pinned local
-LangGraph sync/async integration gate passes; hosted CI and independent human
-reproduction remain separate evidence gates. See the current release notes
-and checklist before treating the candidate as stable.
+pre-release and Cloudflare Pages preview. The preview alias returned HTTP 200;
+see the release checklist for its exact deployment source. The current
+production deployment and Devpost entry remain on the stable `v1.0.2`
+baseline. The pinned local LangGraph sync/async integration gate passes;
+hosted CI and independent human reproduction remain separate evidence gates.
+See the current release notes and checklist before treating the candidate as
+stable.

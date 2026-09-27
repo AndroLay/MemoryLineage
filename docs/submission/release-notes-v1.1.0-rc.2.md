@@ -28,8 +28,10 @@ production site, and current Devpost build remain `v1.0.2`.
   and public package boundary.
 - `npm run verify --silent` — PASS across all nine compatibility and package
   checks.
-- Hosted CI for this candidate — pending. The previous rc.1 hosted attempt
-  ended before workflow steps because GitHub assigned no runner.
+- Hosted CI for source commit `9ecc54d` — unavailable before workflow steps.
+  Run [`36287384859`](https://github.com/AndroLay/MemoryLineage/actions/runs/36287384859)
+  and its retry both had `runner_id: 0` and zero steps. They provide no code
+  test result.
 
 The sandbox's isolated Python 3.12 runtime did not wake its selector reliably
 for thread callbacks. A temporary 10 ms test-runner pulse was used only in the
@@ -46,9 +48,9 @@ Independent developer reproduction, novice comprehension sessions, and a
 same-panel comparison with Forkline remain unmeasured; no superiority score is
 claimed.
 
-The planned candidate preview alias is
-<https://ml-v1-1-0-rc-2.memorylineage.pages.dev>; its deployment status is
-tracked in the release checklist. Production remains on stable `v1.0.2`. The
+The candidate preview alias is
+<https://ml-v1-1-0-rc-2.memorylineage.pages.dev>; it returned HTTP 200 after
+deployment of source commit `9ecc54d`. Production remains on stable `v1.0.2`. The
 existing demo stays on YouTube; the pitch PDF remains the only
 presentation file in the repository and release. No new video or audio was
 created.

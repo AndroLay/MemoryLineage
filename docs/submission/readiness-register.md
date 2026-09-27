@@ -94,7 +94,7 @@ protocol intentionally does not evaluate it.
 | Remote CI green | — | NOT_YET_DEMONSTRATED | A hosted runner executes the workflow past its first step |
 | Production agent-runtime adoption | — | NOT_YET_DEMONSTRATED | A real external runtime is integrated and recorded |
 | New Sepolia deployment of Demo Space V2 | — | OUT_OF_SCOPE | Only if separately authorized; not part of this slice |
-| Experimental LangGraph gate | Upgrade branch; pinned Python 3.12 integration packages | REAL SYNC/ASYNC LANGGRAPH + SQLITE GATE PASSES LOCALLY / HOSTED CI PENDING | Successful hosted CI improves remote reproducibility; this still does not demonstrate production adoption |
+| Experimental LangGraph gate | Upgrade branch; pinned Python 3.12 integration packages | REAL SYNC/ASYNC LANGGRAPH + SQLITE GATE PASSES LOCALLY / HOSTED RUNNER UNAVAILABLE | A hosted workflow must reach test steps; this still does not demonstrate production adoption |
 | Pitch PDF and external demo link | PDF in repository; owner supplied YouTube URL and screenshot of embedded player | PDF VERIFIED / URL SUPPLIED / PLAYBACK UNCHECKED | The PDF fails to render, or playback does not show the described demo |
 | Public Devpost page / staging environment | Owner screenshot shows project page / no staging | PAGE SHOWN IN SCREENSHOT / STAGING NOT PROVIDED | The public entry differs materially from the supplied screenshot, or a separate staging environment is claimed |
 | Semantic memory truth / poisoning detection | — | OUT_OF_SCOPE | The protocol does not evaluate semantic meaning |
@@ -281,3 +281,22 @@ and its retry both failed before starting a workflow step (`runner_id: 0`).
 This candidate is therefore an evaluation pre-release, not a fully
 CI-verified stable release. Complete the real integration gate before
 promoting it to stable `v1.1.0`.
+
+## v1.1.0-rc.2 evaluation pre-release — 27 September 2026
+
+The candidate is published as an annotated Git tag and GitHub pre-release.
+The LangGraph profile v2 and compatibility fixes are in source commit
+`9ecc54d`; stable `v1.0.2`, the Devpost entry, and production Pages remain
+unchanged. The PDF remains the only presentation file in the repository and
+release; the existing video is external on YouTube.
+
+All 13 local Python integration tests passed against pinned LangGraph 1.2.12
+and SQLite checkpoint 3.1.1, including sync and async close/reopen resume.
+`cargo xtask langgraph-verify`, `cargo xtask release --quiet`, and
+`npm run verify --silent` passed. The hosted workflow and its retry for commit
+`9ecc54d` stopped before any workflow step with `runner_id: 0`, so they provide
+no CI test result. Wrangler deployed the static candidate to the preview alias
+[`ml-v1-1-0-rc-2.memorylineage.pages.dev`](https://ml-v1-1-0-rc-2.memorylineage.pages.dev)
+from source commit `9ecc54d`; an HTTP HEAD request returned 200. Independent
+developer reproduction, novice comprehension, production agent adoption, and
+a same-panel Forkline comparison remain unverified.

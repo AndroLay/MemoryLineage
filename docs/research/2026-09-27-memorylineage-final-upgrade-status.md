@@ -49,6 +49,7 @@ only presentation media stored in the repository.
 | `npm run verify --silent` | PASS | All nine existing EVM, Python, Inspector, audit, replay, and package checks |
 | `cargo xtask langgraph-verify` | PASS | 13 Python integration tests with the pinned Python 3.12 dependencies; a temporary 10 ms event-loop pulse was needed only for this sandbox runtime's thread callback wakeup |
 | Hosted CI for `v1.1.0-rc.1` | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36278888260`](https://github.com/AndroLay/MemoryLineage/actions/runs/36278888260) and its retry for code commit `e87be2e` ended with `runner_id: 0` and zero steps; they provide no test result. |
+| Hosted CI for `v1.1.0-rc.2` | UNAVAILABLE BEFORE WORKFLOW STEPS | Run [`36287384859`](https://github.com/AndroLay/MemoryLineage/actions/runs/36287384859) and its retry for code commit `9ecc54d` ended with `runner_id: 0` and zero steps; they provide no test result. |
 
 ## Still required before calling the upgrade stable or complete
 
@@ -101,7 +102,9 @@ real synchronous and asynchronous LangGraph + SQLite close/reopen resume tests.
 `cargo xtask langgraph-verify`, `cargo xtask release --quiet`, and
 `npm run verify --silent` passed. The isolated Python 3.12 environment needed
 a temporary event-loop pulse in its test runner; that diagnostic workaround is
-outside the repository. Hosted CI for the new candidate, independent user
-sessions, and fair comparison results remain outstanding. The stable
-`v1.0.2` production and Devpost references stay unchanged until those external
-gates are addressed.
+outside the repository. GitHub Actions run [`36287384859`](https://github.com/AndroLay/MemoryLineage/actions/runs/36287384859)
+and its retry both ended before test steps (`runner_id: 0`). Cloudflare Pages
+deployed code commit `9ecc54d` to the RC2 preview branch; the alias returned
+HTTP 200. The stable `v1.0.2` production and Devpost references remain
+unchanged. Independent user sessions and a fair same-panel comparison remain
+unmeasured.
